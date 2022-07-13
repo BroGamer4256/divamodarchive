@@ -1,0 +1,11 @@
+{% extends "base" %}
+{% import "posts" as posts %}
+{% block title %}{{ title }}{% endblock title %}
+{% block content %}
+{{ posts::draw_search_box(previous_title=previous_search, previous_sort=previous_sort) }}
+{% for post in posts %}
+{{ posts::draw_post_short(id=post.id, name=post.name, text_short=post.text_short, image=post.image, likes=post.likes,
+dislikes=post.dislikes) }}
+{% endfor %}
+{{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 30) }}
+{% endblock content %}

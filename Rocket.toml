@@ -1,0 +1,12 @@
+[default]
+address = "0.0.0.0"
+
+[default.limits]
+"application/x-www-form-urlencoded" = "100 MiB"
+
+[debug]
+port = 8000
+
+[release]
+port = 80
+cli_colors = false

@@ -1,0 +1,958 @@
+{
+	"openapi": "3.0.0",
+	"servers": [
+		{
+			"url": "http://localhost:8000/api/v1"
+		},
+		{
+			"url": "https://divamodarchive.xyz/api/v1"
+		}
+	],
+	"tags": [
+		{
+			"name": "posts",
+			"description": "Post management"
+		},
+		{
+			"name": "users",
+			"description": "User management"
+		}
+	],
+	"info": {
+		"version": "1.0.0",
+		"title": "DIVA Mod Archive",
+		"license": {
+			"name": "Unlicense"
+		},
+		"contact": {
+			"name": "BroGamer"
+		}
+	},
+	"paths": {
+		"/v1.json": {
+			"get": {
+				"summary": "Gets the openapi specification file",
+				"operationId": "api::v1::get_spec",
+				"responses": {
+					"200": {
+						"description": "The openapi specification file"
+					}
+				}
+			}
+		},
+		"/posts/upload_image": {
+			"post": {
+				"tags": [
+					"posts"
+				],
+				"summary": "Upload an image for a post",
+				"operationId": "api::v1::upload_image",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/x-www-form-urlencoded": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"image": {
+										"type": "string",
+										"format": "binary"
+									}
+								}
+							}
+						}
+					},
+					"description": "The image data"
+				},
+				"responses": {
+					"200": {
+						"description": "The image url",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "string"
+								},
+								"example": "\"http://localhost:8000/storage/images/deadbeef.png\""
+							}
+						}
+					},
+					"400": {
+						"description": "The image was not uploaded, either too large or not a png"
+					},
+					"401": {
+						"description": "Unauthorized"
+					},
+					"501": {
+						"description": "Failed to save image"
+					}
+				},
+				"security": [
+					{
+						"logged_in": []
+					}
+				]
+			}
+		},
+		"/posts/upload_archive": {
+			"post": {
+				"tags": [
+					"posts"
+				],
+				"summary": "Upload an archive for a post",
+				"operationId": "api::v1::upload_archive",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/x-www-form-urlencoded": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"archive": {
+										"type": "string",
+										"format": "binary"
+									}
+								}
+							}
+						}
+					},
+					"description": "The archive data"
+				},
+				"responses": {
+					"200": {
+						"description": "The archive url",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "string"
+								},
+								"example": "\"http://localhost:8000/storage/posts/deadbeef.zip\""
+							}
+						}
+					},
+					"400": {
+						"description": "The image was not uploaded, either too large or not a zip | rar | 7z"
+					},
+					"401": {
+						"description": "Unauthorized"
+					},
+					"501": {
+						"description": "Failed to save archive"
+					}
+				},
+				"security": [
+					{
+						"logged_in": []
+					}
+				]
+			}
+		},
+		"/posts/upload": {
+			"post": {
+				"tags": [
+					"posts"
+				],
+				"summary": "Upload a post",
+				"operationId": "api::v1::upload",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PostUnidentified"
+							},
+							"example": {
+								"name": "Test Post",
+								"description": "This is a test post.\nThere are many things to test.",
+								"description_short": "This is a test post",
+								"image": "http://localhost:8000/storage/images/deadbeef.png",
+								"link": "http://localhost:8000/storage/posts/deadbeef.zip"
+							}
+						}
+					},
+					"required": true,
+					"description": "The post data"
+				},
+				"responses": {
+					"200": {
+						"description": "The post",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Post"
+								},
+								"example": {
+									"id": 1,
+									"name": "Test Post",
+									"description": "This is a test post.\nThere are many things to test.",
+									"description_short": "This is a test post",
+									"image": "http://localhost:8000/storage/images/deadbeef.png",
+									"uploader": 1,
+									"link": "http://localhost:8000/storage/posts/deadbeef.zip"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The post was not uploaded due to invalid links"
+					},
+					"401": {
+						"description": "Unauthorized"
+					},
+					"501": {
+						"description": "Failed to save post"
+					}
+				},
+				"security": [
+					{
+						"logged_in": []
+					}
+				]
+			}
+		},
+		"/posts/{id}": {
+			"get": {
+				"tags": [
+					"posts"
+				],
+				"summary": "Get a post by ID",
+				"operationId": "api::v1::posts::details",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "The ID of the post",
+						"required": true,
+						"schema": {
+							"type": "integer",
+							"format": "int32"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A post with user",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PostWithUser"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Post not found"
+					}
+				}
+			}
+		},
+		"/posts/latest": {
+			"get": {
+				"tags": [
+					"posts"
+				],
+				"summary": "Get latest posts with optional filter",
+				"operationId": "api::v1::posts::latest",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "query",
+						"description": "A name to filter results with",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "offset",
+						"in": "query",
+						"description": "An offset to get later result",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A list of posts",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/DetailedPost"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "No posts found"
+					}
+				}
+			}
+		},
+		"/posts/popular": {
+			"get": {
+				"tags": [
+					"posts"
+				],
+				"summary": "Get most popular posts with optional filter",
+				"operationId": "api::v1::posts::popular",
+				"parameters": [
+					{
+						"name": "name",
+						"in": "query",
+						"description": "A name to filter results with",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "offset",
+						"in": "query",
+						"description": "An offset to get later result",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A list of posts",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/DetailedPost"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "No posts found"
+					}
+				}
+			}
+		},
+		"/posts/<id>/like": {
+			"post": {
+				"tags": [
+					"posts"
+				],
+				"summary": "Like a post",
+				"operationId": "api::v1::posts::like",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "The ID of the post",
+						"required": true,
+						"schema": {
+							"type": "integer",
+							"format": "int32"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successfully liked the post",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"id",
+										"post",
+										"user"
+									],
+									"properties": {
+										"id": {
+											"type": "integer",
+											"format": "int32"
+										},
+										"post": {
+											"type": "integer",
+											"format": "int32"
+										},
+										"user": {
+											"type": "integer",
+											"format": "int64"
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Unauthorized"
+					},
+					"409": {
+						"description": "Already liked the post"
+					},
+					"500": {
+						"description": "Failed to save like"
+					}
+				}
+			}
+		},
+		"/posts/<id>/dislike": {
+			"post": {
+				"tags": [
+					"posts"
+				],
+				"summary": "Dislike a post",
+				"operationId": "api::v1::posts::dislike",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "The ID of the post",
+						"required": true,
+						"schema": {
+							"type": "integer",
+							"format": "int32"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successfully disliked the post",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": [
+										"id",
+										"post",
+										"user"
+									],
+									"properties": {
+										"id": {
+											"type": "integer",
+											"format": "int32"
+										},
+										"post": {
+											"type": "integer",
+											"format": "int32"
+										},
+										"user": {
+											"type": "integer",
+											"format": "int64"
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Unauthorized"
+					},
+					"409": {
+						"description": "Already disliked the post"
+					},
+					"500": {
+						"description": "Failed to save like"
+					}
+				}
+			}
+		},
+		"/posts/<id>/delete": {
+			"delete": {
+				"tags": [
+					"posts"
+				],
+				"summary": "Delete a post",
+				"operationId": "api::v1::posts::delete",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "The ID of the post",
+						"required": true,
+						"schema": {
+							"type": "integer",
+							"format": "int32"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successfully deleted the post"
+					},
+					"400": {
+						"description": "Unauthorized"
+					},
+					"404": {
+						"description": "Failed to find post"
+					}
+				},
+				"security": [
+					{
+						"logged_in": []
+					}
+				]
+			}
+		},
+		"/users/{id}": {
+			"get": {
+				"tags": [
+					"users"
+				],
+				"summary": "Get a user by ID",
+				"operationId": "api::v1::users::details",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "The ID of the user",
+						"required": true,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A user",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/User"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "User not found"
+					}
+				}
+			}
+		},
+		"/users/{id}/latest": {
+			"get": {
+				"tags": [
+					"users"
+				],
+				"summary": "Get latest posts by user",
+				"operationId": "api::v1::users::latest",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "The ID of the user",
+						"required": true,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
+					},
+					{
+						"name": "offset",
+						"in": "query",
+						"description": "An offset to get later result",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A list of posts",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/UserPostsDetailed"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Users posts not found"
+					}
+				}
+			}
+		},
+		"/users/{id}/popular": {
+			"get": {
+				"tags": [
+					"users"
+				],
+				"summary": "Get popular posts by user",
+				"operationId": "api::v1::users::popular",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "The ID of the user",
+						"required": true,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
+					},
+					{
+						"name": "offset",
+						"in": "query",
+						"description": "An offset to get later result",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "A list of posts",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/UserPostsDetailed"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Users posts not found"
+					}
+				}
+			}
+		},
+		"/users/login": {
+			"get": {
+				"tags": [
+					"users"
+				],
+				"summary": "Login with discord oauth2 code",
+				"description": "",
+				"parameters": [
+					{
+						"name": "Code",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "Gotten from discord oauth2 return value"
+					}
+				],
+				"operationId": "api::v1::users::login",
+				"responses": {
+					"200": {
+						"description": "User logged in",
+						"content": {
+							"application/jwt": {
+								"schema": {
+									"type": "string",
+									"format": "binary"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Failed to get valid response from discord API"
+					},
+					"500": {
+						"description": "Failed to add/update user"
+					}
+				}
+			}
+		},
+		"/users/delete": {
+			"delete": {
+				"tags": [
+					"users"
+				],
+				"summary": "Delete a user",
+				"operationId": "api::v1::users::delete",
+				"parameters": [
+					{
+						"name": "id",
+						"in": "path",
+						"description": "The ID of the user",
+						"required": true,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "User deleted"
+					},
+					"401": {
+						"description": "Unauthorized"
+					},
+					"404": {
+						"description": "User not found"
+					}
+				},
+				"security": [
+					{
+						"logged_in": []
+					}
+				]
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"PostUnidentified": {
+				"type": "object",
+				"required": [
+					"name",
+					"text",
+					"text_short",
+					"image",
+					"link"
+				],
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"text": {
+						"type": "string"
+					},
+					"text_short": {
+						"type": "string"
+					},
+					"image": {
+						"type": "string"
+					},
+					"link": {
+						"type": "string"
+					}
+				}
+			},
+			"PostWithUser": {
+				"allOf": [
+					{
+						"type": "object",
+						"required": [
+							"id",
+							"name",
+							"description",
+							"image",
+							"link",
+							"likes",
+							"dislikes"
+						],
+						"properties": {
+							"id": {
+								"type": "integer",
+								"format": "int32"
+							},
+							"name": {
+								"type": "string"
+							},
+							"description": {
+								"type": "string"
+							},
+							"image": {
+								"type": "string"
+							},
+							"link": {
+								"type": "string"
+							},
+							"likes": {
+								"type": "integer",
+								"format": "int64"
+							},
+							"dislikes": {
+								"type": "integer",
+								"format": "int64"
+							}
+						}
+					},
+					{
+						"$ref": "#/components/schemas/User"
+					}
+				]
+			},
+			"DetailedPost": {
+				"allOf": [
+					{
+						"type": "object",
+						"required": [
+							"id",
+							"name",
+							"description",
+							"description_short",
+							"image",
+							"link",
+							"likes",
+							"dislikes"
+						],
+						"properties": {
+							"id": {
+								"type": "integer",
+								"format": "int32"
+							},
+							"name": {
+								"type": "string"
+							},
+							"description": {
+								"type": "string"
+							},
+							"description_short": {
+								"type": "string"
+							},
+							"image": {
+								"type": "string"
+							},
+							"link": {
+								"type": "string"
+							},
+							"likes": {
+								"type": "integer",
+								"format": "int64"
+							},
+							"dislikes": {
+								"type": "integer",
+								"format": "int64"
+							}
+						}
+					},
+					{
+						"$ref": "#/components/schemas/User"
+					}
+				]
+			},
+			"DetailedPostNoUser": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"description",
+					"description_short",
+					"image",
+					"link",
+					"likes",
+					"dislikes"
+				],
+				"properties": {
+					"id": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"description_short": {
+						"type": "string"
+					},
+					"image": {
+						"type": "string"
+					},
+					"link": {
+						"type": "string"
+					},
+					"likes": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"dislikes": {
+						"type": "integer",
+						"format": "int64"
+					}
+				}
+			},
+			"UserPostsDetailed": {
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/User"
+					},
+					{
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DetailedPostNoUser"
+						}
+					}
+				]
+			},
+			"User": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"avatar"
+				],
+				"properties": {
+					"id": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"name": {
+						"type": "string"
+					},
+					"avatar": {
+						"type": "string"
+					}
+				}
+			},
+			"Post": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"description",
+					"description_short",
+					"image",
+					"uploader",
+					"link"
+				],
+				"properties": {
+					"id": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"description_short": {
+						"type": "string"
+					},
+					"image": {
+						"type": "string"
+					},
+					"uploader": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"link": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"securitySchemes": {
+			"logged_in": {
+				"type": "http",
+				"scheme": "Bearer",
+				"bearerFormat": "JWT"
+			}
+		}
+	}
+}

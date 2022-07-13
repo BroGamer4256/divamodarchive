@@ -1,0 +1,10 @@
+{% extends "base" %}
+{% import "posts" as posts %}
+{% block title %}{{ post.name }}{% endblock title %}
+{% block content %}
+{{ posts::draw_post_full(id=post.id, name=post.name, text=post.text, image=post.image, link=post.link,
+uploader_id=post.user.id,
+uploader_name=post.user.name,
+likes=post.likes, dislikes=post.dislikes, is_logged_in=is_logged_in, has_liked=has_liked, has_disliked=has_disliked,
+jwt=jwt) }}
+{% endblock content %}

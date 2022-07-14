@@ -70,8 +70,8 @@ pub fn get_user_posts_latest(
 	let results = users::table
 		.filter(users::user_id.eq(id))
 		.inner_join(posts::table)
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
+		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
+		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.order_by(posts::post_id.desc())
 		.select((
@@ -122,8 +122,8 @@ pub fn get_user_posts_latest_detailed(
 	let results = users::table
 		.filter(users::user_id.eq(id))
 		.inner_join(posts::table)
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
+		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
+		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.order_by(posts::post_id.desc())
 		.select((
@@ -308,4 +308,20 @@ pub fn get_user_posts_popular_detailed(
 		});
 	}
 	Ok(result)
+}
+
+pub fn get_user_likes_dislikes(conn: &mut PgConnection, id: i64) -> (i64, i64) {
+	let results = users::table
+		.filter(users::user_id.eq(id))
+		.inner_join(posts::table)
+		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
+		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
+		.group_by((posts::post_id, users::user_id))
+		.select((
+			count_distinct(users_liked_posts::user_id.nullable()),
+			count_distinct(users_disliked_posts::user_id.nullable()),
+		))
+		.get_result::<(i64, i64)>(conn)
+		.unwrap_or_else(|_| (0, 0));
+	(results.0, results.1)
 }

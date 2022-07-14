@@ -9,7 +9,8 @@
 </head>
 
 <body>
-	<div id="content">{% block content %}{% endblock content %}</div>
+	<br>
+	<div id="content" class="container">{% block content %}{% endblock content %}</div>
 	<br><br><br>
 	<nav class="navbar navbar-light bg-dark fixed-bottom d-flex justify-content-around">
 		<a class="nav-link" style="color: white" href="/">Posts</a>

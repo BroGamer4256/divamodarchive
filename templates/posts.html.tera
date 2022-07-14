@@ -20,8 +20,7 @@
 		<div class="card-body">
 			<h4 style="color: white">{{ name | striptags }}</h4>
 			<h6 style="color: white">{{ text_short | striptags }}</h6>
-			<h7 style="color: white">{{ likes }}👍</h7>
-			<h7 style="color: white">{{ dislikes }}👎</h7>
+			<h7 style="color: white">{{ likes }}👍{{ dislikes }}👎</h7>
 		</div>
 	</a>
 </div>
@@ -42,16 +41,18 @@
 </div>
 {% endmacro draw_buttons %}
 
-{% macro draw_search_box(previous_title, previous_sort) %}
+{% macro draw_search_box(previous_title=false, previous_sort) %}
 <br>
-<div class="container-fluid">
+<div class="container-fluid" style="display: flex; justify-content: center;">
 	<form class="nav">
 		<div class="row container">
+			{% if previous_title != false %}
 			<div class="col-6">
 				<input class="form-control" type="text" placeholder="Search" name="name" autocomplete="off"
 					value="{{ previous_title }}">
 			</div>
-			<div class="col-4">
+			{% endif %}
+			<div class="col">
 				<select name="order" class="form-control" selected="{{ previous_sort }}">
 					<option value="latest">Latest</option>
 					{% if previous_sort == "popular" %}

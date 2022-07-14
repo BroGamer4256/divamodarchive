@@ -229,7 +229,7 @@ pub struct PostWithUser {
 	pub user: User,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct UserPosts {
 	pub user: User,
 	pub posts: Vec<ShortPost>,
@@ -241,7 +241,7 @@ pub struct UserPostsDetailed {
 	pub posts: Vec<DetailedPostNoUser>,
 }
 
-#[derive(Queryable, Serialize, Deserialize)]
+#[derive(Queryable, Serialize, Deserialize, Default)]
 pub struct User {
 	pub id: i64,
 	pub name: String,

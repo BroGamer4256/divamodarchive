@@ -1,0 +1,35 @@
+{% extends "base" %}
+{% import "posts" as posts %}
+
+{% block head %}
+{% set description = description ~ "
+" ~ total_likes ~ "👍" ~ total_dislikes ~ "👎" %}
+{{ posts::draw_embed(title=title, description=description) }}
+<meta property="og:image" content="{{ user_posts.user.avatar }}">
+<meta name="twitter:card" content="summary_small_image">
+{% endblock head %}
+
+{% block content %}
+<div class="container card">
+    <div class="row border border-dark">
+        <div class="col-2 card-img-left">
+            <div class="ratio ratio-1x1">
+                <img src="{{ user_posts.user.avatar }}" crossorigin="anonymous">
+            </div>
+        </div>
+        <div class="col-10 card-body">
+            <h1>{{ user_posts.user.name | striptags }}</h1>
+            <h4>{{ total_likes }}👍{{ total_dislikes }}👎</h4>
+        </div>
+    </div>
+</div>
+{{ posts::draw_search_box(previous_sort=previous_sort) }}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-1">
+    {% for post in user_posts.posts %}
+    {{ posts::draw_post_short(id=post.id, name=post.name, text_short=post.text_short, image=post.image,
+    likes=post.likes,
+    dislikes=post.dislikes) }}
+    {% endfor %}
+</div>
+{{ posts::draw_buttons(current_offset=offset, draw_forward=user_posts | length == 30) }}
+{% endblock content %}

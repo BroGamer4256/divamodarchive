@@ -1,10 +1,9 @@
 use crate::models::*;
 use crate::posts::*;
-use crate::users::get_user;
+use crate::users::*;
 use diesel::PgConnection;
-use jsonwebtoken::{decode, Validation};
-use rocket::http::SameSite;
-use rocket::http::{Cookie, CookieJar, Status};
+use jsonwebtoken::*;
+use rocket::http::*;
 use rocket::response::Redirect;
 use rocket_dyn_templates::Template;
 
@@ -169,5 +168,55 @@ pub fn upload(
 	Ok(Template::render(
 		"upload",
 		context![user: user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value()],
+	))
+}
+
+#[get("/user/<id>?<offset>&<order>")]
+pub fn user(
+	connection: &ConnectionState,
+	id: i64,
+	offset: Option<i64>,
+	order: Option<String>,
+	cookies: &CookieJar<'_>,
+) -> Result<Template, Status> {
+	let connection = &mut connection.lock().unwrap();
+	let user = get_user(connection, id)?;
+	let sort_order = match order.clone() {
+		Some(order) => match order.as_str() {
+			"latest" => Order::Latest,
+			"popular" => Order::Popular,
+			_ => Order::Latest,
+		},
+		None => Order::Latest,
+	};
+	let offset = offset.unwrap_or(0);
+	let title = match sort_order {
+		Order::Latest => "Latest",
+		Order::Popular => "Popular",
+	};
+	let results = match sort_order {
+		Order::Latest => get_user_posts_latest(connection, user.id, offset),
+		Order::Popular => get_user_posts_popular(connection, user.id, offset),
+	}
+	.unwrap_or_default();
+	let description = match sort_order {
+		Order::Latest => format!("The latest posts by {}", user.name),
+		Order::Popular => format!("The most popular posts by {}", user.name),
+	};
+	let user_stats = get_user_likes_dislikes(connection, user.id);
+
+	let is_logged_in = is_logged_in(connection, cookies);
+	Ok(Template::render(
+		"user_detail",
+		context![
+			user_posts: &results,
+			is_logged_in: is_logged_in,
+			title: title,
+			description: description,
+			offset: offset,
+			previous_sort: order.unwrap_or_default(),
+			total_likes: user_stats.0,
+			total_dislikes: user_stats.1,
+		],
 	))
 }

@@ -128,7 +128,7 @@ has_liked=false, has_disliked=false, jwt="") %}
 </script>
 <div class="row align-items-md-stretch">
 	<div class="col-md-6 card card-body">
-		<h2 class="card-text">{{ name | striptags }}</h2>
+		<h2 class="card-text" style="text-align: center">{{ name | striptags }} </h2>
 		<h5>
 			<a href="/user/{{ uploader_id }}" class="card-subtitle text-muted">{{ uploader_name | striptags }}</a>
 		</h5>

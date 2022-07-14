@@ -32,6 +32,11 @@ allow_columns_to_appear_in_same_group_by_clause!(
 	schema::users::user_avatar
 );
 
+#[get("/robots.txt")]
+pub fn robots() -> String {
+	String::from("User-agent: *\nDisallow: /api/")
+}
+
 #[get("/storage/<file_type>/<file>")]
 pub fn get_from_storage(file_type: String, file: String) -> Option<std::fs::File> {
 	let file = format!("storage/{}/{}", file_type, file);
@@ -54,7 +59,8 @@ fn rocket() -> _ {
 				web::details,
 				web::login,
 				web::upload,
-				get_from_storage
+				get_from_storage,
+				robots,
 			],
 		)
 		.mount(

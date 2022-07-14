@@ -1,18 +1,27 @@
+{% macro draw_embed(title="DIVA Mod Archive", description="", image="", author="DIVA Mod Archive") %}
+<title>{{ title }} - DIVA Mod Archive</title>
+<meta property="og:title" content="{{ title }} - DIVA Mod Archive">
+{% if description != "" %}
+<meta property="og:description" content="{{ description }}">
+{% endif %}
+{% if image != "" %}
+<meta property="og:image" content="{{ image }}">
+<meta name="twitter:card" content="summary_large_image">
+{% endif %}
+<meta property="og:site_name" content="{{ author }}">
+{% endmacro draw_embed %}
+
 {% macro draw_post_short(id, name, text_short, image, likes, dislikes) %}
-<div class="container-fluid">
-	<a class="nav-link" href="/posts/{{ id }}">
-		<div class="row border border-dark">
-			<div class="col-2">
-				<div class="ratio ratio-16x9">
-					<img src="{{ image }}" crossorigin="anonymous">
-				</div>
-			</div>
-			<div class="col-10">
-				<h4 class="text-muted">{{ name | striptags }}</h4>
-				<h6 class="text-muted">{{ text_short | striptags }}</h6>
-				<h7 class="text-muted">{{ likes }}👍</h7>
-				<h7 class="text-muted">{{ dislikes }}👎</h7>
-			</div>
+<div class="col">
+	<a class="card shadow-sm" style="text-decoration: none;" href="/posts/{{ id }}">
+		<div class="card-img-top ratio ratio-16x9">
+			<img src="{{ image }}" width="100%" height="225" crossorigin="anonymous">
+		</div>
+		<div class="card-body">
+			<h4 style="color: white">{{ name | striptags }}</h4>
+			<h6 style="color: white">{{ text_short | striptags }}</h6>
+			<h7 style="color: white">{{ likes }}👍</h7>
+			<h7 style="color: white">{{ dislikes }}👎</h7>
 		</div>
 	</a>
 </div>
@@ -117,8 +126,8 @@ has_liked=false, has_disliked=false, jwt="") %}
 			.catch(error => console.error(error))
 	}
 </script>
-<div class="container-fluid row">
-	<div class="col-6 card card-body">
+<div class="row align-items-md-stretch">
+	<div class="col-md-6 card card-body">
 		<h2 class="card-text">{{ name | striptags }}</h2>
 		<h5>
 			<a href="/user/{{ uploader_id }}" class="card-subtitle text-muted">{{ uploader_name | striptags }}</a>
@@ -127,7 +136,7 @@ has_liked=false, has_disliked=false, jwt="") %}
 			<img src="{{ image }}" class="card-img-top">
 		</div>
 	</div>
-	<div class="col-6 card card-body h-grid gap-2">
+	<div class="col-md-6 card card-body h-grid gap-2">
 		{% if has_liked %}
 		<div class="btn-group container">
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" checked="true"
@@ -170,13 +179,13 @@ has_liked=false, has_disliked=false, jwt="") %}
 		</div>
 		{% endif %}
 		<div class="btn-group container">
-			<a href="{{ link }}" class="nav-link btn btn-lrg btn-success">
+			<a href="{{ link }}" class="nav-link btn btn-lrg btn-success" download>
 				<button type="button" class="btn">Download</button>
 			</a>
 		</div>
-		<div class="container">
+		<div class="container-fluid">
 			<h5 class="card-text">
-				{{ text | striptags }}
+				{{ text | striptags | linebreaksbr | safe }}
 			</h5>
 		</div>
 	</div>

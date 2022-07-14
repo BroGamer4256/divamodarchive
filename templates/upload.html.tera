@@ -1,18 +1,19 @@
 {% extends "base" %}
-{% block title %}Upload{% endblock title %}
+{% import "posts" as posts %}
+
+{% block head %}
+{{ posts::draw_embed(title="Upload", description="Upload your mod to DIVA Mod Archive") }}
+{% endblock head %}
+
 {% block content %}
 <script>
-	function fail_upload() {
-		alert("Upload failed");
-	}
-
 	function upload() {
 		var form = document.getElementById("form")
 
 		var image = form['imagePicker']
 		var archive = form['filePicker']
 		if (image.files.length != 1 || archive.files.length != 1) {
-			fail_upload()
+			alert("Upload failed\nMissing image/archive");
 			return
 		}
 
@@ -20,7 +21,7 @@
 		var text = form['text'].value
 		var text_short = form['text_short'].value
 		if (title == "" || text == "" || text_short == "") {
-			fail_upload()
+			alert("Upload failed\nMissing text fields");
 			return
 		}
 
@@ -47,7 +48,7 @@
 					.then(response => response.json())
 					.then(image_url => {
 						if (archive_url == null || image_url == null) {
-							fail_upload()
+							alert("Image/Archive upload failed\nOnly png and 7z/zip/rar files are supported at this time\nMaximum size for images is 8MiB\nMaximum size for archives is 100MiB");
 						}
 						let post_data = {
 							'name': name,
@@ -71,15 +72,15 @@
 							.then(data => {
 								window.location.href = "/posts/" + data['id']
 							})
-							.catch(error => fail_upload())
+							.catch(error => alert("Unknown error when uploading"))
 					})
-					.catch(error => fail_upload())
+					.catch(error => alert("Image upload failed\nOnly png files are supported at this time\nMaximum size for images is 8MiB"))
 			})
-			.catch(error => fail_upload())
+			.catch(error => alert("Archive upload failed\nOnly 7z/zip/rar files are supported at this time\nMaximum size for archives is 100MiB"))
 	}
 </script>
-<form id="form" class="container-fluid row" enctype="application/x-www-form-urlencoded">
-	<div class="col-6 card card-body">
+<form id="form" class="row align-items-md-stretch" enctype="application/x-www-form-urlencoded">
+	<div class="col-md-6 card card-body">
 		<h2 class="card-text"><label for="title">Title: </label><input type="text" id="title" name="title"></h2>
 		<h5>
 			<a href="/user/{{ user.id }}" class="card-subtitle text-muted">{{ user.name | striptags }}</a>
@@ -88,7 +89,7 @@
 		<label for="imagePicker" class="form-label mt-4">Image</label>
 		<input class="form-control" accept="image/png" type="file" id="imagePicker">
 	</div>
-	<div class="col-6 card card-body h-grid gap-2">
+	<div class="col-md-6 card card-body h-grid gap-2">
 		<div class="btn-group container">
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
 			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">0👍</label>

@@ -90,12 +90,17 @@ pub fn find_posts(
 		Order::Popular => get_popular_posts(connection, name.clone(), offset),
 	}
 	.unwrap_or_default();
+	let description = match sort_order {
+		Order::Latest => "The latest posts on DIVA Mod Archive",
+		Order::Popular => "The most popular posts on DIVA Mod Archive",
+	};
 	Ok(Template::render(
 		"post_list",
 		context![
 			posts: &results,
 			is_logged_in: is_logged_in(connection, cookies),
 			title: title,
+			description: description,
 			offset: offset,
 			previous_search: name,
 			previous_sort: order.unwrap_or_default(),
@@ -113,8 +118,9 @@ pub fn details(
 	// likes=post.likes, dislikes=post.dislikes, is_logged_in=is_logged_in, has_liked=has_liked, has_disliked=has_disliked
 	let connection = &mut connection.lock().unwrap();
 	let post = get_post(connection, id)?;
-	let who_is_logged_in = who_is_logged_in(connection, cookies)?.id;
-	if who_is_logged_in != -1 {
+	let who_is_logged_in = who_is_logged_in(connection, cookies);
+	if who_is_logged_in.is_ok() {
+		let who_is_logged_in = who_is_logged_in.unwrap().id;
 		let has_liked = has_liked_post(connection, who_is_logged_in, id);
 		let has_disliked = has_disliked_post(connection, who_is_logged_in, id);
 		let jwt = cookies.get_pending("jwt").unwrap();

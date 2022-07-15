@@ -136,6 +136,21 @@ has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0) %}
 			})
 			.catch(error => console.error(error))
 	}
+
+	function deletePost() {
+		const options = {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			}
+		}
+		fetch("/api/v1/posts/{{ id }}/delete/", options)
+			.then(response => {
+				window.location.href = "/"
+			})
+			.catch(error => console.error(error))
+	}
 </script>
 <div class="row align-items-md-stretch gap-3">
 	<div class="col-md-5 card card-body">
@@ -157,8 +172,8 @@ has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0) %}
 		</div>
 	</div>
 	<div class="col-md-5 card card-body h-grid gap-2">
-		{% if has_liked %}
 		<div class="btn-group container">
+			{% if has_liked %}
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" checked="true"
 				onclick="onLike()">
 			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ likes }}👍</label>
@@ -166,9 +181,7 @@ has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0) %}
 				onclick="onDislike()">
 			<label class="btn btn-outline-primary" for="dislikedradiobtn" id="dislikes">{{ dislikes
 				}}👎</label>
-		</div>
-		{% elif has_disliked %}
-		<div class="btn-group container">
+			{% elif has_disliked %}
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off"
 				onclick="onLike()">
 			<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ likes
@@ -177,9 +190,7 @@ has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0) %}
 				autocomplete="off" onclick="onDislike()">
 			<label class="btn btn-outline-primary disabled" for="dislikedradiobtn" id="dislikes">{{ dislikes
 				}}👎</label>
-		</div>
-		{% elif is_logged_in %}
-		<div class="btn-group container">
+			{% elif is_logged_in %}
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off"
 				onclick="onLike()">
 			<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ likes }}👍
@@ -188,24 +199,26 @@ has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0) %}
 				onclick="onDislike()">
 			<label class="btn btn-outline-primary" for="dislikedradiobtn" id="dislikes">{{ dislikes }}👎
 			</label>
-		</div>
-		{% else %}
-		<div class="btn-group container">
+			{% else %}
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
 			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ likes }}👍</label>
 			<input type="radio" class="btn-check" name="btnradio" id="dislikedradiobtn" autocomplete="off">
 			<label class="btn btn-outline-primary disabled" for="dislikedradiobtn" id="dislikes">{{ dislikes
 				}}👎</label>
+			{% endif %}
 		</div>
-		{% endif %}
-		<div class="btn-group container">
-			<a href="{{ link }}" class="btn btn-lrg btn-success" download>
+		<!--  -->
+		<div class="btn-group container-fluid">
+			<a href="{{ link }}" class="btn btn-success" download>
 				<button type="button" class="btn">Download</button>
 			</a>
 			{% if who_is_logged_in == uploader_id %}
-			<a href="/post/{{ id }}/edit" class="nav-link btn btn-lrg btn-info">
+			<a href="/posts/{{ id }}/edit" class="btn btn-info">
 				<button type="button" class="btn">Edit</button>
 			</a>
+			<div class="btn btn-danger">
+				<button type="button" class="btn" onclick="deletePost()">Delete</button>
+			</div>
 			{% endif %}
 		</div>
 		<div class="container-fluid">

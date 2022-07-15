@@ -97,9 +97,18 @@
 	<div class="col-md-6 card card-body h-grid gap-2">
 		<div class="btn-group container">
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
+			{% if likes %}
+			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ likes }}👍</label>
+			{% else %}
 			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">0👍</label>
+			{% endif %}
 			<input type="radio" class="btn-check" name="btnradio" id="dislikedradiobtn" autocomplete="off">
+			{% if dislikes %}
+			<label class="btn btn-outline-primary disabled" for="dislikedradiobtn" id="dislikes">{{ dislikes
+				}}👎</label>
+			{% else %}
 			<label class="btn btn-outline-primary disabled" for="dislikedradiobtn" id="dislikes">0👎</label>
+			{% endif %}
 		</div>
 		<div class="btn-group container">
 			<button type="button" class="btn btn-lrg btn-success" onclick="upload()">Upload</button>

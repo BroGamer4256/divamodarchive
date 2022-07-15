@@ -221,3 +221,30 @@ pub fn user(
 		],
 	))
 }
+
+#[get("/posts/<id>/edit")]
+pub fn edit(
+	connection: &ConnectionState,
+	id: i32,
+	user: User,
+	cookies: &CookieJar<'_>,
+) -> Result<Template, Redirect> {
+	let connection = &mut connection.lock().unwrap();
+	let post = get_post(connection, id);
+	let who_is_logged_in = who_is_logged_in(connection, cookies);
+	if post.is_ok() && who_is_logged_in.is_ok() {
+		let post = post.unwrap();
+		let who_is_logged_in = who_is_logged_in.unwrap().id;
+		if post.user.id == who_is_logged_in {
+			let jwt = cookies.get_pending("jwt").unwrap();
+			Ok(Template::render(
+				"upload",
+				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes],
+			))
+		} else {
+			Err(Redirect::to(format!("/posts/{}", id)))
+		}
+	} else {
+		Err(Redirect::to(format!("/posts/{}", id)))
+	}
+}

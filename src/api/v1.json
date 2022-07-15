@@ -747,7 +747,8 @@
 						"required": [
 							"id",
 							"name",
-							"description",
+							"text",
+							"text_short",
 							"image",
 							"link",
 							"likes",
@@ -762,7 +763,10 @@
 							"name": {
 								"type": "string"
 							},
-							"description": {
+							"text": {
+								"type": "string"
+							},
+							"text_short": {
 								"type": "string"
 							},
 							"image": {

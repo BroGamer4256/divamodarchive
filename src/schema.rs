@@ -7,6 +7,13 @@ table! {
 }
 
 table! {
+    post_dependencies (post_id, dependency_id) {
+        post_id -> Int4,
+        dependency_id -> Int4,
+    }
+}
+
+table! {
     posts (post_id) {
         post_id -> Int4,
         post_name -> Text,
@@ -50,6 +57,7 @@ joinable!(users_liked_posts -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     download_stats,
+    post_dependencies,
     posts,
     users,
     users_disliked_posts,

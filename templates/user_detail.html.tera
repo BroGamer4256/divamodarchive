@@ -19,9 +19,9 @@ Downloads: " ~ total_downloads %}
             </div>
         </div>
         <div class="col-10 card-body">
-            <h1>{{ user_posts.user.name | striptags }}</h1>
-            <h5>{{ total_likes }}👍{{ total_dislikes }}👎</h5>
-            <h5>Downloads: {{ total_downloads }}</h5>
+            <h1 class="text">{{ user_posts.user.name | striptags }}</h1>
+            <h5 class="text">{{ total_likes }}👍{{ total_dislikes }}👎</h5>
+            <h5 class="text">Downloads: {{ total_downloads }}</h5>
         </div>
     </div>
 </div>

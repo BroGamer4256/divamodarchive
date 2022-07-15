@@ -233,7 +233,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/PostWithUser"
+									"$ref": "#/components/schemas/DetailedPost"
 								}
 							}
 						}
@@ -739,60 +739,6 @@
 						"type": "string"
 					}
 				}
-			},
-			"PostWithUser": {
-				"allOf": [
-					{
-						"type": "object",
-						"required": [
-							"id",
-							"name",
-							"text",
-							"text_short",
-							"image",
-							"link",
-							"likes",
-							"dislikes",
-							"downloads"
-						],
-						"properties": {
-							"id": {
-								"type": "integer",
-								"format": "int32"
-							},
-							"name": {
-								"type": "string"
-							},
-							"text": {
-								"type": "string"
-							},
-							"text_short": {
-								"type": "string"
-							},
-							"image": {
-								"type": "string"
-							},
-							"link": {
-								"type": "string"
-							},
-							"likes": {
-								"type": "integer",
-								"format": "int64"
-							},
-							"dislikes": {
-								"type": "integer",
-								"format": "int64"
-							},
-							"downloads": {
-								"type": "integer",
-								"format": "int64"
-							}
-						}
-					},
-					{
-						"$ref": "#/components/schemas/User"
-					}
-				]
 			},
 			"DetailedPost": {
 				"allOf": [

@@ -119,7 +119,7 @@ pub async fn upload(
 }
 
 #[get("/<id>")]
-pub fn details(connection: &ConnectionState, id: i32) -> Result<Json<PostWithUser>, Status> {
+pub fn details(connection: &ConnectionState, id: i32) -> Result<Json<DetailedPost>, Status> {
 	let result = get_post(&mut connection.lock().unwrap(), id)?;
 	Ok(Json(result))
 }

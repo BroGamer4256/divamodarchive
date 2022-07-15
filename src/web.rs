@@ -56,6 +56,27 @@ pub fn is_logged_in(connection: &mut PgConnection, cookies: &CookieJar<'_>) -> b
 	}
 }
 
+pub fn is_light_mode(cookies: &CookieJar<'_>) -> bool {
+	let light_mode = cookies.get_pending("light_mode");
+	if light_mode.is_none() {
+		return false;
+	}
+	let light_mode = light_mode.unwrap();
+	let light_mode = light_mode.value();
+	light_mode == "true"
+}
+
+#[get("/theme")]
+pub fn set_theme(cookies: &CookieJar<'_>) -> Redirect {
+	let new = if is_light_mode(cookies) {
+		"false"
+	} else {
+		"true"
+	};
+	cookies.add(Cookie::new("light_mode", new));
+	Redirect::to("/")
+}
+
 pub enum Order {
 	Latest,
 	Popular,
@@ -90,8 +111,8 @@ pub fn find_posts(
 	}
 	.unwrap_or_default();
 	let description = match sort_order {
-		Order::Latest => "The latest posts on DIVA Mod Archive",
-		Order::Popular => "The most popular posts on DIVA Mod Archive",
+		Order::Latest => "The latest posts",
+		Order::Popular => "The most popular posts",
 	};
 	Ok(Template::render(
 		"post_list",
@@ -103,6 +124,7 @@ pub fn find_posts(
 			offset: offset,
 			previous_search: name,
 			previous_sort: order.unwrap_or_default(),
+			light_mode: is_light_mode(cookies),
 		],
 	))
 }
@@ -125,12 +147,12 @@ pub fn details(
 		let jwt = cookies.get_pending("jwt").unwrap();
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in],
+			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, light_mode: is_light_mode(cookies),],
 		))
 	} else {
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0],
+			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, light_mode: is_light_mode(cookies),],
 		))
 	}
 }
@@ -167,7 +189,7 @@ pub fn upload(
 	let connection = &mut connection.lock().unwrap();
 	Ok(Template::render(
 		"upload",
-		context![user: user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value()],
+		context![user: user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), light_mode: is_light_mode(cookies),],
 	))
 }
 
@@ -217,7 +239,8 @@ pub fn user(
 			previous_sort: order.unwrap_or_default(),
 			total_likes: user_stats.0,
 			total_dislikes: user_stats.1,
-			total_downloads: user_stats.2
+			total_downloads: user_stats.2,
+			light_mode: is_light_mode(cookies),
 		],
 	))
 }
@@ -226,9 +249,13 @@ pub fn user(
 pub fn edit(
 	connection: &ConnectionState,
 	id: i32,
-	user: User,
+	user: Option<User>,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
+	if user.is_none() {
+		return Err(Redirect::to(format!("/posts/{}", id)));
+	}
+	let user = user.unwrap();
 	let connection = &mut connection.lock().unwrap();
 	let post = get_post(connection, id);
 	let who_is_logged_in = who_is_logged_in(connection, cookies);
@@ -239,7 +266,7 @@ pub fn edit(
 			let jwt = cookies.get_pending("jwt").unwrap();
 			Ok(Template::render(
 				"upload",
-				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes],
+				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies),],
 			))
 		} else {
 			Err(Redirect::to(format!("/posts/{}", id)))

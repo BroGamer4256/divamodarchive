@@ -69,6 +69,7 @@ fn rocket() -> _ {
 				web::upload,
 				web::user,
 				web::edit,
+				web::set_theme,
 				get_from_storage,
 				robots,
 			],

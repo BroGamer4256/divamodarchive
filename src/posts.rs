@@ -254,9 +254,56 @@ pub fn get_latest_posts_detailed(
 	if results.is_empty() {
 		return Err(Status::NotFound);
 	}
-	Ok(results
-		.iter()
-		.map(|post| DetailedPost {
+	let mut posts = vec![];
+	for post in results {
+		let dependencies = post_dependencies::table
+			.filter(post_dependencies::post_id.eq(post.0))
+			.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
+			.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
+			.left_join(
+				users_liked_posts::table
+					.on(users_liked_posts::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.left_join(
+				users_disliked_posts::table
+					.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.left_join(
+				download_stats::table
+					.on(download_stats::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.group_by((posts::post_id, users::user_id))
+			.select((
+				posts::post_id,
+				posts::post_name,
+				posts::post_text,
+				posts::post_text_short,
+				posts::post_image,
+				posts::post_link,
+				count_distinct(users_liked_posts::user_id.nullable()),
+				count_distinct(users_disliked_posts::user_id.nullable()),
+				count_distinct(download_stats::timestamp.nullable()),
+				users::user_id,
+				users::user_name,
+				users::user_avatar,
+			))
+			.load::<(
+				i32,
+				String,
+				String,
+				String,
+				String,
+				String,
+				i64,
+				i64,
+				i64,
+				i64,
+				String,
+				String,
+			)>(connection)
+			.unwrap_or_else(|_| vec![]);
+
+		posts.push(DetailedPost {
 			id: post.0,
 			name: post.1.clone(),
 			text: post.2.clone(),
@@ -271,8 +318,29 @@ pub fn get_latest_posts_detailed(
 				name: post.10.clone(),
 				avatar: post.11.clone(),
 			},
-		})
-		.collect::<Vec<DetailedPost>>())
+			dependencies: dependencies
+				.into_iter()
+				.map(|dependency| DetailedPost {
+					id: dependency.0,
+					name: dependency.1.clone(),
+					text: dependency.2.clone(),
+					text_short: dependency.3.clone(),
+					image: dependency.4.clone(),
+					link: dependency.5.clone(),
+					likes: dependency.6,
+					dislikes: dependency.7,
+					downloads: dependency.8,
+					user: User {
+						id: dependency.9,
+						name: dependency.10.clone(),
+						avatar: dependency.11.clone(),
+					},
+					dependencies: vec![],
+				})
+				.collect(),
+		});
+	}
+	Ok(posts)
 }
 
 pub fn get_popular_posts(
@@ -375,9 +443,56 @@ pub fn get_popular_posts_detailed(
 	if results.is_empty() {
 		return Err(Status::NotFound);
 	}
-	Ok(results
-		.iter()
-		.map(|post| DetailedPost {
+	let mut posts = vec![];
+	for post in results {
+		let dependencies = post_dependencies::table
+			.filter(post_dependencies::post_id.eq(post.0))
+			.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
+			.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
+			.left_join(
+				users_liked_posts::table
+					.on(users_liked_posts::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.left_join(
+				users_disliked_posts::table
+					.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.left_join(
+				download_stats::table
+					.on(download_stats::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.group_by((posts::post_id, users::user_id))
+			.select((
+				posts::post_id,
+				posts::post_name,
+				posts::post_text,
+				posts::post_text_short,
+				posts::post_image,
+				posts::post_link,
+				count_distinct(users_liked_posts::user_id.nullable()),
+				count_distinct(users_disliked_posts::user_id.nullable()),
+				count_distinct(download_stats::timestamp.nullable()),
+				users::user_id,
+				users::user_name,
+				users::user_avatar,
+			))
+			.load::<(
+				i32,
+				String,
+				String,
+				String,
+				String,
+				String,
+				i64,
+				i64,
+				i64,
+				i64,
+				String,
+				String,
+			)>(connection)
+			.unwrap_or_else(|_| vec![]);
+
+		posts.push(DetailedPost {
 			id: post.0,
 			name: post.1.clone(),
 			text: post.2.clone(),
@@ -392,11 +507,32 @@ pub fn get_popular_posts_detailed(
 				name: post.10.clone(),
 				avatar: post.11.clone(),
 			},
-		})
-		.collect::<Vec<DetailedPost>>())
+			dependencies: dependencies
+				.into_iter()
+				.map(|dependency| DetailedPost {
+					id: dependency.0,
+					name: dependency.1.clone(),
+					text: dependency.2.clone(),
+					text_short: dependency.3.clone(),
+					image: dependency.4.clone(),
+					link: dependency.5.clone(),
+					likes: dependency.6,
+					dislikes: dependency.7,
+					downloads: dependency.8,
+					user: User {
+						id: dependency.9,
+						name: dependency.10.clone(),
+						avatar: dependency.11.clone(),
+					},
+					dependencies: vec![],
+				})
+				.collect(),
+		});
+	}
+	Ok(posts)
 }
 
-pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<PostWithUser, Status> {
+pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, Status> {
 	let result = posts::table
 		.filter(posts::post_id.eq(id))
 		.inner_join(users::table)
@@ -452,7 +588,54 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<PostWithUser, 
 	if result.0 == -1 {
 		Err(Status::NotFound)
 	} else {
-		Ok(PostWithUser {
+		let dependencies = post_dependencies::table
+			.filter(post_dependencies::post_id.eq(result.0))
+			.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
+			.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
+			.left_join(
+				users_liked_posts::table
+					.on(users_liked_posts::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.left_join(
+				users_disliked_posts::table
+					.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.left_join(
+				download_stats::table
+					.on(download_stats::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.group_by((posts::post_id, users::user_id))
+			.select((
+				posts::post_id,
+				posts::post_name,
+				posts::post_text,
+				posts::post_text_short,
+				posts::post_image,
+				posts::post_link,
+				count_distinct(users_liked_posts::user_id.nullable()),
+				count_distinct(users_disliked_posts::user_id.nullable()),
+				count_distinct(download_stats::timestamp.nullable()),
+				users::user_id,
+				users::user_name,
+				users::user_avatar,
+			))
+			.load::<(
+				i32,
+				String,
+				String,
+				String,
+				String,
+				String,
+				i64,
+				i64,
+				i64,
+				i64,
+				String,
+				String,
+			)>(connection)
+			.unwrap_or_else(|_| vec![]);
+
+		Ok(DetailedPost {
 			id: result.0,
 			name: result.1.clone(),
 			text: result.2.clone(),
@@ -467,6 +650,26 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<PostWithUser, 
 				name: result.10.clone(),
 				avatar: result.11.clone(),
 			},
+			dependencies: dependencies
+				.into_iter()
+				.map(|dependency| DetailedPost {
+					id: dependency.0,
+					name: dependency.1.clone(),
+					text: dependency.2.clone(),
+					text_short: dependency.3.clone(),
+					image: dependency.4.clone(),
+					link: dependency.5.clone(),
+					likes: dependency.6,
+					dislikes: dependency.7,
+					downloads: dependency.8,
+					user: User {
+						id: dependency.9,
+						name: dependency.10.clone(),
+						avatar: dependency.11.clone(),
+					},
+					dependencies: vec![],
+				})
+				.collect(),
 		})
 	}
 }

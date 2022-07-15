@@ -199,6 +199,7 @@ pub struct DetailedPostNoUser {
 	pub name: String,
 	pub text: String,
 	pub text_short: String,
+	pub dependencies: Vec<Self>,
 	pub image: String,
 	pub link: String,
 	pub likes: i64,
@@ -212,20 +213,7 @@ pub struct DetailedPost {
 	pub name: String,
 	pub text: String,
 	pub text_short: String,
-	pub image: String,
-	pub link: String,
-	pub likes: i64,
-	pub dislikes: i64,
-	pub downloads: i64,
-	pub user: User,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct PostWithUser {
-	pub id: i32,
-	pub name: String,
-	pub text: String,
-	pub text_short: String,
+	pub dependencies: Vec<Self>,
 	pub image: String,
 	pub link: String,
 	pub likes: i64,

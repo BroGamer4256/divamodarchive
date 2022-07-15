@@ -185,6 +185,53 @@ pub fn get_user_posts_latest_detailed(
 		posts: vec![],
 	};
 	for post in results {
+		let dependencies = post_dependencies::table
+			.filter(post_dependencies::post_id.eq(post.0))
+			.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
+			.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
+			.left_join(
+				users_liked_posts::table
+					.on(users_liked_posts::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.left_join(
+				users_disliked_posts::table
+					.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.left_join(
+				download_stats::table
+					.on(download_stats::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.group_by((posts::post_id, users::user_id))
+			.select((
+				posts::post_id,
+				posts::post_name,
+				posts::post_text,
+				posts::post_text_short,
+				posts::post_image,
+				posts::post_link,
+				count_distinct(users_liked_posts::user_id.nullable()),
+				count_distinct(users_disliked_posts::user_id.nullable()),
+				count_distinct(download_stats::timestamp.nullable()),
+				users::user_id,
+				users::user_name,
+				users::user_avatar,
+			))
+			.load::<(
+				i32,
+				String,
+				String,
+				String,
+				String,
+				String,
+				i64,
+				i64,
+				i64,
+				i64,
+				String,
+				String,
+			)>(conn)
+			.unwrap_or_else(|_| vec![]);
+
 		result.posts.push(DetailedPostNoUser {
 			id: post.0,
 			name: post.1,
@@ -195,6 +242,21 @@ pub fn get_user_posts_latest_detailed(
 			likes: post.6,
 			dislikes: post.7,
 			downloads: post.8,
+			dependencies: dependencies
+				.into_iter()
+				.map(|dependency| DetailedPostNoUser {
+					id: dependency.0,
+					name: dependency.1,
+					text: dependency.2,
+					text_short: dependency.3,
+					image: dependency.4,
+					link: dependency.5,
+					likes: dependency.6,
+					dislikes: dependency.7,
+					downloads: dependency.8,
+					dependencies: vec![],
+				})
+				.collect(),
 		});
 	}
 	Ok(result)
@@ -322,6 +384,7 @@ pub fn get_user_posts_popular_detailed(
 	if results.is_empty() {
 		return Err(Status::NotFound);
 	}
+
 	let mut result = UserPostsDetailed {
 		user: User {
 			id: results[0].9,
@@ -331,6 +394,53 @@ pub fn get_user_posts_popular_detailed(
 		posts: vec![],
 	};
 	for post in results {
+		let dependencies = post_dependencies::table
+			.filter(post_dependencies::post_id.eq(post.0))
+			.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
+			.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
+			.left_join(
+				users_liked_posts::table
+					.on(users_liked_posts::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.left_join(
+				users_disliked_posts::table
+					.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.left_join(
+				download_stats::table
+					.on(download_stats::post_id.eq(post_dependencies::dependency_id)),
+			)
+			.group_by((posts::post_id, users::user_id))
+			.select((
+				posts::post_id,
+				posts::post_name,
+				posts::post_text,
+				posts::post_text_short,
+				posts::post_image,
+				posts::post_link,
+				count_distinct(users_liked_posts::user_id.nullable()),
+				count_distinct(users_disliked_posts::user_id.nullable()),
+				count_distinct(download_stats::timestamp.nullable()),
+				users::user_id,
+				users::user_name,
+				users::user_avatar,
+			))
+			.load::<(
+				i32,
+				String,
+				String,
+				String,
+				String,
+				String,
+				i64,
+				i64,
+				i64,
+				i64,
+				String,
+				String,
+			)>(conn)
+			.unwrap_or_else(|_| vec![]);
+
 		result.posts.push(DetailedPostNoUser {
 			id: post.0,
 			name: post.1,
@@ -341,6 +451,21 @@ pub fn get_user_posts_popular_detailed(
 			likes: post.6,
 			dislikes: post.7,
 			downloads: post.8,
+			dependencies: dependencies
+				.into_iter()
+				.map(|dependency| DetailedPostNoUser {
+					id: dependency.0,
+					name: dependency.1,
+					text: dependency.2,
+					text_short: dependency.3,
+					image: dependency.4,
+					link: dependency.5,
+					likes: dependency.6,
+					dislikes: dependency.7,
+					downloads: dependency.8,
+					dependencies: vec![],
+				})
+				.collect(),
 		});
 	}
 	Ok(result)

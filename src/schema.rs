@@ -1,4 +1,12 @@
 table! {
+    download_stats (download_id) {
+        download_id -> Int4,
+        post_id -> Int4,
+        timestamp -> Timestamp,
+    }
+}
+
+table! {
     posts (post_id) {
         post_id -> Int4,
         post_name -> Text,
@@ -41,6 +49,7 @@ joinable!(users_liked_posts -> posts (post_id));
 joinable!(users_liked_posts -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
+    download_stats,
     posts,
     users,
     users_disliked_posts,

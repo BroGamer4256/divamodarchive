@@ -190,6 +190,7 @@ pub struct ShortPost {
 	pub image: String,
 	pub likes: i64,
 	pub dislikes: i64,
+	pub downloads: i64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -202,6 +203,7 @@ pub struct DetailedPostNoUser {
 	pub link: String,
 	pub likes: i64,
 	pub dislikes: i64,
+	pub downloads: i64,
 }
 
 #[derive(Queryable, Serialize, Deserialize)]
@@ -214,6 +216,7 @@ pub struct DetailedPost {
 	pub link: String,
 	pub likes: i64,
 	pub dislikes: i64,
+	pub downloads: i64,
 	pub user: User,
 }
 
@@ -226,6 +229,7 @@ pub struct PostWithUser {
 	pub link: String,
 	pub likes: i64,
 	pub dislikes: i64,
+	pub downloads: i64,
 	pub user: User,
 }
 

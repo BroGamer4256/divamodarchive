@@ -3,7 +3,8 @@
 
 {% block head %}
 {% set description = description ~ "
-" ~ total_likes ~ "👍" ~ total_dislikes ~ "👎" %}
+" ~ total_likes ~ "👍" ~ total_dislikes ~ "👎" ~ "
+Downloads: " ~ total_downloads %}
 {{ posts::draw_embed(title=title, description=description) }}
 <meta property="og:image" content="{{ user_posts.user.avatar }}">
 <meta name="twitter:card" content="summary_small_image">
@@ -19,16 +20,17 @@
         </div>
         <div class="col-10 card-body">
             <h1>{{ user_posts.user.name | striptags }}</h1>
-            <h4>{{ total_likes }}👍{{ total_dislikes }}👎</h4>
+            <h5>{{ total_likes }}👍{{ total_dislikes }}👎</h5>
+            <h5>Downloads: {{ total_downloads }}</h5>
         </div>
     </div>
 </div>
 {{ posts::draw_search_box(previous_sort=previous_sort) }}
-<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-1">
+<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
     {% for post in user_posts.posts %}
     {{ posts::draw_post_short(id=post.id, name=post.name, text_short=post.text_short, image=post.image,
     likes=post.likes,
-    dislikes=post.dislikes) }}
+    dislikes=post.dislikes, downloads=post.downloads) }}
     {% endfor %}
 </div>
 {{ posts::draw_buttons(current_offset=offset, draw_forward=user_posts | length == 30) }}

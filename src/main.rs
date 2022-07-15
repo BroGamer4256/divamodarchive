@@ -38,8 +38,16 @@ pub fn robots() -> String {
 }
 
 #[get("/storage/<file_type>/<file>")]
-pub fn get_from_storage(file_type: String, file: String) -> Option<std::fs::File> {
+pub fn get_from_storage(
+	connection: &models::ConnectionState,
+	file_type: String,
+	file: String,
+) -> Option<std::fs::File> {
 	let file = format!("storage/{}/{}", file_type, file);
+	if file_type == "posts" {
+		let path = format!("{}/{}", models::BASE_URL.to_string(), file);
+		let _ = posts::update_download_count(&mut connection.lock().unwrap(), path);
+	}
 	std::fs::File::open(file).ok()
 }
 

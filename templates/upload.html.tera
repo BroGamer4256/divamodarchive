@@ -81,7 +81,12 @@
 </script>
 <form id="form" class="row align-items-md-stretch" enctype="application/x-www-form-urlencoded">
 	<div class="col-md-6 card card-body">
+		{% if previous_title %}
+		<h2 class="card-text"><label for="title">Title: </label><input type="text" id="title" name="title"
+				value="{{ previous_title }}"></h2>
+		{% else %}
 		<h2 class="card-text"><label for="title">Title: </label><input type="text" id="title" name="title"></h2>
+		{% endif %}
 		<h5>
 			<a href="/user/{{ user.id }}" class="card-subtitle text-muted">{{ user.name | striptags }}</a>
 		</h5>
@@ -106,9 +111,17 @@
 		<div class="container">
 			<h5 class="card-text">
 				<label for="text">Long Description</label>
+				{% if previous_description %}
+				<textarea class="form-control" id="text" rows="5">{{ previous_description }}</textarea>
+				{% else %}
 				<textarea class="form-control" id="text" rows="5"></textarea>
+				{% endif %}
 				<label for="text_short">Short Description</label>
-				<input class="form-control" type="text" id="text_short" name="text_short">
+				{% if previous_description_short %}
+				<input class="form-control" type="text" id="text_short" value="{{ previous_description_short }}">
+				{% else %}
+				<input class="form-control" type="text" id="text_short">
+				{% endif %}
 			</h5>
 		</div>
 	</div>

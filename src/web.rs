@@ -125,12 +125,12 @@ pub fn details(
 		let jwt = cookies.get_pending("jwt").unwrap();
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value()],
+			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in],
 		))
 	} else {
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>],
+			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0],
 		))
 	}
 }
@@ -203,7 +203,7 @@ pub fn user(
 		Order::Latest => format!("The latest posts by {}", user.name),
 		Order::Popular => format!("The most popular posts by {}", user.name),
 	};
-	let user_stats = get_user_likes_dislikes(connection, user.id);
+	let user_stats = get_user_stats(connection, user.id);
 
 	let is_logged_in = is_logged_in(connection, cookies);
 	Ok(Template::render(
@@ -217,6 +217,7 @@ pub fn user(
 			previous_sort: order.unwrap_or_default(),
 			total_likes: user_stats.0,
 			total_dislikes: user_stats.1,
+			total_downloads: user_stats.2
 		],
 	))
 }

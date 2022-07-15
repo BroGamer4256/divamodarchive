@@ -170,6 +170,7 @@ pub fn get_latest_posts(
 	let results = posts::table
 		.left_join(users_liked_posts::table)
 		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by(posts::post_id)
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.order_by(posts::post_id.desc())
@@ -180,10 +181,11 @@ pub fn get_latest_posts(
 			posts::post_image,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
 		))
 		.limit(30)
 		.offset(offset)
-		.load::<(i32, String, String, String, i64, i64)>(connection)
+		.load::<(i32, String, String, String, i64, i64, i64)>(connection)
 		.unwrap_or_else(|_| vec![]);
 
 	if results.is_empty() {
@@ -199,6 +201,7 @@ pub fn get_latest_posts(
 			image: post.3.clone(),
 			likes: post.4,
 			dislikes: post.5,
+			downloads: post.6,
 		})
 		.collect::<Vec<ShortPost>>())
 }
@@ -213,6 +216,7 @@ pub fn get_latest_posts_detailed(
 		.inner_join(users::table)
 		.left_join(users_liked_posts::table)
 		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.order_by(posts::post_id.desc())
 		.select((
@@ -224,6 +228,7 @@ pub fn get_latest_posts_detailed(
 			posts::post_link,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
 			users::user_id,
 			users::user_name,
 			users::user_avatar,
@@ -237,6 +242,7 @@ pub fn get_latest_posts_detailed(
 			String,
 			String,
 			String,
+			i64,
 			i64,
 			i64,
 			i64,
@@ -259,10 +265,11 @@ pub fn get_latest_posts_detailed(
 			link: post.5.clone(),
 			likes: post.6,
 			dislikes: post.7,
+			downloads: post.8,
 			user: User {
-				id: post.8,
-				name: post.9.clone(),
-				avatar: post.10.clone(),
+				id: post.9,
+				name: post.10.clone(),
+				avatar: post.11.clone(),
 			},
 		})
 		.collect::<Vec<DetailedPost>>())
@@ -277,6 +284,7 @@ pub fn get_popular_posts(
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.left_join(users_liked_posts::table)
 		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by(posts::post_id)
 		.order_by(
 			(count_distinct(users_liked_posts::user_id.nullable())
@@ -290,10 +298,11 @@ pub fn get_popular_posts(
 			posts::post_image,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
 		))
 		.limit(30)
 		.offset(offset)
-		.load::<(i32, String, String, String, i64, i64)>(connection)
+		.load::<(i32, String, String, String, i64, i64, i64)>(connection)
 		.unwrap_or_else(|_| vec![]);
 
 	if results.is_empty() {
@@ -309,6 +318,7 @@ pub fn get_popular_posts(
 			image: post.3.clone(),
 			likes: post.4,
 			dislikes: post.5,
+			downloads: post.6,
 		})
 		.collect::<Vec<ShortPost>>())
 }
@@ -323,6 +333,7 @@ pub fn get_popular_posts_detailed(
 		.inner_join(users::table)
 		.left_join(users_liked_posts::table)
 		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.order_by(
 			(count_distinct(users_liked_posts::user_id.nullable())
@@ -338,6 +349,7 @@ pub fn get_popular_posts_detailed(
 			posts::post_link,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
 			users::user_id,
 			users::user_name,
 			users::user_avatar,
@@ -351,6 +363,7 @@ pub fn get_popular_posts_detailed(
 			String,
 			String,
 			String,
+			i64,
 			i64,
 			i64,
 			i64,
@@ -373,10 +386,11 @@ pub fn get_popular_posts_detailed(
 			link: post.5.clone(),
 			likes: post.6,
 			dislikes: post.7,
+			downloads: post.8,
 			user: User {
-				id: post.8,
-				name: post.9.clone(),
-				avatar: post.10.clone(),
+				id: post.9,
+				name: post.10.clone(),
+				avatar: post.11.clone(),
 			},
 		})
 		.collect::<Vec<DetailedPost>>())
@@ -388,6 +402,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<PostWithUser, 
 		.inner_join(users::table)
 		.left_join(users_liked_posts::table)
 		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.select((
 			posts::post_id,
@@ -397,6 +412,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<PostWithUser, 
 			posts::post_link,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
 			users::user_id,
 			users::user_name,
 			users::user_avatar,
@@ -410,6 +426,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<PostWithUser, 
 			i64,
 			i64,
 			i64,
+			i64,
 			String,
 			String,
 		)>(connection)
@@ -420,6 +437,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<PostWithUser, 
 				String::new(),
 				String::new(),
 				String::new(),
+				0i64,
 				0i64,
 				0i64,
 				0i64,
@@ -439,10 +457,11 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<PostWithUser, 
 			link: result.4,
 			likes: result.5,
 			dislikes: result.6,
+			downloads: result.7,
 			user: User {
-				id: result.7,
-				name: result.8,
-				avatar: result.9,
+				id: result.8,
+				name: result.9,
+				avatar: result.10,
 			},
 		})
 	}
@@ -459,6 +478,30 @@ pub fn delete_post(conn: &mut PgConnection, id: i32, user_id: i64) -> Status {
 	if result.is_ok() {
 		Status::Ok
 	} else {
+		Status::NotFound
+	}
+}
+
+pub fn update_download_count(conn: &mut PgConnection, path: String) -> Status {
+	let result = posts::table
+		.filter(posts::post_link.eq(path))
+		.select(posts::post_id)
+		.first::<i32>(conn);
+
+	if result.is_ok() {
+		let result = result.unwrap();
+		let post_id = result;
+		let result = diesel::insert_into(download_stats::table)
+			.values(download_stats::post_id.eq(post_id))
+			.execute(conn);
+		if result.is_ok() {
+			Status::Ok
+		} else {
+			println!("2 {:?}", result);
+			Status::InternalServerError
+		}
+	} else {
+		println!("1 {:?}", result);
 		Status::NotFound
 	}
 }

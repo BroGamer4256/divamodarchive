@@ -9,18 +9,27 @@
 <meta name="twitter:card" content="summary_large_image">
 {% endif %}
 <meta property="og:site_name" content="{{ author }}">
+
+<style>
+	@media (min-width: 768px) {
+		.text-align-right-md {
+			text-align: right;
+		}
+	}
+</style>
+
 {% endmacro draw_embed %}
 
-{% macro draw_post_short(id, name, text_short, image, likes, dislikes) %}
+{% macro draw_post_short(id, name, text_short, image, likes, dislikes, downloads) %}
 <div class="col">
-	<a class="card shadow-sm" style="text-decoration: none;" href="/posts/{{ id }}">
+	<a class="card shadow-sm" title="{{ text_short | striptags }}" style="text-decoration: none;"
+		href="/posts/{{ id }}">
 		<div class="card-img-top ratio ratio-16x9">
-			<img src="{{ image }}" width="100%" height="225" crossorigin="anonymous">
+			<img class="hoverUnhide" src="{{ image }}" width="100%" height="225" crossorigin="anonymous">
 		</div>
 		<div class="card-body">
-			<h4 style="color: white">{{ name | striptags }}</h4>
-			<h6 style="color: white">{{ text_short | striptags }}</h6>
-			<h7 style="color: white">{{ likes }}👍{{ dislikes }}👎</h7>
+			<h4 style="color: white">{{ name | striptags | truncate(length=15) }}</h4>
+			<h7 style="color: white">{{ likes }}👍{{ dislikes }}👎 Downloads: {{ downloads }}</h7>
 		</div>
 	</a>
 </div>
@@ -71,8 +80,9 @@
 <br>
 {% endmacro draw_search_box %}
 
-{% macro draw_post_full(id, name, text, image, link, uploader_id, uploader_name, likes, dislikes, is_logged_in=false,
-has_liked=false, has_disliked=false, jwt="") %}
+{% macro draw_post_full(id, name, text, image, link, uploader_id, uploader_name, likes, dislikes, downloads,
+is_logged_in=false,
+has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0) %}
 <script>
 	var had_disliked = {{ has_disliked }};
 	var had_liked = {{ has_liked }};
@@ -127,17 +137,26 @@ has_liked=false, has_disliked=false, jwt="") %}
 			.catch(error => console.error(error))
 	}
 </script>
-<div class="row align-items-md-stretch">
-	<div class="col-md-6 card card-body">
+<div class="row align-items-md-stretch gap-3">
+	<div class="col-md-5 card card-body">
 		<h2 class="card-text" style="text-align: center">{{ name | striptags }} </h2>
-		<h5>
-			<a href="/user/{{ uploader_id }}" class="card-subtitle text-muted">{{ uploader_name | striptags }}</a>
-		</h5>
+		<div class="row d-flex align-items-center">
+			<div class="col-md">
+				<h5>
+					<a href=" /user/{{ uploader_id }}" class="card-subtitle" style="color: white">{{uploader_name |
+						striptags }}</a>
+				</h5>
+			</div>
+			<div class="col-md">
+				<h5 class="card-subtitle text-align-right-md" style="color: white">Downloads: {{
+					downloads }}</h5>
+			</div>
+		</div>
 		<div class="ratio ratio-16x9">
 			<img src="{{ image }}" class="card-img-top">
 		</div>
 	</div>
-	<div class="col-md-6 card card-body h-grid gap-2">
+	<div class="col-md-5 card card-body h-grid gap-2">
 		{% if has_liked %}
 		<div class="btn-group container">
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" checked="true"
@@ -180,9 +199,14 @@ has_liked=false, has_disliked=false, jwt="") %}
 		</div>
 		{% endif %}
 		<div class="btn-group container">
-			<a href="{{ link }}" class="nav-link btn btn-lrg btn-success" download>
+			<a href="{{ link }}" class="btn btn-lrg btn-success" download>
 				<button type="button" class="btn">Download</button>
 			</a>
+			{% if who_is_logged_in == uploader_id %}
+			<a href="/post/{{ id }}/edit" class="nav-link btn btn-lrg btn-info">
+				<button type="button" class="btn">Edit</button>
+			</a>
+			{% endif %}
 		</div>
 		<div class="container-fluid">
 			<h5 class="card-text">

@@ -72,6 +72,7 @@ pub fn get_user_posts_latest(
 		.inner_join(posts::table)
 		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.order_by(posts::post_id.desc())
 		.select((
@@ -81,13 +82,25 @@ pub fn get_user_posts_latest(
 			posts::post_image,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
 			users::user_id,
 			users::user_name,
 			users::user_avatar,
 		))
 		.limit(30)
 		.offset(offset)
-		.load::<(i32, String, String, String, i64, i64, i64, String, String)>(conn)
+		.load::<(
+			i32,
+			String,
+			String,
+			String,
+			i64,
+			i64,
+			i64,
+			i64,
+			String,
+			String,
+		)>(conn)
 		.unwrap_or_else(|_| vec![]);
 
 	if results.is_empty() {
@@ -95,9 +108,9 @@ pub fn get_user_posts_latest(
 	}
 	let mut result = UserPosts {
 		user: User {
-			id: results[0].6,
-			name: results[0].7.clone(),
-			avatar: results[0].8.clone(),
+			id: results[0].7,
+			name: results[0].8.clone(),
+			avatar: results[0].9.clone(),
 		},
 		posts: vec![],
 	};
@@ -109,6 +122,7 @@ pub fn get_user_posts_latest(
 			image: post.3,
 			likes: post.4,
 			dislikes: post.5,
+			downloads: post.6,
 		});
 	}
 	Ok(result)
@@ -124,6 +138,7 @@ pub fn get_user_posts_latest_detailed(
 		.inner_join(posts::table)
 		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.order_by(posts::post_id.desc())
 		.select((
@@ -135,6 +150,7 @@ pub fn get_user_posts_latest_detailed(
 			posts::post_link,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
 			users::user_id,
 			users::user_name,
 			users::user_avatar,
@@ -151,6 +167,7 @@ pub fn get_user_posts_latest_detailed(
 			i64,
 			i64,
 			i64,
+			i64,
 			String,
 			String,
 		)>(conn)
@@ -161,9 +178,9 @@ pub fn get_user_posts_latest_detailed(
 	}
 	let mut result = UserPostsDetailed {
 		user: User {
-			id: results[0].8,
-			name: results[0].9.clone(),
-			avatar: results[0].10.clone(),
+			id: results[0].9,
+			name: results[0].10.clone(),
+			avatar: results[0].11.clone(),
 		},
 		posts: vec![],
 	};
@@ -177,6 +194,7 @@ pub fn get_user_posts_latest_detailed(
 			link: post.5,
 			likes: post.6,
 			dislikes: post.7,
+			downloads: post.8,
 		});
 	}
 	Ok(result)
@@ -192,6 +210,7 @@ pub fn get_user_posts_popular(
 		.inner_join(posts::table)
 		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.order_by(
 			(count_distinct(users_liked_posts::user_id.nullable())
@@ -205,13 +224,25 @@ pub fn get_user_posts_popular(
 			posts::post_image,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
 			users::user_id,
 			users::user_name,
 			users::user_avatar,
 		))
 		.limit(30)
 		.offset(offset)
-		.load::<(i32, String, String, String, i64, i64, i64, String, String)>(conn)
+		.load::<(
+			i32,
+			String,
+			String,
+			String,
+			i64,
+			i64,
+			i64,
+			i64,
+			String,
+			String,
+		)>(conn)
 		.unwrap_or_else(|_| vec![]);
 
 	if results.is_empty() {
@@ -219,9 +250,9 @@ pub fn get_user_posts_popular(
 	}
 	let mut result = UserPosts {
 		user: User {
-			id: results[0].6,
-			name: results[0].7.clone(),
-			avatar: results[0].8.clone(),
+			id: results[0].7,
+			name: results[0].8.clone(),
+			avatar: results[0].9.clone(),
 		},
 		posts: vec![],
 	};
@@ -233,6 +264,7 @@ pub fn get_user_posts_popular(
 			image: post.3,
 			likes: post.4,
 			dislikes: post.5,
+			downloads: post.6,
 		});
 	}
 	Ok(result)
@@ -248,6 +280,7 @@ pub fn get_user_posts_popular_detailed(
 		.inner_join(posts::table)
 		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.order_by(
 			(count_distinct(users_liked_posts::user_id.nullable())
@@ -263,6 +296,7 @@ pub fn get_user_posts_popular_detailed(
 			posts::post_link,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
 			users::user_id,
 			users::user_name,
 			users::user_avatar,
@@ -279,6 +313,7 @@ pub fn get_user_posts_popular_detailed(
 			i64,
 			i64,
 			i64,
+			i64,
 			String,
 			String,
 		)>(conn)
@@ -289,9 +324,9 @@ pub fn get_user_posts_popular_detailed(
 	}
 	let mut result = UserPostsDetailed {
 		user: User {
-			id: results[0].8,
-			name: results[0].9.clone(),
-			avatar: results[0].10.clone(),
+			id: results[0].9,
+			name: results[0].10.clone(),
+			avatar: results[0].11.clone(),
 		},
 		posts: vec![],
 	};
@@ -305,23 +340,26 @@ pub fn get_user_posts_popular_detailed(
 			link: post.5,
 			likes: post.6,
 			dislikes: post.7,
+			downloads: post.8,
 		});
 	}
 	Ok(result)
 }
 
-pub fn get_user_likes_dislikes(conn: &mut PgConnection, id: i64) -> (i64, i64) {
+pub fn get_user_stats(conn: &mut PgConnection, id: i64) -> (i64, i64, i64) {
 	let results = users::table
 		.filter(users::user_id.eq(id))
 		.inner_join(posts::table)
 		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.select((
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
 		))
-		.get_result::<(i64, i64)>(conn)
-		.unwrap_or_else(|_| (0, 0));
-	(results.0, results.1)
+		.get_result::<(i64, i64, i64)>(conn)
+		.unwrap_or_else(|_| (0, 0, 0));
+	(results.0, results.1, results.2)
 }

@@ -87,9 +87,10 @@
 	<div class="col-md-7 card card-body">
 		{% if previous_title %}
 		<h2 class="card-text text"><label for="title">Title: </label><input type="text" id="title" name="title"
-				value="{{ previous_title }}"></h2>
+				autocomplete="off" value="{{ previous_title }}"></h2>
 		{% else %}
-		<h2 class="card-text text"><label for="title">Title: </label><input type="text" id="title" name="title"></h2>
+		<h2 class="card-text text"><label for="title">Title: </label><input type="text" id="title" name="title"
+				autocomplete="off"></h2>
 		{% endif %}
 		<h5>
 			<a href="/user/{{ user.id }}" class="card-subtitle text">{{ user.name | striptags }}</a>
@@ -117,10 +118,8 @@
 		<div class="{{ posts::btn_success_outer() }}" onclick="upload()">
 			<button type="button" class="{{ posts::btn_success_inner() }}">Upload</button>
 		</div>
-		<div class="container">
-			<label for="filePicker" class="form-label mt-4">Archive File</label>
-			<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker">
-		</div>
+		<label for="filePicker" class="form-label mt-4">Archive File</label>
+		<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker">
 	</div>
 	<div class="card card-body">
 		<h5 class="card-text">
@@ -132,9 +131,10 @@
 			{% endif %}
 			<label for="text_short">Short Description</label>
 			{% if previous_description_short %}
-			<input class="form-control" type="text" id="text_short" value="{{ previous_description_short }}">
+			<input class="form-control" type="text" id="text_short" name="text_short" autocomplete="off"
+				value="{{ previous_description_short }}">
 			{% else %}
-			<input class="form-control" type="text" id="text_short">
+			<input class="form-control" type="text" id="text_short" name="text_short" autocomplete="off">
 			{% endif %}
 		</h5>
 	</div>

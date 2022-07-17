@@ -563,6 +563,55 @@ pub fn get_popular_posts_detailed(
 	Ok(posts)
 }
 
+pub fn get_popular_posts_disallowed(
+	connection: &mut PgConnection,
+	name: String,
+	offset: i64,
+	disallowed: Vec<i32>,
+) -> Result<Vec<ShortPost>, Status> {
+	let results = posts::table
+		.left_join(users_liked_posts::table)
+		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+		.group_by(posts::post_id)
+		.filter(posts::post_name.ilike(format!("%{}%", name)))
+		.filter(posts::post_id.ne_all(disallowed))
+		.order_by(
+			(count_distinct(users_liked_posts::user_id.nullable())
+				- count_distinct(users_disliked_posts::user_id.nullable()))
+			.desc(),
+		)
+		.select((
+			posts::post_id,
+			posts::post_name,
+			posts::post_text_short,
+			posts::post_image,
+			count_distinct(users_liked_posts::user_id.nullable()),
+			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
+		))
+		.limit(30)
+		.offset(offset)
+		.load::<(i32, String, String, String, i64, i64, i64)>(connection)
+		.unwrap_or_else(|_| vec![]);
+
+	if results.is_empty() {
+		return Err(Status::NotFound);
+	}
+	Ok(results
+		.iter()
+		.map(|post| ShortPost {
+			id: post.0,
+			name: post.1.clone(),
+			text_short: post.2.clone(),
+			image: post.3.clone(),
+			likes: post.4,
+			dislikes: post.5,
+			downloads: post.6,
+		})
+		.collect::<Vec<ShortPost>>())
+}
+
 pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, Status> {
 	let result = posts::table
 		.filter(posts::post_id.eq(id))

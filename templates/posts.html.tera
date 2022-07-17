@@ -67,7 +67,6 @@
 					value="{{ previous_title }}">
 			</div>
 			{% endif %}
-			{% if previous_sort != "" %}
 			<div class="col">
 				<select name="order" class="form-control" selected="{{ previous_sort }}">
 					<option value="latest">Latest</option>
@@ -78,7 +77,6 @@
 					{% endif %}
 				</select>
 			</div>
-			{% endif %}
 			<div class="col-1">
 				<button class="btn btn-secondary" type="submit">Search</button>
 			</div>

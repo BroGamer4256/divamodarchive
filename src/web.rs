@@ -276,12 +276,13 @@ pub fn edit(
 	}
 }
 
-#[get("/posts/<id>/dependency?<offset>&<name>")]
+#[get("/posts/<id>/dependency?<offset>&<name>&<order>")]
 pub fn dependency(
 	connection: &ConnectionState,
 	id: i32,
 	offset: Option<i64>,
 	name: Option<String>,
+	order: Option<String>,
 	user: User,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
@@ -292,8 +293,20 @@ pub fn dependency(
 
 	let offset = offset.unwrap_or(0);
 	let name = name.unwrap_or_default();
-	let posts =
-		get_latest_posts_disallowed(connection, name.clone(), offset, vec![id]).unwrap_or_default();
+
+	let sort_order = match order.clone() {
+		Some(order) => match order.as_str() {
+			"latest" => Order::Latest,
+			"popular" => Order::Popular,
+			_ => Order::Latest,
+		},
+		None => Order::Latest,
+	};
+	let posts = match sort_order {
+		Order::Latest => get_latest_posts_disallowed(connection, name.clone(), offset, vec![id]),
+		Order::Popular => get_popular_posts_disallowed(connection, name.clone(), offset, vec![id]),
+	}
+	.unwrap_or_default();
 	Ok(Template::render(
 		"dependencies",
 		context![
@@ -302,6 +315,7 @@ pub fn dependency(
 			is_logged_in: true,
 			light_mode: is_light_mode(cookies),
 			previous_search: name,
+			previous_sort: order.unwrap_or_default(),
 			offset: offset,
 		],
 	))

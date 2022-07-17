@@ -67,7 +67,11 @@
 							body: JSON.stringify(post_data)
 						}
 
+						{% if update_id %}
+						fetch('/api/v1/posts/upload?update_id={{update_id}}', options)
+						{% else %}
 						fetch('/api/v1/posts/upload', options)
+						{% endif %}
 							.then(response => response.json())
 							.then(data => {
 								window.location.href = "/posts/" + data['id']
@@ -79,23 +83,23 @@
 			.catch(error => alert("Archive upload failed\nOnly 7z/zip/rar files are supported at this time\nMaximum size for archives is 100MiB"))
 	}
 </script>
-<form id="form" class="row align-items-md-stretch" enctype="application/x-www-form-urlencoded">
-	<div class="col-md-6 card card-body">
+<form id="form" class="row align-items-md-stretch container gap-3" enctype="application/x-www-form-urlencoded">
+	<div class="col-md-7 card card-body">
 		{% if previous_title %}
-		<h2 class="card-text"><label for="title">Title: </label><input type="text" id="title" name="title"
+		<h2 class="card-text text"><label for="title">Title: </label><input type="text" id="title" name="title"
 				value="{{ previous_title }}"></h2>
 		{% else %}
-		<h2 class="card-text"><label for="title">Title: </label><input type="text" id="title" name="title"></h2>
+		<h2 class="card-text text"><label for="title">Title: </label><input type="text" id="title" name="title"></h2>
 		{% endif %}
 		<h5>
-			<a href="/user/{{ user.id }}" class="card-subtitle text-muted">{{ user.name | striptags }}</a>
+			<a href="/user/{{ user.id }}" class="card-subtitle text">{{ user.name | striptags }}</a>
 		</h5>
 
 		<label for="imagePicker" class="form-label mt-4">Image</label>
 		<input class="form-control" accept="image/png" type="file" id="imagePicker">
 	</div>
-	<div class="col-md-6 card card-body h-grid gap-2">
-		<div class="btn-group container">
+	<div class="col-md-3 card card-body gap-3">
+		<div class="btn-group">
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
 			{% if likes %}
 			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ likes }}👍</label>
@@ -110,29 +114,29 @@
 			<label class="btn btn-outline-primary disabled" for="dislikedradiobtn" id="dislikes">0👎</label>
 			{% endif %}
 		</div>
-		<div class="btn-group container">
-			<button type="button" class="btn btn-lrg btn-success" onclick="upload()">Upload</button>
+		<div class="{{ posts::btn_success_outer() }}" onclick="upload()">
+			<button type="button" class="{{ posts::btn_success_inner() }}">Upload</button>
 		</div>
 		<div class="container">
 			<label for="filePicker" class="form-label mt-4">Archive File</label>
 			<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker">
 		</div>
-		<div class="container">
-			<h5 class="card-text">
-				<label for="text">Long Description</label>
-				{% if previous_description %}
-				<textarea class="form-control" id="text" rows="5">{{ previous_description }}</textarea>
-				{% else %}
-				<textarea class="form-control" id="text" rows="5"></textarea>
-				{% endif %}
-				<label for="text_short">Short Description</label>
-				{% if previous_description_short %}
-				<input class="form-control" type="text" id="text_short" value="{{ previous_description_short }}">
-				{% else %}
-				<input class="form-control" type="text" id="text_short">
-				{% endif %}
-			</h5>
-		</div>
+	</div>
+	<div class="card card-body">
+		<h5 class="card-text">
+			<label for="text">Long Description</label>
+			{% if previous_description %}
+			<textarea class="form-control" id="text" rows="5">{{ previous_description }}</textarea>
+			{% else %}
+			<textarea class="form-control" id="text" rows="5"></textarea>
+			{% endif %}
+			<label for="text_short">Short Description</label>
+			{% if previous_description_short %}
+			<input class="form-control" type="text" id="text_short" value="{{ previous_description_short }}">
+			{% else %}
+			<input class="form-control" type="text" id="text_short">
+			{% endif %}
+		</h5>
 	</div>
 </form>
 {% endblock content %}

@@ -96,11 +96,12 @@ pub async fn upload_archive(
 	)))
 }
 
-#[post("/upload", data = "<post>")]
+#[post("/upload?<update_id>", data = "<post>")]
 pub async fn upload(
 	connection: &ConnectionState,
 	user: User,
 	post: Json<PostUnidentified>,
+	update_id: Option<i32>,
 ) -> Result<Json<Post>, Status> {
 	let post = post.into_inner();
 	if !post
@@ -114,7 +115,12 @@ pub async fn upload(
 	{
 		return Err(Status::BadRequest);
 	}
-	let post = create_post(&mut connection.lock().unwrap(), post, user)?;
+	let post = create_post(
+		&mut connection.lock().unwrap(),
+		post,
+		user,
+		update_id.unwrap_or(-1),
+	)?;
 	Ok(Json(post))
 }
 
@@ -137,6 +143,18 @@ pub fn dislike(
 ) -> Result<Json<DislikedPost>, Status> {
 	let result = dislike_post_from_ids(&mut connection.lock().unwrap(), user.id, id)?;
 	Ok(Json(result))
+}
+
+// Add a dependency to the post with id on dependency
+// Return the updated post
+#[post("/<id>/dependency/<dependency>")]
+pub fn dependency(connection: &ConnectionState, id: i32, dependency: i32, user: User) -> Status {
+	let connection = &mut connection.lock().unwrap();
+	if !owns_post(connection, id, user.id) {
+		Status::Forbidden
+	} else {
+		add_dependency(connection, id, dependency)
+	}
 }
 
 #[get("/latest?<name>&<offset>")]

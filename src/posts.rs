@@ -9,23 +9,10 @@ pub fn create_post(
 	conn: &mut PgConnection,
 	post: PostUnidentified,
 	user: User,
+	update_id: i32,
 ) -> Result<Post, Status> {
-	let old_post = posts::table
-		.filter(posts::post_uploader.eq(user.id))
-		.filter(posts::post_name.ilike(&post.name))
-		.get_result::<Post>(conn)
-		.unwrap_or(Post {
-			id: -1,
-			name: String::new(),
-			text: String::new(),
-			text_short: String::new(),
-			image: String::new(),
-			uploader: -1,
-			link: String::new(),
-		});
-
-	if old_post.id != -1 {
-		let result = diesel::update(posts::table.filter(posts::post_id.eq(old_post.id)))
+	if update_id != -1 {
+		let result = diesel::update(posts::table.filter(posts::post_id.eq(update_id)))
 			.set((
 				posts::post_name.eq(&post.name),
 				posts::post_text.eq(&post.text),
@@ -191,7 +178,6 @@ pub fn get_latest_posts(
 	if results.is_empty() {
 		return Err(Status::NotFound);
 	}
-	// For every post in results create ShortPost and push it to result vector
 	Ok(results
 		.iter()
 		.map(|post| ShortPost {
@@ -341,6 +327,51 @@ pub fn get_latest_posts_detailed(
 		});
 	}
 	Ok(posts)
+}
+
+pub fn get_latest_posts_disallowed(
+	connection: &mut PgConnection,
+	name: String,
+	offset: i64,
+	disallowed: Vec<i32>,
+) -> Result<Vec<ShortPost>, Status> {
+	let results = posts::table
+		.left_join(users_liked_posts::table)
+		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+		.group_by(posts::post_id)
+		.filter(posts::post_name.ilike(format!("%{}%", name)))
+		.filter(posts::post_id.ne_all(disallowed))
+		.order_by(posts::post_id.desc())
+		.select((
+			posts::post_id,
+			posts::post_name,
+			posts::post_text_short,
+			posts::post_image,
+			count_distinct(users_liked_posts::user_id.nullable()),
+			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
+		))
+		.limit(30)
+		.offset(offset)
+		.load::<(i32, String, String, String, i64, i64, i64)>(connection)
+		.unwrap_or_else(|_| vec![]);
+
+	if results.is_empty() {
+		return Err(Status::NotFound);
+	}
+	Ok(results
+		.iter()
+		.map(|post| ShortPost {
+			id: post.0,
+			name: post.1.clone(),
+			text_short: post.2.clone(),
+			image: post.3.clone(),
+			likes: post.4,
+			dislikes: post.5,
+			downloads: post.6,
+		})
+		.collect::<Vec<ShortPost>>())
 }
 
 pub fn get_popular_posts(
@@ -704,11 +735,33 @@ pub fn update_download_count(conn: &mut PgConnection, path: String) -> Status {
 		if result.is_ok() {
 			Status::Ok
 		} else {
-			println!("2 {:?}", result);
 			Status::InternalServerError
 		}
 	} else {
-		println!("1 {:?}", result);
 		Status::NotFound
+	}
+}
+
+pub fn owns_post(conn: &mut PgConnection, id: i32, user_id: i64) -> bool {
+	let result = posts::table
+		.filter(posts::post_uploader.eq(user_id))
+		.filter(posts::post_id.eq(id))
+		.first::<Post>(conn);
+
+	result.is_ok()
+}
+
+pub fn add_dependency(conn: &mut PgConnection, post_id: i32, dependency_id: i32) -> Status {
+	let result = diesel::insert_into(post_dependencies::table)
+		.values((
+			post_dependencies::post_id.eq(post_id),
+			post_dependencies::dependency_id.eq(dependency_id),
+		))
+		.execute(conn);
+
+	if result.is_ok() {
+		Status::Ok
+	} else {
+		Status::InternalServerError
 	}
 }

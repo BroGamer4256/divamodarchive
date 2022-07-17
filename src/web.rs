@@ -266,7 +266,7 @@ pub fn edit(
 			let jwt = cookies.get_pending("jwt").unwrap();
 			Ok(Template::render(
 				"upload",
-				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies),],
+				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies), update_id: id],
 			))
 		} else {
 			Err(Redirect::to(format!("/posts/{}", id)))
@@ -274,4 +274,49 @@ pub fn edit(
 	} else {
 		Err(Redirect::to(format!("/posts/{}", id)))
 	}
+}
+
+#[get("/posts/<id>/dependency?<offset>&<name>")]
+pub fn dependency(
+	connection: &ConnectionState,
+	id: i32,
+	offset: Option<i64>,
+	name: Option<String>,
+	user: User,
+	cookies: &CookieJar<'_>,
+) -> Result<Template, Redirect> {
+	let connection = &mut connection.lock().unwrap();
+	if !owns_post(connection, id, user.id) {
+		return Err(Redirect::to(format!("/posts/{}", id)));
+	}
+
+	let offset = offset.unwrap_or(0);
+	let name = name.unwrap_or_default();
+	let posts =
+		get_latest_posts_disallowed(connection, name.clone(), offset, vec![id]).unwrap_or_default();
+	Ok(Template::render(
+		"dependencies",
+		context![
+			id: id,
+			posts: &posts,
+			is_logged_in: true,
+			light_mode: is_light_mode(cookies),
+			previous_search: name,
+			offset: offset,
+		],
+	))
+}
+
+#[get("/posts/<id>/dependency/<dependency_id>")]
+pub fn dependency_add(
+	connection: &ConnectionState,
+	id: i32,
+	dependency_id: i32,
+	user: User,
+) -> Redirect {
+	let connection = &mut connection.lock().unwrap();
+	if owns_post(connection, id, user.id) {
+		add_dependency(connection, id, dependency_id);
+	}
+	Redirect::to(format!("/posts/{}", id))
 }

@@ -765,3 +765,18 @@ pub fn add_dependency(conn: &mut PgConnection, post_id: i32, dependency_id: i32)
 		Status::InternalServerError
 	}
 }
+
+pub fn remove_dependency(conn: &mut PgConnection, post_id: i32, dependency_id: i32) -> Status {
+	let result = diesel::delete(
+		post_dependencies::table
+			.filter(post_dependencies::post_id.eq(post_id))
+			.filter(post_dependencies::dependency_id.eq(dependency_id)),
+	)
+	.execute(conn);
+
+	if result.is_ok() {
+		Status::Ok
+	} else {
+		Status::InternalServerError
+	}
+}

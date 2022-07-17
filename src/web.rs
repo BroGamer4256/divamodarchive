@@ -320,3 +320,17 @@ pub fn dependency_add(
 	}
 	Redirect::to(format!("/posts/{}", id))
 }
+
+#[get("/posts/<id>/dependency/<dependency_id>/remove")]
+pub fn dependency_remove(
+	connection: &ConnectionState,
+	id: i32,
+	dependency_id: i32,
+	user: User,
+) -> Redirect {
+	let connection = &mut connection.lock().unwrap();
+	if owns_post(connection, id, user.id) {
+		remove_dependency(connection, id, dependency_id);
+	}
+	Redirect::to(format!("/posts/{}", id))
+}

@@ -72,6 +72,7 @@ fn rocket() -> _ {
 				web::set_theme,
 				web::dependency,
 				web::dependency_add,
+				web::dependency_remove,
 				get_from_storage,
 				robots,
 			],

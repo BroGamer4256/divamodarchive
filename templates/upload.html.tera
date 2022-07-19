@@ -28,59 +28,88 @@
 		options = {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
+				'Content-Type': 'text/plain',
 				'Authorization': 'Bearer {{ jwt }}'
 			},
-			body: archive.files[0]
+			body: image.files[0]
 		}
-		fetch('/api/v1/posts/upload_archive', options)
+		fetch('/api/v1/posts/upload_image?name=' + image.files[0].name, options)
 			.then(response => response.json())
-			.then(archive_url => {
-				options = {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'text/plain',
-						'Authorization': 'Bearer {{ jwt }}'
-					},
-					body: image.files[0]
+			.then(image_url => {
+				if (image_url == null) {
+					alert("Image upload failed\nOnly png files are supported at this time\nMaximum size for images is 8MiB");
+					return
 				}
-				fetch('/api/v1/posts/upload_image', options)
-					.then(response => response.json())
-					.then(image_url => {
-						if (archive_url == null || image_url == null) {
-							alert("Image/Archive upload failed\nOnly png and 7z/zip/rar files are supported at this time\nMaximum size for images is 8MiB\nMaximum size for archives is 100MiB");
-						}
-						let post_data = {
-							'name': name,
-							'text': text,
-							'text_short': text_short,
-							'image': image_url,
-							'link': archive_url
-						}
+				alert("Your mod is being uploaded, please wait as this can take a large amount of time");
+				var file = archive.files[0];
+				var chunkSize = 1024 * 1024 * 8;
+				var chunkCount = Math.ceil(file.size / chunkSize);
+				var chunkStart = 0;
+				var chunksCompleted = 0;
+				for (var i = 0; i < chunkCount; i++) {
+					var chunkEnd = chunkStart + chunkSize;
+					var chunk = file.slice(chunkStart, chunkEnd);
+					options = {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'text/plain',
+							'Authorization': 'Bearer {{ jwt }}'
+						},
+						body: chunk
+					}
+					fetch("/api/v1/posts/upload_archive_chunk?name=" + file.name + "&chunk=" + i, options)
+						.then(response => {
+							if (response.status != 200) {
+								alert("Archive chunk upload failed");
+								return
+							}
+							chunkStart = chunkEnd;
+							chunksCompleted++;
+							document.getElementById("progress").style.width = chunksCompleted / chunkCount * 100 + "%";
+							if (chunksCompleted == chunkCount) {
+								options = {
+									method: 'POST',
+									headers: {
+										'Content-Type': 'text/plain',
+										'Authorization': 'Bearer {{ jwt }}'
+									},
+								},
+									fetch("/api/v1/posts/finish_upload_archive_chunk?name=" + file.name, options)
+										.then(response => response.json())
+										.then(archive_url => {
+											let post_data = {
+												'name': name,
+												'text': text,
+												'text_short': text_short,
+												'image': image_url,
+												'link': archive_url
+											}
 
-						options = {
-							method: 'POST',
-							headers: {
-								'Content-Type': 'text/plain',
-								'Authorization': 'Bearer {{ jwt }}'
-							},
-							body: JSON.stringify(post_data)
-						}
+											options = {
+												method: 'POST',
+												headers: {
+													'Content-Type': 'text/plain',
+													'Authorization': 'Bearer {{ jwt }}'
+												},
+												body: JSON.stringify(post_data)
+											}
 
-						{% if update_id %}
-						fetch('/api/v1/posts/upload?update_id={{update_id}}', options)
-						{% else %}
-						fetch('/api/v1/posts/upload', options)
-						{% endif %}
-							.then(response => response.json())
-							.then(data => {
-								window.location.href = "/posts/" + data['id']
-							})
-							.catch(error => alert("Unknown error when uploading"))
-					})
-					.catch(error => alert("Image upload failed\nOnly png files are supported at this time\nMaximum size for images is 8MiB"))
+											{% if update_id %}
+											fetch('/api/v1/posts/upload?update_id={{update_id}}', options)
+											{% else %}
+											fetch('/api/v1/posts/upload', options)
+											{% endif %}
+												.then(response => response.json())
+												.then(data => {
+													window.location.href = "/posts/" + data['id']
+												})
+												.catch(error => alert("Unknown error when uploading"))
+										})
+										.catch(error => alert("Unknown error when uploading"))
+							}
+						})
+				}
 			})
-			.catch(error => alert("Archive upload failed\nOnly 7z/zip/rar files are supported at this time\nMaximum size for archives is 100MiB"))
 	}
 </script>
 <form id="form" class="row align-items-md-stretch container gap-3" enctype="application/x-www-form-urlencoded">
@@ -117,6 +146,10 @@
 		</div>
 		<div class="{{ posts::btn_success_outer() }}" onclick="upload()">
 			<button type="button" class="{{ posts::btn_success_inner() }}">Upload</button>
+		</div>
+		<div class="progress">
+			<div class="progress-bar bg-success" role="progressbar" style="width: 0;" aria-valuenow="25"
+				aria-valuemin="0" aria-valuemax="100" id="progress"></div>
 		</div>
 		<label for="filePicker" class="form-label mt-4">Archive File</label>
 		<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker">

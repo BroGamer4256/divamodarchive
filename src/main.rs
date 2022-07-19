@@ -37,13 +37,14 @@ pub fn robots() -> String {
 	String::from("User-agent: *\nDisallow: /api/")
 }
 
-#[get("/storage/<file_type>/<file>")]
+#[get("/storage/<user_id>/<file_type>/<file_name>")]
 pub fn get_from_storage(
 	connection: &models::ConnectionState,
+	user_id: i64,
 	file_type: String,
-	file: String,
+	file_name: String,
 ) -> Option<std::fs::File> {
-	let file = format!("storage/{}/{}", file_type, file);
+	let file = format!("storage/{}/{}/{}", user_id, file_type, file_name);
 	if file_type == "posts" {
 		let path = format!("{}/{}", models::BASE_URL.to_string(), file);
 		let _ = posts::update_download_count(&mut connection.lock().unwrap(), path);
@@ -80,8 +81,10 @@ fn rocket() -> _ {
 		.mount(
 			"/api/v1/posts",
 			routes![
-				api::v1::posts::upload_archive,
 				api::v1::posts::upload_image,
+				api::v1::posts::upload_archive,
+				api::v1::posts::upload_archive_chunk,
+				api::v1::posts::finish_upload_archive_chunk,
 				api::v1::posts::upload,
 				api::v1::posts::details,
 				api::v1::posts::like,

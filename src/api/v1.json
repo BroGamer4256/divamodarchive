@@ -398,7 +398,12 @@
 					"500": {
 						"description": "Failed to save like"
 					}
-				}
+				},
+				"security": [
+					{
+						"logged_in": []
+					}
+				]
 			}
 		},
 		"/posts/<id>/dislike": {
@@ -459,7 +464,12 @@
 					"500": {
 						"description": "Failed to save like"
 					}
-				}
+				},
+				"security": [
+					{
+						"logged_in": []
+					}
+				]
 			}
 		},
 		"/posts/<id>/delete": {

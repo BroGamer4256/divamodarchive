@@ -49,6 +49,7 @@
 				for (var i = 0; i < chunkCount; i++) {
 					var chunkEnd = chunkStart + chunkSize;
 					var chunk = file.slice(chunkStart, chunkEnd);
+					chunkStart = chunkEnd;
 					options = {
 						method: 'POST',
 						headers: {
@@ -63,7 +64,6 @@
 								alert("Archive chunk upload failed");
 								return
 							}
-							chunkStart = chunkEnd;
 							chunksCompleted++;
 							document.getElementById("progress").style.width = chunksCompleted / chunkCount * 100 + "%";
 							if (chunksCompleted == chunkCount) {
@@ -145,7 +145,7 @@
 			{% endif %}
 		</div>
 		<div class="{{ posts::btn_success_outer() }}" onclick="upload()">
-			<button type="button" class="{{ posts::btn_success_inner() }}">Upload</button>
+			<button type="button" style="box-shadow: none" class="{{ posts::btn_success_inner() }}">Upload</button>
 		</div>
 		<div class="progress">
 			<div class="progress-bar bg-success" role="progressbar" style="width: 0;" aria-valuenow="25"

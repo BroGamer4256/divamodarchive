@@ -135,11 +135,8 @@ pub async fn upload_archive_chunk(
 	Status::Ok
 }
 
-// For every file in storage/user.id/posts/name/ merge it into a single file
-// called storage/user.id/posts/name
-// and return the url to the merged file.
 #[post("/finish_upload_archive_chunk?<name>")]
-pub async fn finish_upload_archive_chunk(name: String, user: User) -> Result<Json<String>, Status> {
+pub fn finish_upload_archive_chunk(name: String, user: User) -> Result<Json<String>, Status> {
 	let merged_file = File::create(format!("storage/{}/posts/{}", user.id, name));
 	if merged_file.is_err() {
 		return Err(Status::InternalServerError);
@@ -149,14 +146,36 @@ pub async fn finish_upload_archive_chunk(name: String, user: User) -> Result<Jso
 	if files.is_err() {
 		return Err(Status::InternalServerError);
 	}
+	let files = files
+		.unwrap()
+		.map(|res| res.map(|e| e.path()))
+		.collect::<Result<Vec<_>, std::io::Error>>();
+	if files.is_err() {
+		return Err(Status::InternalServerError);
+	}
 	let mut files = files.unwrap();
-	while let Some(entry) = files.next() {
-		let entry = entry;
-		if entry.is_err() {
-			return Err(Status::InternalServerError);
-		}
-		let entry = entry.unwrap();
-		let file = File::open(entry.path());
+
+	// Sort files numerically
+	files.sort_by(|a, b| {
+		let a: &u32 = &a
+			.file_name()
+			.unwrap_or_default()
+			.to_str()
+			.unwrap_or_default()
+			.parse()
+			.unwrap_or_default();
+		let b: &u32 = &b
+			.file_name()
+			.unwrap_or_default()
+			.to_str()
+			.unwrap_or_default()
+			.parse()
+			.unwrap_or_default();
+		a.cmp(b)
+	});
+
+	for entry in files {
+		let file = File::open(entry);
 		if file.is_err() {
 			return Err(Status::InternalServerError);
 		}

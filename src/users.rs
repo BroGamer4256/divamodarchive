@@ -147,6 +147,7 @@ pub fn get_user_posts_latest_detailed(
 			posts::post_text,
 			posts::post_text_short,
 			posts::post_image,
+			posts::post_images_extra,
 			posts::post_link,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
@@ -163,6 +164,7 @@ pub fn get_user_posts_latest_detailed(
 			String,
 			String,
 			String,
+			Vec<String>,
 			String,
 			i64,
 			i64,
@@ -178,9 +180,9 @@ pub fn get_user_posts_latest_detailed(
 	}
 	let mut result = UserPostsDetailed {
 		user: User {
-			id: results[0].9,
-			name: results[0].10.clone(),
-			avatar: results[0].11.clone(),
+			id: results[0].10,
+			name: results[0].11.clone(),
+			avatar: results[0].12.clone(),
 		},
 		posts: vec![],
 	};
@@ -208,6 +210,7 @@ pub fn get_user_posts_latest_detailed(
 				posts::post_text,
 				posts::post_text_short,
 				posts::post_image,
+				posts::post_images_extra,
 				posts::post_link,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
@@ -222,6 +225,7 @@ pub fn get_user_posts_latest_detailed(
 				String,
 				String,
 				String,
+				Vec<String>,
 				String,
 				i64,
 				i64,
@@ -238,10 +242,11 @@ pub fn get_user_posts_latest_detailed(
 			text: post.2,
 			text_short: post.3,
 			image: post.4,
-			link: post.5,
-			likes: post.6,
-			dislikes: post.7,
-			downloads: post.8,
+			images_extra: post.5,
+			link: post.6,
+			likes: post.7,
+			dislikes: post.8,
+			downloads: post.9,
 			dependencies: dependencies
 				.into_iter()
 				.map(|dependency| DetailedPostNoUser {
@@ -250,10 +255,11 @@ pub fn get_user_posts_latest_detailed(
 					text: dependency.2,
 					text_short: dependency.3,
 					image: dependency.4,
-					link: dependency.5,
-					likes: dependency.6,
-					dislikes: dependency.7,
-					downloads: dependency.8,
+					images_extra: dependency.5,
+					link: dependency.6,
+					likes: dependency.7,
+					dislikes: dependency.8,
+					downloads: dependency.9,
 					dependencies: vec![],
 				})
 				.collect(),
@@ -355,6 +361,7 @@ pub fn get_user_posts_popular_detailed(
 			posts::post_text,
 			posts::post_text_short,
 			posts::post_image,
+			posts::post_images_extra,
 			posts::post_link,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
@@ -371,6 +378,7 @@ pub fn get_user_posts_popular_detailed(
 			String,
 			String,
 			String,
+			Vec<String>,
 			String,
 			i64,
 			i64,
@@ -387,9 +395,9 @@ pub fn get_user_posts_popular_detailed(
 
 	let mut result = UserPostsDetailed {
 		user: User {
-			id: results[0].9,
-			name: results[0].10.clone(),
-			avatar: results[0].11.clone(),
+			id: results[0].10,
+			name: results[0].11.clone(),
+			avatar: results[0].12.clone(),
 		},
 		posts: vec![],
 	};
@@ -417,6 +425,7 @@ pub fn get_user_posts_popular_detailed(
 				posts::post_text,
 				posts::post_text_short,
 				posts::post_image,
+				posts::post_images_extra,
 				posts::post_link,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
@@ -431,6 +440,7 @@ pub fn get_user_posts_popular_detailed(
 				String,
 				String,
 				String,
+				Vec<String>,
 				String,
 				i64,
 				i64,
@@ -447,10 +457,11 @@ pub fn get_user_posts_popular_detailed(
 			text: post.2,
 			text_short: post.3,
 			image: post.4,
-			link: post.5,
-			likes: post.6,
-			dislikes: post.7,
-			downloads: post.8,
+			images_extra: post.5,
+			link: post.6,
+			likes: post.7,
+			dislikes: post.8,
+			downloads: post.9,
 			dependencies: dependencies
 				.into_iter()
 				.map(|dependency| DetailedPostNoUser {
@@ -459,10 +470,11 @@ pub fn get_user_posts_popular_detailed(
 					text: dependency.2,
 					text_short: dependency.3,
 					image: dependency.4,
-					link: dependency.5,
-					likes: dependency.6,
-					dislikes: dependency.7,
-					downloads: dependency.8,
+					images_extra: dependency.5,
+					link: dependency.6,
+					likes: dependency.7,
+					dislikes: dependency.8,
+					downloads: dependency.9,
 					dependencies: vec![],
 				})
 				.collect(),

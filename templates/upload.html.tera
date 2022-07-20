@@ -7,7 +7,7 @@
 
 {% block content %}
 <script>
-	function upload() {
+	async function upload() {
 		var form = document.getElementById("form")
 
 		var image = form['imagePicker']
@@ -40,12 +40,33 @@
 		}
 		fetch('/api/v1/posts/upload_image?name=' + image.files[0].name, options)
 			.then(response => response.json())
-			.then(image_url => {
+			.then(image_url => async function (image_url) {
 				if (image_url == null) {
 					alert("Image upload failed\nOnly png files are supported at this time\nMaximum size for images is 8MiB");
 					return
 				}
 				alert("Your mod is being uploaded, please wait as this can take a large amount of time");
+
+				var images_extra = form['imagesExtra'];
+				var images_extra_urls = [];
+				for (let i = 0; i < images_extra.files.length; i++) {
+					options = {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'text/plain',
+							'Authorization': 'Bearer {{ jwt }}'
+						},
+						body: images_extra.files[i]
+					}
+					var response = await fetch('/api/v1/posts/upload_image?name=' + images_extra.files[i].name, options);
+					var extra_image_url = await response.json();
+					if (extra_image_url == null) {
+						alert("Image upload failed\nOnly png files are supported at this time\nMaximum size for images is 8MiB");
+						return
+					}
+					images_extra_urls.push(extra_image_url);
+				}
+
 				var file = archive.files[0];
 				var chunkSize = 1024 * 1024 * 8;
 				var chunkCount = Math.ceil(file.size / chunkSize);
@@ -87,6 +108,7 @@
 												'text': text,
 												'text_short': text_short,
 												'image': image_url,
+												'images_extra': images_extra_urls,
 												'link': archive_url
 											}
 
@@ -115,7 +137,7 @@
 						})
 						.catch(error => alert("Unknown error when uploading"))
 				}
-			})
+			}(image_url))
 			.catch(error => alert("Failed to upload image\nImages must be PNG"))
 	}
 </script>
@@ -134,6 +156,8 @@
 
 		<label for="imagePicker" class="form-label mt-4">Image</label>
 		<input class="form-control" accept="image/png" type="file" id="imagePicker">
+		<label for="imagesExtra" class="form-label mt-4">Optional: Extra images</label>
+		<input class="form-control" accept="image/png" type="file" id="imagesExtra" multiple>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
 		<div class="btn-group">

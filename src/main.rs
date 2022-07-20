@@ -26,6 +26,7 @@ allow_columns_to_appear_in_same_group_by_clause!(
 	schema::posts::post_text,
 	schema::posts::post_text_short,
 	schema::posts::post_image,
+	schema::posts::post_images_extra,
 	schema::posts::post_link,
 	schema::users::user_id,
 	schema::users::user_name,

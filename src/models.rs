@@ -179,6 +179,7 @@ pub struct PostUnidentified {
 	pub text: String,
 	pub text_short: String,
 	pub image: String,
+	pub images_extra: Vec<String>,
 	pub link: String,
 }
 
@@ -201,6 +202,7 @@ pub struct DetailedPostNoUser {
 	pub text_short: String,
 	pub dependencies: Vec<Self>,
 	pub image: String,
+	pub images_extra: Vec<String>,
 	pub link: String,
 	pub likes: i64,
 	pub dislikes: i64,
@@ -215,6 +217,7 @@ pub struct DetailedPost {
 	pub text_short: String,
 	pub dependencies: Vec<Self>,
 	pub image: String,
+	pub images_extra: Vec<String>,
 	pub link: String,
 	pub likes: i64,
 	pub dislikes: i64,
@@ -256,6 +259,7 @@ pub struct Post {
 	pub text: String,
 	pub text_short: String,
 	pub image: String,
+	pub images_extra: Vec<String>,
 	pub uploader: i64,
 	pub link: String,
 }
@@ -267,6 +271,7 @@ pub struct NewPost<'a> {
 	pub post_text: &'a str,
 	pub post_text_short: &'a str,
 	pub post_image: &'a str,
+	pub post_images_extra: &'a Vec<String>,
 	pub post_uploader: i64,
 	pub post_link: &'a str,
 }

@@ -11,6 +11,7 @@ CREATE TABLE posts (
 	post_text text not null,
 	post_text_short text not null,
 	post_image text not null,
+	post_images_extra text[] not null DEFAULT '{}',
 	post_uploader bigint references users on delete cascade not null,
 	post_link text not null
 );

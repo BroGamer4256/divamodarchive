@@ -16,6 +16,10 @@
 			alert("Upload failed\nMissing image/archive");
 			return
 		}
+		if (image.files[0].type != "image/png") {
+			alert("Upload failed\nImage must be PNG");
+			return
+		}
 
 		var name = form['title'].value
 		var text = form['text'].value
@@ -24,6 +28,7 @@
 			alert("Upload failed\nMissing text fields");
 			return
 		}
+		document.getElementById('upload').classList.add("disabled")
 
 		options = {
 			method: 'POST',
@@ -108,8 +113,10 @@
 										.catch(error => alert("Unknown error when uploading"))
 							}
 						})
+						.catch(error => alert("Unknown error when uploading"))
 				}
 			})
+			.catch(error => alert("Failed to upload image\nImages must be PNG"))
 	}
 </script>
 <form id="form" class="row align-items-md-stretch container gap-3" enctype="application/x-www-form-urlencoded">
@@ -145,7 +152,8 @@
 			{% endif %}
 		</div>
 		<div class="{{ posts::btn_success_outer() }}" onclick="upload()">
-			<button type="button" style="box-shadow: none" class="{{ posts::btn_success_inner() }}">Upload</button>
+			<button type="button" id="upload" style="box-shadow: none"
+				class="{{ posts::btn_success_inner() }}">Upload</button>
 		</div>
 		<div class="progress">
 			<div class="progress-bar bg-success" role="progressbar" style="width: 0;" aria-valuenow="25"

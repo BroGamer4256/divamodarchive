@@ -22,7 +22,7 @@
 	<div id="content" class="container">{% block content %}{% endblock content %}</div>
 	<br><br><br><br><br>
 	<nav class="navbar navbar-light bg-secondary fixed-bottom d-flex justify-content-around">
-		<a class="nav-link text" href="/">Posts</a>
+		<a class="nav-link text" href="/">Mods</a>
 		{% if is_logged_in == true %}
 		<a class="nav-link text" href="/upload">Upload</a>
 		{% else %}

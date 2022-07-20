@@ -19,7 +19,6 @@ use rocket::http::{ContentType, Status};
 use rocket::*;
 use rocket_dyn_templates::Template;
 use std::env;
-use std::io::Read;
 use std::sync::Mutex;
 
 // Why do these get deleted from the schema with migration 4?
@@ -51,7 +50,7 @@ pub fn get_from_storage(
 	user_id: i64,
 	file_type: String,
 	file_name: String,
-) -> Option<(Status, (ContentType, Vec<u8>))> {
+) -> Option<(Status, (ContentType, std::fs::File))> {
 	let file = format!("storage/{}/{}/{}", user_id, file_type, file_name);
 	if file_type == "posts" {
 		let path = format!("{}/{}", models::BASE_URL.to_string(), file);
@@ -61,15 +60,13 @@ pub fn get_from_storage(
 	if file.is_err() {
 		return None;
 	}
-	let mut file = file.unwrap();
-	let mut bytes = Vec::new();
-	let _ = file.read_to_end(&mut bytes);
+	let file = file.unwrap();
 	let content_type = match file_type.as_str() {
 		"posts" => ContentType::ZIP,
 		"images" => ContentType::PNG,
 		_ => return None,
 	};
-	Some((Status::Ok, (content_type, bytes)))
+	Some((Status::Ok, (content_type, file)))
 }
 
 #[launch]

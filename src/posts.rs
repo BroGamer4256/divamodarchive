@@ -12,6 +12,9 @@ pub fn create_post(
 	update_id: i32,
 ) -> Result<Post, Status> {
 	if update_id != -1 {
+		if !owns_post(conn, update_id, user.id) {
+			return Err(Status::Unauthorized);
+		}
 		let result = diesel::update(posts::table.filter(posts::post_id.eq(update_id)))
 			.set((
 				posts::post_name.eq(&post.name),
@@ -65,10 +68,6 @@ pub fn update_post(
 			posts::post_name.eq(&post.name),
 			posts::post_text.eq(&post.text),
 			posts::post_text_short.eq(&post.text_short),
-			posts::post_date.eq(chrono::NaiveDateTime::from_timestamp(
-				chrono::Utc::now().timestamp(),
-				0,
-			)),
 		))
 		.get_result::<Post>(conn);
 

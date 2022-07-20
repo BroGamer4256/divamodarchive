@@ -55,6 +55,30 @@ pub fn create_post(
 	}
 }
 
+pub fn update_post(
+	conn: &mut PgConnection,
+	post: PostMetadata,
+	update_id: i32,
+) -> Result<Post, Status> {
+	let result = diesel::update(posts::table.filter(posts::post_id.eq(update_id)))
+		.set((
+			posts::post_name.eq(&post.name),
+			posts::post_text.eq(&post.text),
+			posts::post_text_short.eq(&post.text_short),
+			posts::post_date.eq(chrono::NaiveDateTime::from_timestamp(
+				chrono::Utc::now().timestamp(),
+				0,
+			)),
+		))
+		.get_result::<Post>(conn);
+
+	if result.is_ok() {
+		Ok(result.unwrap())
+	} else {
+		Err(Status::InternalServerError)
+	}
+}
+
 pub fn has_liked_post(conn: &mut PgConnection, user_id: i64, post_id: i32) -> bool {
 	users_liked_posts::table
 		.filter(users_liked_posts::user_id.eq(user_id))

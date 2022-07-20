@@ -184,6 +184,13 @@ pub struct PostUnidentified {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct PostMetadata {
+	pub name: String,
+	pub text: String,
+	pub text_short: String,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct ShortPost {
 	pub id: i32,
 	pub name: String,

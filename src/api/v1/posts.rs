@@ -221,7 +221,12 @@ pub async fn upload(
 			.starts_with(format!("{}/storage/{}/posts/", BASE_URL.to_string(), user.id).as_str())
 		|| reqwest::get(post.image.clone()).await.is_err()
 		|| reqwest::get(post.link.clone()).await.is_err()
-	{
+		|| !(update_id.is_some()
+			&& owns_post(
+				&mut connection.lock().unwrap(),
+				update_id.unwrap_or(-1),
+				user.id,
+			)) {
 		return Err(Status::BadRequest);
 	}
 	let post = create_post(
@@ -231,6 +236,26 @@ pub async fn upload(
 		update_id.unwrap_or(-1),
 	)?;
 	Ok(Json(post))
+}
+
+#[post("/edit?<update_id>", data = "<post>")]
+pub async fn edit(
+	connection: &ConnectionState,
+	user: User,
+	post: Json<PostMetadata>,
+	update_id: i32,
+) -> Result<Json<Post>, Status> {
+	let post = post.into_inner();
+	if !owns_post(&mut connection.lock().unwrap(), update_id, user.id) {
+		return Err(Status::Unauthorized);
+	}
+
+	let result = update_post(&mut connection.lock().unwrap(), post, update_id);
+	if let Ok(result) = result {
+		Ok(Json(result))
+	} else {
+		Err(Status::InternalServerError)
+	}
 }
 
 #[get("/<id>")]

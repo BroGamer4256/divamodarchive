@@ -103,6 +103,7 @@ fn rocket() -> _ {
 				api::v1::posts::upload_archive_chunk,
 				api::v1::posts::finish_upload_archive_chunk,
 				api::v1::posts::upload,
+				api::v1::posts::edit,
 				api::v1::posts::details,
 				api::v1::posts::like,
 				api::v1::posts::dislike,

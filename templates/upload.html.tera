@@ -7,6 +7,43 @@
 
 {% block content %}
 <script>
+	{% if update_id %}
+	async function upload_metadata() {
+		var form = document.getElementById("form")
+		var name = form['title'].value
+		var text = form['text'].value
+		var text_short = form['text_short'].value
+		if (title == "" || text == "" || text_short == "") {
+			alert("Upload failed\nMissing text fields");
+			return
+		}
+		document.getElementById('upload').classList.add("disabled")
+		document.getElementById('upload_metadata').classList.add("disabled")
+
+		let post_data = {
+			'name': name,
+			'text': text,
+			'text_short': text_short,
+		}
+
+		options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'text/plain',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify(post_data)
+		}
+
+		fetch('/api/v1/posts/edit?update_id=' + {{ update_id }}, options)
+			.then(response => response.json())
+		.then(data => {
+			window.location.href = "/posts/" + data['id']
+		})
+		.catch(error => alert("Unknown error when uploading"))
+	}
+	{% endif %}
+
 	async function upload() {
 		var form = document.getElementById("form")
 
@@ -29,6 +66,9 @@
 			return
 		}
 		document.getElementById('upload').classList.add("disabled")
+		{% if update_id %}
+		document.getElementById('upload_metadata').classList.add("disabled")
+		{% endif %}
 
 		options = {
 			method: 'POST',
@@ -179,6 +219,12 @@
 			<button type="button" id="upload" style="box-shadow: none"
 				class="{{ posts::btn_success_inner() }}">Upload</button>
 		</div>
+		{% if update_id %}
+		<div class="{{ posts::btn_success_outer() }}" onclick="upload_metadata()">
+			<button type="button" id="upload_metadata" style="box-shadow: none"
+				class="{{ posts::btn_success_inner() }}">Update metadata</button>
+		</div>
+		{% endif %}
 		<div class="progress">
 			<div class="progress-bar bg-success" role="progressbar" style="width: 0;" aria-valuenow="25"
 				aria-valuemin="0" aria-valuemax="100" id="progress"></div>

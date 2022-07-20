@@ -796,6 +796,10 @@
 							"downloads": {
 								"type": "integer",
 								"format": "int64"
+							},
+							"date": {
+								"type": "string",
+								"format": "date-time"
 							}
 						}
 					},
@@ -848,6 +852,10 @@
 					"downloads": {
 						"type": "integer",
 						"format": "int64"
+					},
+					"date": {
+						"type": "string",
+						"format": "date-time"
 					}
 				}
 			},
@@ -918,6 +926,10 @@
 					},
 					"link": {
 						"type": "string"
+					},
+					"date": {
+						"type": "string",
+						"format": "date-time"
 					}
 				}
 			}

@@ -24,7 +24,7 @@
 <div class="col">
 	<div class="card shadow-sm">
 		<a class="" title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
-			<div class="card-img-top ratio ratio-16x9" style="background: black">
+			<div class="card-img-top ratio ratio-16x9" style="background: black" loading="lazy">
 				<img src="{{ image }}" style="object-fit: contain;" width="100%">
 			</div>
 			<div class="card-body">
@@ -219,7 +219,7 @@ dependencies, is_logged_in=false, has_liked=false, has_disliked=false, jwt="", w
 			</div>
 		</div>
 		<div class="ratio ratio-16x9" style="background: black">
-			<img src="{{ image }}" style="object-fit: contain;" class="card-img-top">
+			<img src="{{ image }}" style="object-fit: contain;" class="card-img-top" loading="lazy">
 		</div>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
@@ -297,7 +297,7 @@ dependencies, is_logged_in=false, has_liked=false, has_disliked=false, jwt="", w
 			<div class="col">
 				<div class="card shadow-sm">
 					<div class="card-img-top ratio ratio-16x9" style="background: black">
-						<img src="{{ image }}" style="object-fit: contain;" width="100%">
+						<img src="{{ image }}" style="object-fit: contain;" width="100%" loading="lazy">
 					</div>
 				</div>
 			</div>

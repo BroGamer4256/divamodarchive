@@ -15,9 +15,11 @@ pub mod web;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use dotenv::dotenv;
+use rocket::http::{ContentType, Status};
 use rocket::*;
 use rocket_dyn_templates::Template;
 use std::env;
+use std::io::Read;
 use std::sync::Mutex;
 
 allow_columns_to_appear_in_same_group_by_clause!(
@@ -44,13 +46,25 @@ pub fn get_from_storage(
 	user_id: i64,
 	file_type: String,
 	file_name: String,
-) -> Option<std::fs::File> {
+) -> Option<(Status, (ContentType, Vec<u8>))> {
 	let file = format!("storage/{}/{}/{}", user_id, file_type, file_name);
 	if file_type == "posts" {
 		let path = format!("{}/{}", models::BASE_URL.to_string(), file);
 		let _ = posts::update_download_count(&mut connection.lock().unwrap(), path);
 	}
-	std::fs::File::open(file).ok()
+	let file = std::fs::File::open(file);
+	if file.is_err() {
+		return None;
+	}
+	let mut file = file.unwrap();
+	let mut bytes = Vec::new();
+	let _ = file.read_to_end(&mut bytes);
+	let content_type = match file_type.as_str() {
+		"posts" => ContentType::ZIP,
+		"images" => ContentType::PNG,
+		_ => return None,
+	};
+	Some((Status::Ok, (content_type, bytes)))
 }
 
 #[launch]

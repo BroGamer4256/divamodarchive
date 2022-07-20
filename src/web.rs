@@ -160,9 +160,13 @@ pub fn details(
 #[get("/login?<code>")]
 pub async fn login(
 	connection: &ConnectionState,
-	code: String,
+	code: Option<String>,
 	cookies: &CookieJar<'_>,
 ) -> Redirect {
+	if code.is_none() {
+		return Redirect::to("/");
+	}
+	let code = code.unwrap();
 	let jwt = crate::api::v1::users::login(
 		connection,
 		code,

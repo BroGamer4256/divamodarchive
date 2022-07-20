@@ -74,7 +74,7 @@ pub fn get_user_posts_latest(
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
-		.order_by(posts::post_id.desc())
+		.order_by(posts::post_date.desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -140,7 +140,7 @@ pub fn get_user_posts_latest_detailed(
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
-		.order_by(posts::post_id.desc())
+		.order_by(posts::post_date.desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -149,6 +149,7 @@ pub fn get_user_posts_latest_detailed(
 			posts::post_image,
 			posts::post_images_extra,
 			posts::post_link,
+			posts::post_date,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -166,6 +167,7 @@ pub fn get_user_posts_latest_detailed(
 			String,
 			Vec<String>,
 			String,
+			chrono::NaiveDateTime,
 			i64,
 			i64,
 			i64,
@@ -180,9 +182,9 @@ pub fn get_user_posts_latest_detailed(
 	}
 	let mut result = UserPostsDetailed {
 		user: User {
-			id: results[0].10,
-			name: results[0].11.clone(),
-			avatar: results[0].12.clone(),
+			id: results[0].11,
+			name: results[0].12.clone(),
+			avatar: results[0].13.clone(),
 		},
 		posts: vec![],
 	};
@@ -212,6 +214,7 @@ pub fn get_user_posts_latest_detailed(
 				posts::post_image,
 				posts::post_images_extra,
 				posts::post_link,
+				posts::post_date,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
 				count_distinct(download_stats::timestamp.nullable()),
@@ -227,6 +230,7 @@ pub fn get_user_posts_latest_detailed(
 				String,
 				Vec<String>,
 				String,
+				chrono::NaiveDateTime,
 				i64,
 				i64,
 				i64,
@@ -244,9 +248,10 @@ pub fn get_user_posts_latest_detailed(
 			image: post.4,
 			images_extra: post.5,
 			link: post.6,
-			likes: post.7,
-			dislikes: post.8,
-			downloads: post.9,
+			date: post.7,
+			likes: post.8,
+			dislikes: post.9,
+			downloads: post.10,
 			dependencies: dependencies
 				.into_iter()
 				.map(|dependency| DetailedPostNoUser {
@@ -257,9 +262,10 @@ pub fn get_user_posts_latest_detailed(
 					image: dependency.4,
 					images_extra: dependency.5,
 					link: dependency.6,
-					likes: dependency.7,
-					dislikes: dependency.8,
-					downloads: dependency.9,
+					date: dependency.7,
+					likes: dependency.8,
+					dislikes: dependency.9,
+					downloads: dependency.10,
 					dependencies: vec![],
 				})
 				.collect(),
@@ -363,6 +369,7 @@ pub fn get_user_posts_popular_detailed(
 			posts::post_image,
 			posts::post_images_extra,
 			posts::post_link,
+			posts::post_date,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -380,6 +387,7 @@ pub fn get_user_posts_popular_detailed(
 			String,
 			Vec<String>,
 			String,
+			chrono::NaiveDateTime,
 			i64,
 			i64,
 			i64,
@@ -395,9 +403,9 @@ pub fn get_user_posts_popular_detailed(
 
 	let mut result = UserPostsDetailed {
 		user: User {
-			id: results[0].10,
-			name: results[0].11.clone(),
-			avatar: results[0].12.clone(),
+			id: results[0].11,
+			name: results[0].12.clone(),
+			avatar: results[0].13.clone(),
 		},
 		posts: vec![],
 	};
@@ -427,6 +435,7 @@ pub fn get_user_posts_popular_detailed(
 				posts::post_image,
 				posts::post_images_extra,
 				posts::post_link,
+				posts::post_date,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
 				count_distinct(download_stats::timestamp.nullable()),
@@ -442,6 +451,7 @@ pub fn get_user_posts_popular_detailed(
 				String,
 				Vec<String>,
 				String,
+				chrono::NaiveDateTime,
 				i64,
 				i64,
 				i64,
@@ -459,9 +469,10 @@ pub fn get_user_posts_popular_detailed(
 			image: post.4,
 			images_extra: post.5,
 			link: post.6,
-			likes: post.7,
-			dislikes: post.8,
-			downloads: post.9,
+			date: post.7,
+			likes: post.8,
+			dislikes: post.9,
+			downloads: post.10,
 			dependencies: dependencies
 				.into_iter()
 				.map(|dependency| DetailedPostNoUser {
@@ -472,9 +483,10 @@ pub fn get_user_posts_popular_detailed(
 					image: dependency.4,
 					images_extra: dependency.5,
 					link: dependency.6,
-					likes: dependency.7,
-					dislikes: dependency.8,
-					downloads: dependency.9,
+					date: dependency.7,
+					likes: dependency.8,
+					dislikes: dependency.9,
+					downloads: dependency.10,
 					dependencies: vec![],
 				})
 				.collect(),

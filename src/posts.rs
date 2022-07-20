@@ -20,6 +20,10 @@ pub fn create_post(
 				posts::post_image.eq(&post.image),
 				posts::post_images_extra.eq(&post.images_extra),
 				posts::post_link.eq(&post.link),
+				posts::post_date.eq(chrono::NaiveDateTime::from_timestamp(
+					chrono::Utc::now().timestamp(),
+					0,
+				)),
 			))
 			.get_result::<Post>(conn);
 
@@ -162,7 +166,7 @@ pub fn get_latest_posts(
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by(posts::post_id)
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.order_by(posts::post_id.desc())
+		.order_by(posts::post_date.desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -206,7 +210,7 @@ pub fn get_latest_posts_detailed(
 		.left_join(users_disliked_posts::table)
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
-		.order_by(posts::post_id.desc())
+		.order_by(posts::post_date.desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -215,6 +219,7 @@ pub fn get_latest_posts_detailed(
 			posts::post_image,
 			posts::post_images_extra,
 			posts::post_link,
+			posts::post_date,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -232,6 +237,7 @@ pub fn get_latest_posts_detailed(
 			String,
 			Vec<String>,
 			String,
+			chrono::NaiveDateTime,
 			i64,
 			i64,
 			i64,
@@ -271,6 +277,7 @@ pub fn get_latest_posts_detailed(
 				posts::post_image,
 				posts::post_images_extra,
 				posts::post_link,
+				posts::post_date,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
 				count_distinct(download_stats::timestamp.nullable()),
@@ -286,6 +293,7 @@ pub fn get_latest_posts_detailed(
 				String,
 				Vec<String>,
 				String,
+				chrono::NaiveDateTime,
 				i64,
 				i64,
 				i64,
@@ -303,13 +311,14 @@ pub fn get_latest_posts_detailed(
 			image: post.4.clone(),
 			images_extra: post.5,
 			link: post.6.clone(),
-			likes: post.7,
-			dislikes: post.8,
-			downloads: post.9,
+			date: post.7,
+			likes: post.8,
+			dislikes: post.9,
+			downloads: post.10,
 			user: User {
-				id: post.10,
-				name: post.11.clone(),
-				avatar: post.12.clone(),
+				id: post.11,
+				name: post.12.clone(),
+				avatar: post.13.clone(),
 			},
 			dependencies: dependencies
 				.into_iter()
@@ -321,13 +330,14 @@ pub fn get_latest_posts_detailed(
 					image: dependency.4.clone(),
 					images_extra: dependency.5,
 					link: dependency.6.clone(),
-					likes: dependency.7,
-					dislikes: dependency.8,
-					downloads: dependency.9,
+					date: dependency.7,
+					likes: dependency.8,
+					dislikes: dependency.9,
+					downloads: dependency.10,
 					user: User {
-						id: dependency.10,
-						name: dependency.11.clone(),
-						avatar: dependency.12.clone(),
+						id: dependency.11,
+						name: dependency.12.clone(),
+						avatar: dependency.13.clone(),
 					},
 					dependencies: vec![],
 				})
@@ -350,7 +360,7 @@ pub fn get_latest_posts_disallowed(
 		.group_by(posts::post_id)
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_id.ne_all(disallowed))
-		.order_by(posts::post_id.desc())
+		.order_by(posts::post_date.desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -455,6 +465,7 @@ pub fn get_popular_posts_detailed(
 			posts::post_image,
 			posts::post_images_extra,
 			posts::post_link,
+			posts::post_date,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -472,6 +483,7 @@ pub fn get_popular_posts_detailed(
 			String,
 			Vec<String>,
 			String,
+			chrono::NaiveDateTime,
 			i64,
 			i64,
 			i64,
@@ -511,6 +523,7 @@ pub fn get_popular_posts_detailed(
 				posts::post_image,
 				posts::post_images_extra,
 				posts::post_link,
+				posts::post_date,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
 				count_distinct(download_stats::timestamp.nullable()),
@@ -526,6 +539,7 @@ pub fn get_popular_posts_detailed(
 				String,
 				Vec<String>,
 				String,
+				chrono::NaiveDateTime,
 				i64,
 				i64,
 				i64,
@@ -543,13 +557,14 @@ pub fn get_popular_posts_detailed(
 			image: post.4.clone(),
 			images_extra: post.5,
 			link: post.6.clone(),
-			likes: post.7,
-			dislikes: post.8,
-			downloads: post.9,
+			date: post.7,
+			likes: post.8,
+			dislikes: post.9,
+			downloads: post.10,
 			user: User {
-				id: post.10,
-				name: post.11.clone(),
-				avatar: post.12.clone(),
+				id: post.11,
+				name: post.12.clone(),
+				avatar: post.13.clone(),
 			},
 			dependencies: dependencies
 				.into_iter()
@@ -561,13 +576,14 @@ pub fn get_popular_posts_detailed(
 					image: dependency.4.clone(),
 					images_extra: dependency.5,
 					link: dependency.6.clone(),
-					likes: dependency.7,
-					dislikes: dependency.8,
-					downloads: dependency.9,
+					date: dependency.7,
+					likes: dependency.8,
+					dislikes: dependency.9,
+					downloads: dependency.10,
 					user: User {
-						id: dependency.10,
-						name: dependency.11.clone(),
-						avatar: dependency.12.clone(),
+						id: dependency.11,
+						name: dependency.12.clone(),
+						avatar: dependency.13.clone(),
 					},
 					dependencies: vec![],
 				})
@@ -642,6 +658,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 			posts::post_image,
 			posts::post_images_extra,
 			posts::post_link,
+			posts::post_date,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -657,6 +674,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 			String,
 			Vec<String>,
 			String,
+			chrono::NaiveDateTime,
 			i64,
 			i64,
 			i64,
@@ -673,6 +691,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 				String::new(),
 				vec![],
 				String::new(),
+				chrono::NaiveDateTime::from_timestamp(0, 0),
 				0i64,
 				0i64,
 				0i64,
@@ -710,6 +729,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 				posts::post_image,
 				posts::post_images_extra,
 				posts::post_link,
+				posts::post_date,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
 				count_distinct(download_stats::timestamp.nullable()),
@@ -725,6 +745,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 				String,
 				Vec<String>,
 				String,
+				chrono::NaiveDateTime,
 				i64,
 				i64,
 				i64,
@@ -742,13 +763,14 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 			image: result.4.clone(),
 			images_extra: result.5,
 			link: result.6.clone(),
-			likes: result.7,
-			dislikes: result.8,
-			downloads: result.9,
+			date: result.7,
+			likes: result.8,
+			dislikes: result.9,
+			downloads: result.10,
 			user: User {
-				id: result.10,
-				name: result.11.clone(),
-				avatar: result.12.clone(),
+				id: result.11,
+				name: result.12.clone(),
+				avatar: result.13.clone(),
 			},
 			dependencies: dependencies
 				.into_iter()
@@ -760,13 +782,14 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 					image: dependency.4.clone(),
 					images_extra: dependency.5,
 					link: dependency.6.clone(),
-					likes: dependency.7,
-					dislikes: dependency.8,
-					downloads: dependency.9,
+					date: dependency.7,
+					likes: dependency.8,
+					dislikes: dependency.9,
+					downloads: dependency.10,
 					user: User {
-						id: dependency.10,
-						name: dependency.11.clone(),
-						avatar: dependency.12.clone(),
+						id: dependency.11,
+						name: dependency.12.clone(),
+						avatar: dependency.13.clone(),
 					},
 					dependencies: vec![],
 				})

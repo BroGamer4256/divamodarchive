@@ -204,6 +204,7 @@ pub struct DetailedPostNoUser {
 	pub image: String,
 	pub images_extra: Vec<String>,
 	pub link: String,
+	pub date: chrono::NaiveDateTime,
 	pub likes: i64,
 	pub dislikes: i64,
 	pub downloads: i64,
@@ -219,6 +220,7 @@ pub struct DetailedPost {
 	pub image: String,
 	pub images_extra: Vec<String>,
 	pub link: String,
+	pub date: chrono::NaiveDateTime,
 	pub likes: i64,
 	pub dislikes: i64,
 	pub downloads: i64,
@@ -262,6 +264,7 @@ pub struct Post {
 	pub images_extra: Vec<String>,
 	pub uploader: i64,
 	pub link: String,
+	pub date: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable)]

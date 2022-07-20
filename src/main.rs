@@ -22,6 +22,10 @@ use std::env;
 use std::io::Read;
 use std::sync::Mutex;
 
+// Why do these get deleted from the schema with migration 4?
+joinable!(schema::users_disliked_posts -> schema::posts (post_id));
+joinable!(schema::users_liked_posts -> schema::posts (post_id));
+
 allow_columns_to_appear_in_same_group_by_clause!(
 	schema::posts::post_id,
 	schema::posts::post_name,
@@ -30,6 +34,7 @@ allow_columns_to_appear_in_same_group_by_clause!(
 	schema::posts::post_image,
 	schema::posts::post_images_extra,
 	schema::posts::post_link,
+	schema::posts::post_date,
 	schema::users::user_id,
 	schema::users::user_name,
 	schema::users::user_avatar

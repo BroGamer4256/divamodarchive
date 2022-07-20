@@ -134,8 +134,9 @@ btn
 {% endif %}
 {% endmacro %}
 
-{% macro draw_post_full(id, name, text, image, link, uploader_id, uploader_name, likes, dislikes, downloads,
-dependencies, is_logged_in=false, has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0, extra_images) %}
+{% macro draw_post_full(id, name, text, image, link, last_updated, uploader_id, uploader_name, likes, dislikes,
+downloads, dependencies, is_logged_in=false, has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0,
+extra_images) %}
 <script>
 	var had_disliked = {{ has_disliked }};
 	var had_liked = {{ has_liked }};
@@ -217,10 +218,11 @@ dependencies, is_logged_in=false, has_liked=false, has_disliked=false, jwt="", w
 			<div class="col-md">
 				<h5 class="card-subtitle text-align-right-md text">Downloads: {{ downloads }}</h5>
 			</div>
+			<h5 class="card-subtitle text">Last updated: {{ last_updated | date }}</h5>
 		</div>
-		<div class="ratio ratio-16x9" style="background: black">
+		<a href="{{ image}}" target="_blank" class="ratio ratio-16x9" style="background: black">
 			<img src="{{ image }}" style="object-fit: contain;" class="card-img-top" loading="lazy">
-		</div>
+		</a>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
 		<div class="btn-group">
@@ -296,9 +298,10 @@ dependencies, is_logged_in=false, has_liked=false, has_disliked=false, jwt="", w
 			{% for image in extra_images %}
 			<div class="col">
 				<div class="card shadow-sm">
-					<div class="card-img-top ratio ratio-16x9" style="background: black">
+					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9"
+						style="background: black">
 						<img src="{{ image }}" style="object-fit: contain;" width="100%" loading="lazy">
-					</div>
+					</a>
 				</div>
 			</div>
 			{% endfor %}

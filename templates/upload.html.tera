@@ -71,114 +71,149 @@
 		{% endif %}
 
 		options = {
-			method: 'POST',
+			method: 'GET',
 			headers: {
 				'Content-Type': 'text/plain',
 				'Authorization': 'Bearer {{ jwt }}'
 			},
-			body: image.files[0]
 		}
-		fetch('/api/v1/posts/upload_image?name=' + image.files[0].name, options)
+		fetch('/api/v1/posts/upload_image', options)
 			.then(response => response.json())
-			.then(image_url => async function (image_url) {
-				if (image_url == null) {
-					alert("Image upload failed\nOnly png files are supported at this time\nMaximum size for images is 8MiB");
+			.then(image_upload_url => async function (image_upload_url) {
+				if (image_upload_url == null) {
+					alert("Image upload failed\nMaximum size for images is 10MiB");
 					return
 				}
-				alert("Your mod is being uploaded, please wait as this can take a large amount of time");
-
-				var images_extra = form['imagesExtra'];
-				var images_extra_urls = [];
-				for (let i = 0; i < images_extra.files.length; i++) {
-					options = {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'text/plain',
-							'Authorization': 'Bearer {{ jwt }}'
-						},
-						body: images_extra.files[i]
-					}
-					var response = await fetch('/api/v1/posts/upload_image?name=' + images_extra.files[i].name, options);
-					var extra_image_url = await response.json();
-					if (extra_image_url == null) {
-						alert("Image upload failed\nOnly png files are supported at this time\nMaximum size for images is 8MiB");
-						return
-					}
-					images_extra_urls.push(extra_image_url);
+				var image_form = new FormData();
+				image_form.append('file', image.files[0]);
+				options = {
+					method: 'POST',
+					headers: {
+						'Accept': '*/*',
+					},
+					body: image_form
 				}
+				fetch(image_upload_url, options)
+					.then(response => response.json())
+					.then(result => async function (result) {
+						var image_url = result.result.variants[0]
+						if (image_url == null) {
+							alert("Image upload failed\nMaximum size for images is 10MiB");
+							return
+						}
+						var image_url = image_url.replace("https://imagedelivery.net/", "{{ BASE_URL | safe  }}/cdn-cgi/imagedelivery/")
+						alert("Your mod is being uploaded, please wait as this can take a large amount of time");
 
-				var file = archive.files[0];
-				var chunkSize = 1024 * 1024 * 8;
-				var chunkCount = Math.ceil(file.size / chunkSize);
-				var chunkStart = 0;
-				var chunksCompleted = 0;
-				for (var i = 0; i < chunkCount; i++) {
-					var chunkEnd = chunkStart + chunkSize;
-					var chunk = file.slice(chunkStart, chunkEnd);
-					chunkStart = chunkEnd;
-					options = {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'text/plain',
-							'Authorization': 'Bearer {{ jwt }}'
-						},
-						body: chunk
-					}
-					fetch("/api/v1/posts/upload_archive_chunk?name=" + file.name + "&chunk=" + i, options)
-						.then(response => {
-							if (response.status != 200) {
-								alert("Archive chunk upload failed");
+						var images_extra = form['imagesExtra'];
+						var images_extra_urls = [];
+						for (let i = 0; i < images_extra.files.length; i++) {
+							options = {
+								method: 'GET',
+								headers: {
+									'Content-Type': 'text/plain',
+									'Authorization': 'Bearer {{ jwt }}'
+								}
+							}
+							var response = await fetch('/api/v1/posts/upload_image', options);
+							var extra_image_upload_url = await response.json();
+							if (extra_image_upload_url == null) {
+								alert("Image upload failed\nMaximum size for images is 10MiB");
 								return
 							}
-							chunksCompleted++;
-							document.getElementById("progress").style.width = chunksCompleted / chunkCount * 100 + "%";
-							if (chunksCompleted == chunkCount) {
-								options = {
-									method: 'POST',
-									headers: {
-										'Content-Type': 'text/plain',
-										'Authorization': 'Bearer {{ jwt }}'
-									},
+							var extra_image_form = new FormData();
+							extra_image_form.append('file', images_extra.files[i]);
+							options = {
+								method: 'POST',
+								headers: {
+									'Accept': '*/*',
 								},
-									fetch("/api/v1/posts/finish_upload_archive_chunk?name=" + file.name, options)
-										.then(response => response.json())
-										.then(archive_url => {
-											let post_data = {
-												'name': name,
-												'text': text,
-												'text_short': text_short,
-												'image': image_url,
-												'images_extra': images_extra_urls,
-												'link': archive_url
-											}
+								body: extra_image_form
+							}
+							var response = await fetch(extra_image_upload_url, options);
+							var result = await response.json();
+							if (result == null) {
+								alert("Image upload failed\nMaximum size for images is 10MiB");
+								return
+							}
+							var extra_image_url = result.result.variants[0]
+							var extra_image_url = extra_image_url.replace("https://imagedelivery.net/", "{{ BASE_URL | safe }}/cdn-cgi/imagedelivery/")
+							images_extra_urls.push(extra_image_url);
+						}
 
-											options = {
-												method: 'POST',
-												headers: {
-													'Content-Type': 'text/plain',
-													'Authorization': 'Bearer {{ jwt }}'
-												},
-												body: JSON.stringify(post_data)
-											}
-
-											{% if update_id %}
-											fetch('/api/v1/posts/upload?update_id={{update_id}}', options)
-											{% else %}
-											fetch('/api/v1/posts/upload', options)
-											{% endif %}
+						var file = archive.files[0];
+						var chunkSize = 1024 * 1024 * 8;
+						var chunkCount = Math.ceil(file.size / chunkSize);
+						var chunkStart = 0;
+						var chunksCompleted = 0;
+						for (var i = 0; i < chunkCount; i++) {
+							var chunkEnd = chunkStart + chunkSize;
+							var chunk = file.slice(chunkStart, chunkEnd);
+							chunkStart = chunkEnd;
+							options = {
+								method: 'POST',
+								headers: {
+									'Content-Type': 'text/plain',
+									'Authorization': 'Bearer {{ jwt }}'
+								},
+								body: chunk
+							}
+							fetch("/api/v1/posts/upload_archive_chunk?name=" + file.name + "&chunk=" + i, options)
+								.then(response => {
+									if (response.status != 200) {
+										alert("Archive chunk upload failed");
+										return
+									}
+									chunksCompleted++;
+									document.getElementById("progress").style.width = chunksCompleted / chunkCount * 100 + "%";
+									if (chunksCompleted == chunkCount) {
+										options = {
+											method: 'POST',
+											headers: {
+												'Content-Type': 'text/plain',
+												'Authorization': 'Bearer {{ jwt }}'
+											},
+										},
+											fetch("/api/v1/posts/finish_upload_archive_chunk?name=" + file.name, options)
 												.then(response => response.json())
-												.then(data => {
-													window.location.href = "/posts/" + data['id']
+												.then(archive_url => {
+													let post_data = {
+														'name': name,
+														'text': text,
+														'text_short': text_short,
+														'image': image_url,
+														'images_extra': images_extra_urls,
+														'link': archive_url
+													}
+
+													options = {
+														method: 'POST',
+														headers: {
+															'Content-Type': 'text/plain',
+															'Authorization': 'Bearer {{ jwt }}'
+														},
+														body: JSON.stringify(post_data)
+													}
+													{% if update_id %}
+													fetch('/api/v1/posts/upload?update_id={{update_id}}', options)
+													{% else %}
+													fetch('/api/v1/posts/upload', options)
+													{% endif %}
+												.then(response => response.json())
+														.then(data => {
+															window.location.href = "/posts/" + data['id']
+														})
+														.catch(error => alert("Unknown error when uploading"))
 												})
 												.catch(error => alert("Unknown error when uploading"))
-										})
-										.catch(error => alert("Unknown error when uploading"))
-							}
-						})
-						.catch(error => alert("Unknown error when uploading"))
-				}
-			}(image_url))
-			.catch(error => alert("Failed to upload image\nImages must be PNG"))
+									}
+								})
+								.catch(error => alert("Unknown error when uploading"))
+						}
+					}(result))
+					// Errors but just fucking continues?????
+					.catch()
+			}(image_upload_url))
+			.catch(error => alert("Failed to upload image"))
 	}
 </script>
 <form id="form" class="row align-items-md-stretch container gap-3" enctype="application/x-www-form-urlencoded">

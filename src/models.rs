@@ -66,6 +66,22 @@ lazy_static! {
 		}
 		size.parse::<u64>().unwrap()
 	};
+	pub static ref CLOUDFLARE_IMAGE_TOKEN: String = {
+		dotenv().ok();
+		let token = env::var("CLOUDFLARE_IMAGE_TOKEN").unwrap_or_else(|_| String::new());
+		if token.is_empty() {
+			panic!("CLOUDFLARE_IMAGE_TOKEN must not be empty");
+		}
+		token
+	};
+	pub static ref CLOUDFLARE_ACCOUNT_ID: String = {
+		dotenv().ok();
+		let account_id = env::var("CLOUDFLARE_ACCOUNT_ID").unwrap_or_else(|_| String::new());
+		if account_id.is_empty() {
+			panic!("CLOUDFLARE_ACCOUNT_ID must not be empty");
+		}
+		account_id
+	};
 }
 
 pub type ConnectionState = rocket::State<std::sync::Mutex<diesel::PgConnection>>;

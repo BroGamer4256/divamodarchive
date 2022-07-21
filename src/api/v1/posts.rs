@@ -7,49 +7,55 @@ use crate::posts::*;
 use rocket::data::{Capped, Data, ToByteUnit, N};
 use rocket::http::Status;
 use rocket::serde::json::Json;
+use serde::Deserialize;
+use serde::Serialize;
 
-#[post("/upload_image?<name>", data = "<image>")]
-pub async fn upload_image(
-	image: Data<'_>,
-	name: String,
-	user: User,
-) -> Result<Json<String>, Status> {
-	let stream = image.open(MAX_IMAGE_SIZE.mebibytes());
-	let bytes = stream.into_bytes().await.unwrap_or(Capped::<Vec<u8>>::new(
-		Vec::new(),
-		N {
-			written: 0,
-			complete: true,
-		},
-	));
+#[allow(non_snake_case)]
+#[derive(Serialize, Deserialize, Debug)]
+struct CloudflareDirectUploadResult {
+	id: String,
+	uploadURL: String,
+}
 
-	let image_type = match &bytes[0..4] {
-		&[0x89, 0x50, 0x4e, 0x47] => Some("png"),
-		_ => None,
-	};
-	if bytes.len() >= MAX_IMAGE_SIZE.mebibytes() || bytes.len() == 0 || image_type.is_none() {
-		return Err(Status::BadRequest);
-	}
-	let result = std::fs::create_dir_all(format!("storage/{}/images", user.id));
-	if result.is_err() {
+#[derive(Serialize, Deserialize, Debug)]
+struct CloudflareDirectUpload {
+	success: bool,
+	result: CloudflareDirectUploadResult,
+}
+
+#[get("/upload_image")]
+pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
+	let cloudflare_url = format!(
+		"https://api.cloudflare.com/client/v4/accounts/{}/images/v2/direct_upload",
+		CLOUDFLARE_ACCOUNT_ID.to_string()
+	);
+	let params =
+		reqwest::multipart::Form::new().text("metadata", format!("{{\"user\":\"{}\"}}", user.id));
+	let response = reqwest::Client::new()
+		.post(&cloudflare_url)
+		.header(
+			"Authorization",
+			format!("Bearer {}", CLOUDFLARE_IMAGE_TOKEN.to_string()),
+		)
+		.multipart(params)
+		.send()
+		.await;
+	if response.is_err() {
 		return Err(Status::InternalServerError);
 	}
-	let result = File::create(format!("storage/{}/images/{}", user.id, name));
-	if result.is_err() {
+	let response = response.unwrap();
+	if !response.status().is_success() {
 		return Err(Status::InternalServerError);
 	}
-	let mut file = result.unwrap();
-	let result = file.write_all(&bytes);
-	if result.is_err() {
+	let response = response.json().await;
+	if response.is_err() {
 		return Err(Status::InternalServerError);
 	}
-
-	Ok(Json(format!(
-		"{}/storage/{}/images/{}",
-		BASE_URL.to_string(),
-		user.id,
-		name,
-	)))
+	let response: CloudflareDirectUpload = response.unwrap();
+	if !response.success {
+		return Err(Status::InternalServerError);
+	}
+	Ok(Json(response.result.uploadURL))
 }
 
 #[post("/upload_archive?<name>", data = "<archive>")]
@@ -215,7 +221,7 @@ pub async fn upload(
 	let post = post.into_inner();
 	if !post
 		.image
-		.starts_with(format!("{}/storage/{}/images/", BASE_URL.to_string(), user.id).as_str())
+		.starts_with(format!("{}/cdn-cgi/imagedelivery", BASE_URL.to_string()).as_str())
 		|| !post
 			.link
 			.starts_with(format!("{}/storage/{}/posts/", BASE_URL.to_string(), user.id).as_str())

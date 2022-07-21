@@ -15,5 +15,5 @@ serde_with = { verison = "2.0.0", features = ["chrono"] }
 jsonwebtoken = "8.1.1"
 lazy_static = "1.4.0"
 chrono = "0.4.19"
-reqwest = { version = "0.11.11", features = ["json"] }
+reqwest = { version = "0.11.11", features = ["json", "multipart", "blocking"] }
 serde_urlencoded = "0.7.1"

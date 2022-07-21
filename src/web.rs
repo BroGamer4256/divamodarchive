@@ -135,8 +135,6 @@ pub fn details(
 	id: i32,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Status> {
-	// name=post.name, text=post.text, link=post.link, uploader_id=user.id, uploader_name=user.name,
-	// likes=post.likes, dislikes=post.dislikes, is_logged_in=is_logged_in, has_liked=has_liked, has_disliked=has_disliked
 	let connection = &mut connection.lock().unwrap();
 	let post = get_post(connection, id)?;
 	let who_is_logged_in = who_is_logged_in(connection, cookies);
@@ -193,7 +191,7 @@ pub fn upload(
 	let connection = &mut connection.lock().unwrap();
 	Ok(Template::render(
 		"upload",
-		context![user: user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), light_mode: is_light_mode(cookies),],
+		context![user: user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), light_mode: is_light_mode(cookies),BASE_URL: BASE_URL.to_string()],
 	))
 }
 
@@ -270,7 +268,7 @@ pub fn edit(
 			let jwt = cookies.get_pending("jwt").unwrap();
 			Ok(Template::render(
 				"upload",
-				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies), update_id: id],
+				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies), update_id: id, BASE_URL: BASE_URL.to_string()],
 			))
 		} else {
 			Err(Redirect::to(format!("/posts/{}", id)))

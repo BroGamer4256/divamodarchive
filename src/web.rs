@@ -191,7 +191,7 @@ pub fn upload(
 	let connection = &mut connection.lock().unwrap();
 	Ok(Template::render(
 		"upload",
-		context![user: user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), light_mode: is_light_mode(cookies),BASE_URL: BASE_URL.to_string()],
+		context![user: user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), light_mode: is_light_mode(cookies),base_url: BASE_URL.to_string()],
 	))
 }
 
@@ -239,9 +239,9 @@ pub fn user(
 			description: description,
 			offset: offset,
 			previous_sort: order.unwrap_or_default(),
-			total_likes: user_stats.0,
-			total_dislikes: user_stats.1,
-			total_downloads: user_stats.2,
+			total_likes: user_stats.likes,
+			total_dislikes: user_stats.dislikes,
+			total_downloads: user_stats.downloads,
 			light_mode: is_light_mode(cookies),
 		],
 	))
@@ -268,7 +268,7 @@ pub fn edit(
 			let jwt = cookies.get_pending("jwt").unwrap();
 			Ok(Template::render(
 				"upload",
-				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies), update_id: id, BASE_URL: BASE_URL.to_string()],
+				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies), update_id: id, base_url: BASE_URL.to_string()],
 			))
 		} else {
 			Err(Redirect::to(format!("/posts/{}", id)))

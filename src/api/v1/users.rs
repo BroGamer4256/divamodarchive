@@ -117,9 +117,8 @@ pub fn latest(
 	connection: &ConnectionState,
 	id: i64,
 	offset: Option<i64>,
-) -> Result<Json<UserPostsDetailed>, Status> {
-	let result =
-		get_user_posts_latest_detailed(&mut connection.lock().unwrap(), id, offset.unwrap_or(0))?;
+) -> Result<Json<Vec<ShortUserPosts>>, Status> {
+	let result = get_user_posts_latest(&mut connection.lock().unwrap(), id, offset.unwrap_or(0))?;
 	Ok(Json(result))
 }
 
@@ -128,9 +127,8 @@ pub fn popular(
 	connection: &ConnectionState,
 	id: i64,
 	offset: Option<i64>,
-) -> Result<Json<UserPostsDetailed>, Status> {
-	let result =
-		get_user_posts_popular_detailed(&mut connection.lock().unwrap(), id, offset.unwrap_or(0))?;
+) -> Result<Json<Vec<ShortUserPosts>>, Status> {
+	let result = get_user_posts_popular(&mut connection.lock().unwrap(), id, offset.unwrap_or(0))?;
 	Ok(Json(result))
 }
 

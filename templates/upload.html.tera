@@ -53,10 +53,6 @@
 			alert("Upload failed\nMissing image/archive");
 			return
 		}
-		if (image.files[0].type != "image/png") {
-			alert("Upload failed\nImage must be PNG");
-			return
-		}
 
 		var name = form['title'].value
 		var text = form['text'].value
@@ -101,7 +97,7 @@
 							alert("Image upload failed\nMaximum size for images is 10MiB");
 							return
 						}
-						var image_url = image_url.replace("https://imagedelivery.net/", "{{ BASE_URL | safe  }}/cdn-cgi/imagedelivery/")
+						var image_url = image_url.replace("https://imagedelivery.net/", "{{ base_url | safe  }}/cdn-cgi/imagedelivery/")
 						alert("Your mod is being uploaded, please wait as this can take a large amount of time");
 
 						var images_extra = form['imagesExtra'];
@@ -136,7 +132,7 @@
 								return
 							}
 							var extra_image_url = result.result.variants[0]
-							var extra_image_url = extra_image_url.replace("https://imagedelivery.net/", "{{ BASE_URL | safe }}/cdn-cgi/imagedelivery/")
+							var extra_image_url = extra_image_url.replace("https://imagedelivery.net/", "{{ base_url | safe }}/cdn-cgi/imagedelivery/")
 							images_extra_urls.push(extra_image_url);
 						}
 
@@ -230,9 +226,9 @@
 		</h5>
 
 		<label for="imagePicker" class="form-label mt-4">Image</label>
-		<input class="form-control" accept="image/png" type="file" id="imagePicker">
+		<input class="form-control" accept="image/*" type="file" id="imagePicker">
 		<label for="imagesExtra" class="form-label mt-4">Optional: Extra images</label>
-		<input class="form-control" accept="image/png" type="file" id="imagesExtra" multiple>
+		<input class="form-control" accept="image/*" type="file" id="imagesExtra" multiple>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
 		<div class="btn-group">

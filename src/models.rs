@@ -189,6 +189,13 @@ impl<'r> FromRequest<'r> for User {
 	}
 }
 
+#[derive(Queryable, Serialize, Deserialize, Default)]
+pub struct UserStats {
+	pub likes: i64,
+	pub dislikes: i64,
+	pub downloads: i64,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct PostUnidentified {
 	pub name: String,
@@ -206,7 +213,7 @@ pub struct PostMetadata {
 	pub text_short: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Queryable, Serialize, Deserialize, Default)]
 pub struct ShortPost {
 	pub id: i32,
 	pub name: String,
@@ -217,13 +224,12 @@ pub struct ShortPost {
 	pub downloads: i64,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct DetailedPostNoUser {
+#[derive(Queryable, Serialize, Deserialize)]
+pub struct DetailedPostNoDepends {
 	pub id: i32,
 	pub name: String,
 	pub text: String,
 	pub text_short: String,
-	pub dependencies: Vec<Self>,
 	pub image: String,
 	pub images_extra: Vec<String>,
 	pub link: String,
@@ -231,15 +237,16 @@ pub struct DetailedPostNoUser {
 	pub likes: i64,
 	pub dislikes: i64,
 	pub downloads: i64,
+	pub user: User,
 }
 
-#[derive(Queryable, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct DetailedPost {
 	pub id: i32,
 	pub name: String,
 	pub text: String,
 	pub text_short: String,
-	pub dependencies: Vec<Self>,
+	pub dependencies: Vec<DetailedPostNoDepends>,
 	pub image: String,
 	pub images_extra: Vec<String>,
 	pub link: String,
@@ -250,16 +257,10 @@ pub struct DetailedPost {
 	pub user: User,
 }
 
-#[derive(Serialize, Deserialize, Default)]
-pub struct UserPosts {
+#[derive(Queryable, Serialize, Deserialize, Default)]
+pub struct ShortUserPosts {
+	pub post: ShortPost,
 	pub user: User,
-	pub posts: Vec<ShortPost>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct UserPostsDetailed {
-	pub user: User,
-	pub posts: Vec<DetailedPostNoUser>,
 }
 
 #[derive(Queryable, Serialize, Deserialize, Default)]

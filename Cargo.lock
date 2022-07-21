@@ -482,7 +482,6 @@ dependencies = [
  "rocket",
  "rocket_dyn_templates",
  "serde",
- "serde_urlencoded",
  "serde_with",
 ]
 

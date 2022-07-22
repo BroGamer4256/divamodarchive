@@ -582,7 +582,7 @@
 								"schema": {
 									"type": "array",
 									"items": {
-										"$ref": "#/components/schemas/UserPostsDetailed"
+										"$ref": "#/components/schemas/ShortUserPosts"
 									}
 								}
 							}
@@ -631,7 +631,7 @@
 								"schema": {
 									"type": "array",
 									"items": {
-										"$ref": "#/components/schemas/UserPostsDetailed"
+										"$ref": "#/components/schemas/ShortUserPosts"
 									}
 								}
 							}
@@ -808,6 +808,28 @@
 					}
 				]
 			},
+			"ShortPost": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"text_short",
+					"image",
+					"likes",
+					"dislikes",
+					"downloads"
+				]
+			},
+			"ShortUserPosts": {
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/User"
+					},
+					{
+						"$ref": "#/components/schemas/ShortPost"
+					}
+				]
+			},
 			"DetailedPostNoUser": {
 				"type": "object",
 				"required": [
@@ -858,19 +880,6 @@
 						"format": "date-time"
 					}
 				}
-			},
-			"UserPostsDetailed": {
-				"allOf": [
-					{
-						"$ref": "#/components/schemas/User"
-					},
-					{
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/DetailedPostNoUser"
-						}
-					}
-				]
 			},
 			"User": {
 				"type": "object",

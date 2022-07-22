@@ -32,6 +32,7 @@
 		<a class="nav-link text" href="/theme">
 			Switch theme
 		</a>
+		<a class="nav-link text" href="/about">About</a>
 	</nav>
 </body>
 

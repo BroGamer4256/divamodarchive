@@ -10,8 +10,8 @@ rocket_dyn_templates = { version = "0.1.0-rc.2", features = ["tera"] }
 diesel = { version = "2.0.0-rc.0", features = ["postgres", "extras"] }
 dotenv = "0.15.0"
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
-serde = { verison = "1.0.138", features = ["derive"] }
-serde_with = { verison = "2.0.0", features = ["chrono"] }
+serde = { version = "1.0.138", features = ["derive"] }
+serde_with = { version = "2.0.0", features = ["chrono"] }
 jsonwebtoken = "8.1.1"
 lazy_static = "1.4.0"
 chrono = "0.4.19"

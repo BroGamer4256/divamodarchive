@@ -12,26 +12,26 @@ Downloads: " ~ total_downloads %}
 
 {% block content %}
 <div class="container card">
-    <div class="row border border-dark">
-        <div class="col-2 card-img-left">
-            <div class="ratio ratio-1x1">
-                <img src="{{ user_posts[0].user.avatar }}" crossorigin="anonymous">
-            </div>
-        </div>
-        <div class="col-10 card-body">
-            <h1 class="text">{{ user_posts[0].user.name | striptags }}</h1>
-            <h5 class="text">{{ total_likes }}👍{{ total_dislikes }}👎</h5>
-            <h5 class="text">Downloads: {{ total_downloads }}</h5>
-        </div>
-    </div>
+	<div class="row border border-dark">
+		<div class="col-2 card-img-left">
+			<div class="ratio ratio-1x1">
+				<img src="{{ user_posts[0].user.avatar }}" crossorigin="anonymous">
+			</div>
+		</div>
+		<div class="col-10 card-body">
+			<h1 class="text">{{ user_posts[0].user.name | striptags }}</h1>
+			<h5 class="text">{{ total_likes }}👍{{ total_dislikes }}👎</h5>
+			<h5 class="text">Downloads: {{ total_downloads }}</h5>
+		</div>
+	</div>
 </div>
 {{ posts::draw_search_box(previous_sort=previous_sort) }}
 <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
-    {% for post in user_posts %}
-    {{ posts::draw_post_short(id=post.post.id, name=post.post.name, text_short=post.post.text_short,
-    image=post.post.image,
-    likes=post.post.likes, dislikes=post.post.dislikes, downloads=post.post.downloads) }}
-    {% endfor %}
+	{% for post in user_posts %}
+	{{ posts::draw_post_short(id=post.post.id, name=post.post.name, text_short=post.post.text_short,
+	image=post.post.image,
+	likes=post.post.likes, dislikes=post.post.dislikes, downloads=post.post.downloads) }}
+	{% endfor %}
 </div>
 {{ posts::draw_buttons(current_offset=offset, draw_forward=user_posts | length == 30) }}
 {% endblock content %}

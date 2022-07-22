@@ -350,3 +350,14 @@ pub fn dependency_remove(
 	}
 	Redirect::to(format!("/posts/{}", id))
 }
+
+#[get("/about")]
+pub fn about(connection: &ConnectionState, cookies: &CookieJar<'_>) -> Template {
+	Template::render(
+		"about",
+		context![
+			is_logged_in: is_logged_in(&mut connection.lock().unwrap(), cookies),
+			light_mode: is_light_mode(cookies),
+		],
+	)
+}

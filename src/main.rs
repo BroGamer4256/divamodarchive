@@ -44,6 +44,11 @@ pub fn robots() -> String {
 	String::from("User-agent: *\nDisallow: /api/")
 }
 
+#[get("/favicon.ico")]
+pub fn favicon() -> (ContentType, &'static [u8]) {
+	(ContentType::PNG, include_bytes!("../static/DMA_BLACK.png"))
+}
+
 #[get("/storage/<user_id>/<file_type>/<file_name>")]
 pub fn get_from_storage(
 	connection: &models::ConnectionState,
@@ -91,8 +96,10 @@ fn rocket() -> _ {
 				web::dependency,
 				web::dependency_add,
 				web::dependency_remove,
+				web::about,
 				get_from_storage,
 				robots,
+				favicon,
 			],
 		)
 		.mount(

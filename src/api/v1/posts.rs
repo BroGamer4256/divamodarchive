@@ -115,10 +115,10 @@ pub async fn upload_archive_chunk(
 		Vec::new(),
 		N {
 			written: 0,
-			complete: true,
+			complete: false,
 		},
 	));
-	if bytes.len() >= MAX_FILE_SIZE.mebibytes() || bytes.len() == 0 {
+	if !bytes.is_complete() {
 		return Status::BadRequest;
 	}
 

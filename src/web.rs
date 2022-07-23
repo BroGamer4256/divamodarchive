@@ -249,6 +249,7 @@ pub fn user(
 			description: description,
 			offset: offset,
 			previous_sort: order.unwrap_or_default(),
+			previous_game_tag: game_tag.unwrap_or(0),
 			total_likes: user_stats.likes,
 			total_dislikes: user_stats.dislikes,
 			total_downloads: user_stats.downloads,

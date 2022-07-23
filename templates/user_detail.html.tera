@@ -6,11 +6,14 @@
 " ~ total_likes ~ "👍" ~ total_dislikes ~ "👎" ~ "
 Downloads: " ~ total_downloads %}
 {{ posts::draw_embed(title=title, description=description) }}
+{% if user_posts | length > 0 %}
 <meta property="og:image" content="{{ user_posts[0].user.avatar }}">
 <meta name="twitter:card" content="summary_small_image">
+{% endif %}
 {% endblock head %}
 
 {% block content %}
+{% if user_posts | length > 0 %}
 <div class="container card">
 	<div class="row border border-dark">
 		<div class="col-2 card-img-left">
@@ -25,7 +28,7 @@ Downloads: " ~ total_downloads %}
 		</div>
 	</div>
 </div>
-{{ posts::draw_search_box(previous_sort=previous_sort) }}
+{{ posts::draw_search_box(previous_sort=previous_sort, previous_game_tag=previous_game_tag) }}
 <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
 	{% for post in user_posts %}
 	{% set game_tag = game_tags | filter(attribute="id", value=post.post.game_tag) | first %}
@@ -36,4 +39,12 @@ Downloads: " ~ total_downloads %}
 	{% endfor %}
 </div>
 {{ posts::draw_buttons(current_offset=offset, draw_forward=user_posts | length == 30) }}
+{% else %}
+<div class="card">
+	<div class="card-body">
+		<h1 class="text">No posts found</h1>
+	</div>
+</div>
+{{ posts::draw_search_box(previous_sort=previous_sort, previous_game_tag=previous_game_tag) }}
+{% endif %}
 {% endblock content %}

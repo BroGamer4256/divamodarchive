@@ -88,22 +88,16 @@ type_tag="Other") %}
 					{% endif %}
 				</select>
 			</div>
+			{% if previous_game_tag != -1 %}
 			<div class="col">
-				{% if previous_game_tag %}
 				<select class="form-control" id="game_tag" name="game_tag">
 					{% for game_tag in game_tags %}
 					<option value="{{ game_tag.id }}" {% if game_tag.id==previous_game_tag %}selected{% endif %}>
 						{{ game_tag.name }}</option>
 					{% endfor %}
 				</select>
-				{% else %}
-				<select class="form-control" id="game_tag" name="game_tag">
-					{% for game_tag in game_tags %}
-					<option value="{{ game_tag.id }}">{{ game_tag.name }}</option>
-					{% endfor %}
-				</select>
-				{% endif %}
 			</div>
+			{% endif %}
 			<div class="col-1">
 				<button class="btn btn-secondary" type="submit">Search</button>
 			</div>

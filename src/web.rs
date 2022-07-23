@@ -127,6 +127,7 @@ pub fn find_posts(
 			offset: offset,
 			previous_search: name,
 			previous_sort: order.unwrap_or_default(),
+			previous_game_tag: game_tag.unwrap_or(0),
 			light_mode: is_light_mode(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),

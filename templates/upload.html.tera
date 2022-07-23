@@ -189,8 +189,8 @@
 														'image': image_url,
 														'images_extra': images_extra_urls,
 														'link': archive_url,
-														'game_tag': game_tag,
-														'type_tag': type_tag,
+														'game_tag': Number(game_tag),
+														'type_tag': Number(type_tag),
 													}
 
 													options = {

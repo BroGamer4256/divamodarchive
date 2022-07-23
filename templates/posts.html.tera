@@ -67,13 +67,13 @@ type_tag="Other") %}
 </div>
 {% endmacro draw_buttons %}
 
-{% macro draw_search_box(previous_title=false, previous_sort="latest") %}
+{% macro draw_search_box(previous_title=false, previous_sort="latest", previous_game_tag=0) %}
 <br>
 <div style="display: flex; justify-content: center;">
 	<form class="nav">
 		<div class="row container">
 			{% if previous_title != false %}
-			<div class="col-6">
+			<div class="col-5">
 				<input class="form-control" type="text" placeholder="Search" name="name" autocomplete="off"
 					value="{{ previous_title }}">
 			</div>
@@ -87,6 +87,22 @@ type_tag="Other") %}
 					<option value="popular">Popular</option>
 					{% endif %}
 				</select>
+			</div>
+			<div class="col">
+				{% if previous_game_tag %}
+				<select class="form-control" id="game_tag" name="game_tag">
+					{% for game_tag in game_tags %}
+					<option value="{{ game_tag.id }}" {% if game_tag.id==previous_game_tag %}selected{% endif %}>
+						{{ game_tag.name }}</option>
+					{% endfor %}
+				</select>
+				{% else %}
+				<select class="form-control" id="game_tag" name="game_tag">
+					{% for game_tag in game_tags %}
+					<option value="{{ game_tag.id }}">{{ game_tag.name }}</option>
+					{% endfor %}
+				</select>
+				{% endif %}
 			</div>
 			<div class="col-1">
 				<button class="btn btn-secondary" type="submit">Search</button>

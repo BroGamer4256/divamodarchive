@@ -69,7 +69,7 @@ type_tag="Other") %}
 
 {% macro draw_search_box(previous_title=false, previous_sort="latest") %}
 <br>
-<div class="container-fluid" style="display: flex; justify-content: center;">
+<div style="display: flex; justify-content: center;">
 	<form class="nav">
 		<div class="row container">
 			{% if previous_title != false %}
@@ -217,7 +217,7 @@ extra_images) %}
 			.catch(error => console.error(error))
 	}
 </script>
-<div class="row align-items-md-stretch container gap-3">
+<div class="row align-items-md-stretch gap-3">
 	<div class="col-md-7 card card-body">
 		<h2 class="text card-title" style="text-align: center">{{ name | striptags }} </h2>
 		<div class="row d-flex align-items-center">

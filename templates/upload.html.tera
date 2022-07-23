@@ -103,7 +103,7 @@
 							alert("Image upload failed\nMaximum size for images is 10MiB");
 							return
 						}
-						var image_url = image_url.replace("https://imagedelivery.net/", "{{ base_url | safe  }}/cdn-cgi/imagedelivery/")
+						var image_url = image_url.replace("https://imagedelivery.net/", "{{ base_url | safe }}/cdn-cgi/imagedelivery/")
 						alert("Your mod is being uploaded, please wait as this can take a large amount of time");
 
 						var images_extra = form['imagesExtra'];
@@ -224,7 +224,7 @@
 			.catch(error => alert("Failed to upload image"))
 	}
 </script>
-<form id="form" class="row align-items-md-stretch container gap-3" enctype="application/x-www-form-urlencoded">
+<form id="form" class="row align-items-md-stretch gap-3" enctype="application/x-www-form-urlencoded">
 	<div class="col-md-7 card card-body">
 		{% if previous_title %}
 		<h2 class="card-text text"><label for="title">Title: </label><input type="text" id="title" name="title"

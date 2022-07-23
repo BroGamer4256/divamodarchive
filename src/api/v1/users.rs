@@ -112,23 +112,35 @@ pub fn details(connection: &ConnectionState, id: i64) -> Result<Json<User>, Stat
 	Ok(Json(result))
 }
 
-#[get("/<id>/latest?<offset>")]
+#[get("/<id>/latest?<offset>&<game_tag>")]
 pub fn latest(
 	connection: &ConnectionState,
 	id: i64,
 	offset: Option<i64>,
+	game_tag: Option<i32>,
 ) -> Result<Json<Vec<ShortUserPosts>>, Status> {
-	let result = get_user_posts_latest(&mut connection.lock().unwrap(), id, offset.unwrap_or(0))?;
+	let result = get_user_posts_latest(
+		&mut connection.lock().unwrap(),
+		id,
+		offset.unwrap_or(0),
+		game_tag.unwrap_or(0),
+	)?;
 	Ok(Json(result))
 }
 
-#[get("/<id>/popular?<offset>")]
+#[get("/<id>/popular?<offset>&<game_tag>")]
 pub fn popular(
 	connection: &ConnectionState,
 	id: i64,
 	offset: Option<i64>,
+	game_tag: Option<i32>,
 ) -> Result<Json<Vec<ShortUserPosts>>, Status> {
-	let result = get_user_posts_popular(&mut connection.lock().unwrap(), id, offset.unwrap_or(0))?;
+	let result = get_user_posts_popular(
+		&mut connection.lock().unwrap(),
+		id,
+		offset.unwrap_or(0),
+		game_tag.unwrap_or(0),
+	)?;
 	Ok(Json(result))
 }
 

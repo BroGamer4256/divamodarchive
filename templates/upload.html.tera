@@ -13,6 +13,8 @@
 		var name = form['title'].value
 		var text = form['text'].value
 		var text_short = form['text_short'].value
+		var game_tag = form['game_tag'].value
+		var type_tag = form['type_tag'].value
 		if (title == "" || text == "" || text_short == "") {
 			alert("Upload failed\nMissing text fields");
 			return
@@ -24,6 +26,8 @@
 			'name': name,
 			'text': text,
 			'text_short': text_short,
+			'game_tag': Number(game_tag),
+			'type_tag': Number(type_tag),
 		}
 
 		options = {
@@ -57,6 +61,8 @@
 		var name = form['title'].value
 		var text = form['text'].value
 		var text_short = form['text_short'].value
+		var game_tag = form['game_tag'].value
+		var type_tag = form['type_tag'].value
 		if (title == "" || text == "" || text_short == "") {
 			alert("Upload failed\nMissing text fields");
 			return
@@ -137,12 +143,16 @@
 						}
 
 						var file = archive.files[0];
-						var chunkSize = 1024 * 1024 * 8;
+						var chunkSize = 1024 * 1024 * 10;
 						var chunkCount = Math.ceil(file.size / chunkSize);
 						var chunkStart = 0;
 						var chunksCompleted = 0;
 						for (var i = 0; i < chunkCount; i++) {
 							var chunkEnd = chunkStart + chunkSize;
+							chunkEnd = Math.min(chunkEnd, file.size);
+							if (chunkEnd == file.size) {
+								chunkCount = i + 1;
+							}
 							var chunk = file.slice(chunkStart, chunkEnd);
 							chunkStart = chunkEnd;
 							options = {
@@ -178,7 +188,9 @@
 														'text_short': text_short,
 														'image': image_url,
 														'images_extra': images_extra_urls,
-														'link': archive_url
+														'link': archive_url,
+														'game_tag': game_tag,
+														'type_tag': type_tag,
 													}
 
 													options = {
@@ -277,6 +289,38 @@
 				value="{{ previous_description_short }}">
 			{% else %}
 			<input class="form-control" type="text" id="text_short" name="text_short" autocomplete="off">
+			{% endif %}
+
+			<label for="game_tag">Game</label>
+			{% if previous_game_tag %}
+			<select class="form-control" id="game_tag" name="game_tag">
+				{% for game_tag in game_tags %}
+				<option value="{{ game_tag.id }}" {% if game_tag.id==previous_game_tag %}selected{% endif %}>
+					{{ game_tag.name }}</option>
+				{% endfor %}
+			</select>
+			{% else %}
+			<select class="form-control" id="game_tag" name="game_tag">
+				{% for game_tag in game_tags %}
+				<option value="{{ game_tag.id }}">{{ game_tag.name }}</option>
+				{% endfor %}
+			</select>
+			{% endif %}
+
+			<label for="type_tag">Type</label>
+			{% if previous_type_tag %}
+			<select class="form-control" id="type_tag" name="type_tag">
+				{% for type_tag in type_tags %}
+				<option value="{{ type_tag.id }}" {% if type_tag.id==previous_type_tag %}selected{% endif %}>
+					{{ type_tag.name }}</option>
+				{% endfor %}
+			</select>
+			{% else %}
+			<select class="form-control" id="type_tag" name="type_tag">
+				{% for type_tag in type_tags %}
+				<option value="{{ type_tag.id }}">{{ type_tag.name }}</option>
+				{% endfor %}
+			</select>
 			{% endif %}
 		</h5>
 	</div>

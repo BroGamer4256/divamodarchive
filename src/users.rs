@@ -66,10 +66,12 @@ pub fn get_user_posts_latest(
 	conn: &mut PgConnection,
 	id: i64,
 	offset: i64,
+	game_tag: i32,
 ) -> Result<Vec<ShortUserPosts>, Status> {
 	let results = users::table
 		.filter(users::user_id.eq(id))
 		.inner_join(posts::table)
+		.filter(posts::post_game_tag.eq(game_tag))
 		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
@@ -81,6 +83,8 @@ pub fn get_user_posts_latest(
 				posts::post_name,
 				posts::post_text_short,
 				posts::post_image,
+				posts::post_game_tag,
+				posts::post_type_tag,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
 				count_distinct(download_stats::timestamp.nullable()),
@@ -102,10 +106,12 @@ pub fn get_user_posts_popular(
 	conn: &mut PgConnection,
 	id: i64,
 	offset: i64,
+	game_tag: i32,
 ) -> Result<Vec<ShortUserPosts>, Status> {
 	let results = users::table
 		.filter(users::user_id.eq(id))
 		.inner_join(posts::table)
+		.filter(posts::post_game_tag.eq(game_tag))
 		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
@@ -121,6 +127,8 @@ pub fn get_user_posts_popular(
 				posts::post_name,
 				posts::post_text_short,
 				posts::post_image,
+				posts::post_game_tag,
+				posts::post_type_tag,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
 				count_distinct(download_stats::timestamp.nullable()),

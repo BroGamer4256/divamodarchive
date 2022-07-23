@@ -82,12 +82,13 @@ pub enum Order {
 	Popular,
 }
 
-#[get("/?<offset>&<name>&<order>")]
+#[get("/?<offset>&<name>&<order>&<game_tag>")]
 pub fn find_posts(
 	connection: &ConnectionState,
 	offset: Option<i64>,
 	name: Option<String>,
 	order: Option<String>,
+	game_tag: Option<i32>,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Status> {
 	let sort_order = match order.clone() {
@@ -106,8 +107,10 @@ pub fn find_posts(
 		Order::Popular => "Popular",
 	};
 	let results = match sort_order {
-		Order::Latest => get_latest_posts(connection, name.clone(), offset),
-		Order::Popular => get_popular_posts(connection, name.clone(), offset),
+		Order::Latest => get_latest_posts(connection, name.clone(), offset, game_tag.unwrap_or(0)),
+		Order::Popular => {
+			get_popular_posts(connection, name.clone(), offset, game_tag.unwrap_or(0))
+		}
 	}
 	.unwrap_or_default();
 	let description = match sort_order {
@@ -125,6 +128,8 @@ pub fn find_posts(
 			previous_search: name,
 			previous_sort: order.unwrap_or_default(),
 			light_mode: is_light_mode(cookies),
+			game_tags: TAG_TOML.game_tags.clone(),
+			type_tags: TAG_TOML.type_tags.clone(),
 		],
 	))
 }
@@ -145,12 +150,12 @@ pub fn details(
 		let jwt = cookies.get_pending("jwt").unwrap();
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, light_mode: is_light_mode(cookies),],
+			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(),],
 		))
 	} else {
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, light_mode: is_light_mode(cookies),],
+			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(),],
 		))
 	}
 }
@@ -191,16 +196,18 @@ pub fn upload(
 	let connection = &mut connection.lock().unwrap();
 	Ok(Template::render(
 		"upload",
-		context![user: user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), light_mode: is_light_mode(cookies),base_url: BASE_URL.to_string()],
+		context![user: user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), light_mode: is_light_mode(cookies),base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(),
+		type_tags: TAG_TOML.type_tags.clone(),],
 	))
 }
 
-#[get("/user/<id>?<offset>&<order>")]
+#[get("/user/<id>?<offset>&<order>&<game_tag>")]
 pub fn user(
 	connection: &ConnectionState,
 	id: i64,
 	offset: Option<i64>,
 	order: Option<String>,
+	game_tag: Option<i32>,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Status> {
 	let connection = &mut connection.lock().unwrap();
@@ -219,8 +226,10 @@ pub fn user(
 		Order::Popular => "Popular",
 	};
 	let results = match sort_order {
-		Order::Latest => get_user_posts_latest(connection, user.id, offset),
-		Order::Popular => get_user_posts_popular(connection, user.id, offset),
+		Order::Latest => get_user_posts_latest(connection, user.id, offset, game_tag.unwrap_or(0)),
+		Order::Popular => {
+			get_user_posts_popular(connection, user.id, offset, game_tag.unwrap_or(0))
+		}
 	}
 	.unwrap_or_default();
 	let description = match sort_order {
@@ -243,6 +252,8 @@ pub fn user(
 			total_dislikes: user_stats.dislikes,
 			total_downloads: user_stats.downloads,
 			light_mode: is_light_mode(cookies),
+			game_tags: TAG_TOML.game_tags.clone(),
+			type_tags: TAG_TOML.type_tags.clone(),
 		],
 	))
 }
@@ -268,7 +279,8 @@ pub fn edit(
 			let jwt = cookies.get_pending("jwt").unwrap();
 			Ok(Template::render(
 				"upload",
-				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies), update_id: id, base_url: BASE_URL.to_string()],
+				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies), update_id: id, base_url: BASE_URL.to_string(), previous_game_tag: post.game_tag, previous_type_tag: post.type_tag, game_tags: TAG_TOML.game_tags.clone(),
+				type_tags: TAG_TOML.type_tags.clone(),],
 			))
 		} else {
 			Err(Redirect::to(format!("/posts/{}", id)))
@@ -289,7 +301,12 @@ pub fn dependency(
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
 	let connection = &mut connection.lock().unwrap();
-	if !owns_post(connection, id, user.id) {
+	let post = get_post(connection, id);
+	if post.is_err() {
+		return Err(Redirect::to(format!("/posts/{}", id)));
+	}
+	let post = post.unwrap();
+	if post.user.id != user.id {
 		return Err(Redirect::to(format!("/posts/{}", id)));
 	}
 
@@ -305,8 +322,12 @@ pub fn dependency(
 		None => Order::Latest,
 	};
 	let posts = match sort_order {
-		Order::Latest => get_latest_posts_disallowed(connection, name.clone(), offset, vec![id]),
-		Order::Popular => get_popular_posts_disallowed(connection, name.clone(), offset, vec![id]),
+		Order::Latest => {
+			get_latest_posts_disallowed(connection, name.clone(), offset, post.game_tag, vec![id])
+		}
+		Order::Popular => {
+			get_popular_posts_disallowed(connection, name.clone(), offset, post.game_tag, vec![id])
+		}
 	}
 	.unwrap_or_default();
 	Ok(Template::render(
@@ -319,6 +340,8 @@ pub fn dependency(
 			previous_search: name,
 			previous_sort: order.unwrap_or_default(),
 			offset: offset,
+			game_tags: TAG_TOML.game_tags.clone(),
+			type_tags: TAG_TOML.type_tags.clone(),
 		],
 	))
 }

@@ -483,6 +483,7 @@ dependencies = [
  "rocket_dyn_templates",
  "serde",
  "serde_with",
+ "toml",
 ]
 
 [[package]]

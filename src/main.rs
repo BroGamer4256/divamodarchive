@@ -34,6 +34,8 @@ allow_columns_to_appear_in_same_group_by_clause!(
 	schema::posts::post_images_extra,
 	schema::posts::post_link,
 	schema::posts::post_date,
+	schema::posts::post_game_tag,
+	schema::posts::post_type_tag,
 	schema::users::user_id,
 	schema::users::user_name,
 	schema::users::user_avatar
@@ -46,6 +48,14 @@ pub fn robots() -> String {
 
 #[get("/favicon.ico")]
 pub fn favicon() -> (ContentType, &'static [u8]) {
+	(
+		ContentType::PNG,
+		include_bytes!("../static/DMA_BLACK_STARLESS.png"),
+	)
+}
+
+#[get("/large_icon.png")]
+pub fn large_icon() -> (ContentType, &'static [u8]) {
 	(ContentType::PNG, include_bytes!("../static/DMA_BLACK.png"))
 }
 
@@ -100,6 +110,7 @@ fn rocket() -> _ {
 				get_from_storage,
 				robots,
 				favicon,
+				large_icon,
 			],
 		)
 		.mount(

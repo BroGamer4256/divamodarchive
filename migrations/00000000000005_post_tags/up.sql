@@ -1,0 +1,3 @@
+-- Your SQL goes here
+ALTER TABLE posts ADD COLUMN post_game_tag INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE posts ADD COLUMN post_type_tag INTEGER NOT NULL DEFAULT 7;

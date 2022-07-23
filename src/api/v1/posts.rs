@@ -288,30 +288,34 @@ pub fn dependency(connection: &ConnectionState, id: i32, dependency: i32, user: 
 	}
 }
 
-#[get("/latest?<name>&<offset>")]
+#[get("/latest?<name>&<offset>&<game_tag>")]
 pub fn latest(
 	connection: &ConnectionState,
 	name: Option<String>,
 	offset: Option<i64>,
+	game_tag: Option<i32>,
 ) -> Result<Json<Vec<DetailedPost>>, Status> {
 	let result = get_latest_posts_detailed(
 		&mut connection.lock().unwrap(),
 		name.unwrap_or(String::new()),
 		offset.unwrap_or(0),
+		game_tag.unwrap_or(0),
 	)?;
 	Ok(Json(result))
 }
 
-#[get("/popular?<name>&<offset>")]
+#[get("/popular?<name>&<offset>&<game_tag>")]
 pub fn popular(
 	connection: &ConnectionState,
 	name: Option<String>,
 	offset: Option<i64>,
+	game_tag: Option<i32>,
 ) -> Result<Json<Vec<DetailedPost>>, Status> {
 	let result = get_popular_posts_detailed(
 		&mut connection.lock().unwrap(),
 		name.unwrap_or(String::new()),
 		offset.unwrap_or(0),
+		game_tag.unwrap_or(0),
 	)?;
 	Ok(Json(result))
 }

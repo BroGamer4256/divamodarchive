@@ -28,9 +28,11 @@ Downloads: " ~ total_downloads %}
 {{ posts::draw_search_box(previous_sort=previous_sort) }}
 <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
 	{% for post in user_posts %}
+	{% set game_tag = game_tags | filter(attribute="id", value=post.post.game_tag) | first %}
+	{% set type_tag = type_tags | filter(attribute="id", value=post.post.type_tag) | first %}
 	{{ posts::draw_post_short(id=post.post.id, name=post.post.name, text_short=post.post.text_short,
-	image=post.post.image,
-	likes=post.post.likes, dislikes=post.post.dislikes, downloads=post.post.downloads) }}
+	image=post.post.image, likes=post.post.likes, dislikes=post.post.dislikes, downloads=post.post.downloads,
+	game_tag=game_tag.name, type_tag=type_tag.name) }}
 	{% endfor %}
 </div>
 {{ posts::draw_buttons(current_offset=offset, draw_forward=user_posts | length == 30) }}

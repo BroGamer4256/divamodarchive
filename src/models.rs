@@ -7,81 +7,76 @@ use rocket::{
 	request::{FromRequest, Outcome},
 	serde::{Deserialize, Serialize},
 };
-use std::env;
+use std::{env, io::Read};
 
 lazy_static! {
 	pub static ref DECODE_KEY: DecodingKey = {
 		dotenv().ok();
-		let secret = env::var("SECRET_KEY").unwrap_or_else(|_| String::new());
-		if secret.is_empty() {
-			panic!("SECRET_KEY must not be empty");
-		}
+		let secret = env::var("SECRET_KEY").expect("SECRET_KEY must exist");
 		DecodingKey::from_secret(secret.as_bytes())
 	};
 	pub static ref ENCODE_KEY: EncodingKey = {
 		dotenv().ok();
-		let secret = env::var("SECRET_KEY").unwrap_or_else(|_| String::new());
-		if secret.is_empty() {
-			panic!("SECRET_KEY must not be empty");
-		}
+		let secret = env::var("SECRET_KEY").expect("SECRET_KEY must exist");
 		EncodingKey::from_secret(secret.as_bytes())
 	};
 	pub static ref DISCORD_ID: String = {
 		dotenv().ok();
-		let discord_id = env::var("DISCORD_ID").unwrap_or_else(|_| String::new());
-		if discord_id.is_empty() {
-			panic!("DISCORD_ID must not be empty");
-		}
+		let discord_id = env::var("DISCORD_ID").expect("DISCORD_ID must exist");
 		discord_id
 	};
 	pub static ref DISCORD_SECRET: String = {
 		dotenv().ok();
-		let discord_secret = env::var("DISCORD_SECRET").unwrap_or_else(|_| String::new());
-		if discord_secret.is_empty() {
-			panic!("DISCORD_SECRET must not be empty");
-		}
+		let discord_secret = env::var("DISCORD_SECRET").expect("DISCORD_SECRET must exist");
 		discord_secret
 	};
 	pub static ref BASE_URL: String = {
 		dotenv().ok();
-		let base_url = env::var("BASE_URL").unwrap_or_else(|_| String::new());
-		if base_url.is_empty() {
-			panic!("BASE_URL must not be empty");
-		}
+		let base_url = env::var("BASE_URL").expect("BASE_URL must exist");
 		base_url
 	};
 	pub static ref MAX_IMAGE_SIZE: u64 = {
 		dotenv().ok();
-		let size = env::var("MAX_IMAGE_SIZE").unwrap_or_else(|_| String::new());
-		if size.is_empty() {
-			panic!("MAX_IMAGE_SIZE must not be empty");
-		}
+		let size = env::var("MAX_IMAGE_SIZE").expect("MAX_IMAGE_SIZE must exist");
 		size.parse::<u64>().unwrap()
 	};
 	pub static ref MAX_FILE_SIZE: u64 = {
 		dotenv().ok();
-		let size = env::var("MAX_FILE_SIZE").unwrap_or_else(|_| String::new());
-		if size.is_empty() {
-			panic!("MAX_FILE_SIZE must not be empty");
-		}
+		let size = env::var("MAX_FILE_SIZE").expect("MAX_FILE_SIZE must exist");
 		size.parse::<u64>().unwrap()
 	};
 	pub static ref CLOUDFLARE_IMAGE_TOKEN: String = {
 		dotenv().ok();
-		let token = env::var("CLOUDFLARE_IMAGE_TOKEN").unwrap_or_else(|_| String::new());
-		if token.is_empty() {
-			panic!("CLOUDFLARE_IMAGE_TOKEN must not be empty");
-		}
+		let token = env::var("CLOUDFLARE_IMAGE_TOKEN").expect("CLOUDFLARE_IMAGE_TOKEN must exist");
 		token
 	};
 	pub static ref CLOUDFLARE_ACCOUNT_ID: String = {
 		dotenv().ok();
-		let account_id = env::var("CLOUDFLARE_ACCOUNT_ID").unwrap_or_else(|_| String::new());
-		if account_id.is_empty() {
-			panic!("CLOUDFLARE_ACCOUNT_ID must not be empty");
-		}
+		let account_id =
+			env::var("CLOUDFLARE_ACCOUNT_ID").expect("CLOUDFLARE_ACCOUNT_ID must exist");
 		account_id
 	};
+	pub static ref TAG_TOML: TagToml = {
+		let mut tag_file =
+			std::fs::File::open("static/tags.toml").expect("static/tags.toml must exist");
+		let mut tag_toml = String::new();
+		tag_file
+			.read_to_string(&mut tag_toml)
+			.expect("static/tags.toml must be a valid toml file");
+		toml::from_str(&tag_toml).expect("static/tags.toml must be a valid tags toml file")
+	};
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TagToml {
+	pub game_tags: Vec<Tag>,
+	pub type_tags: Vec<Tag>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Tag {
+	pub id: i32,
+	pub name: String,
 }
 
 pub type ConnectionState = rocket::State<std::sync::Mutex<diesel::PgConnection>>;
@@ -204,6 +199,8 @@ pub struct PostUnidentified {
 	pub image: String,
 	pub images_extra: Vec<String>,
 	pub link: String,
+	pub game_tag: i32,
+	pub type_tag: i32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -211,6 +208,8 @@ pub struct PostMetadata {
 	pub name: String,
 	pub text: String,
 	pub text_short: String,
+	pub game_tag: i32,
+	pub type_tag: i32,
 }
 
 #[derive(Queryable, Serialize, Deserialize, Default)]
@@ -219,6 +218,8 @@ pub struct ShortPost {
 	pub name: String,
 	pub text_short: String,
 	pub image: String,
+	pub game_tag: i32,
+	pub type_tag: i32,
 	pub likes: i64,
 	pub dislikes: i64,
 	pub downloads: i64,
@@ -234,6 +235,8 @@ pub struct DetailedPostNoDepends {
 	pub images_extra: Vec<String>,
 	pub link: String,
 	pub date: chrono::NaiveDateTime,
+	pub game_tag: i32,
+	pub type_tag: i32,
 	pub likes: i64,
 	pub dislikes: i64,
 	pub downloads: i64,
@@ -251,6 +254,8 @@ pub struct DetailedPost {
 	pub images_extra: Vec<String>,
 	pub link: String,
 	pub date: chrono::NaiveDateTime,
+	pub game_tag: i32,
+	pub type_tag: i32,
 	pub likes: i64,
 	pub dislikes: i64,
 	pub downloads: i64,
@@ -289,6 +294,8 @@ pub struct Post {
 	pub uploader: i64,
 	pub link: String,
 	pub date: chrono::NaiveDateTime,
+	pub game_tag: i32,
+	pub type_tag: i32,
 }
 
 #[derive(Insertable)]
@@ -301,6 +308,8 @@ pub struct NewPost<'a> {
 	pub post_images_extra: &'a Vec<String>,
 	pub post_uploader: i64,
 	pub post_link: &'a str,
+	pub post_game_tag: i32,
+	pub post_type_tag: i32,
 }
 
 #[derive(Queryable, Serialize, Deserialize)]

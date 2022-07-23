@@ -1,0 +1,47 @@
+[[game_tags]]
+id = 0
+name = "MM+"
+
+[[game_tags]]
+id = 1
+name = "AFT"
+
+[[game_tags]]
+id = 2
+name = "F"
+
+[[game_tags]]
+id = 3
+name = "F2nd"
+
+[[type_tags]]
+id = 0
+name = "Plugin"
+
+[[type_tags]]
+id = 1
+name = "Module edit"
+
+[[type_tags]]
+id = 2
+name = "Module port"
+
+[[type_tags]]
+id = 3
+name = "Custom module"
+
+[[type_tags]]
+id = 4
+name = "Custom song"
+
+[[type_tags]]
+id = 5
+name = "Song port"
+
+[[type_tags]]
+id = 6
+name = "UI Edit"
+
+[[type_tags]]
+id = 7
+name = "Other"

@@ -16,11 +16,16 @@
 			text-align: right;
 		}
 	}
+
+	.text-align-right {
+		text-align: right;
+	}
 </style>
 
 {% endmacro draw_embed %}
 
-{% macro draw_post_short(id, name, text_short, image, likes, dislikes, downloads, draw_remove=false) %}
+{% macro draw_post_short(id, name, text_short, image, likes, dislikes, downloads, draw_remove=false, game_tag="MM+",
+type_tag="Other") %}
 <div class="col">
 	<div class="card shadow-sm">
 		<a class="" title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
@@ -29,7 +34,13 @@
 			</div>
 			<div class="card-body">
 				<h4 class="text">{{ name | striptags | truncate(length=15) }}</h4>
-				<h7 class="text">{{ likes }}👍{{ dislikes }}👎<br>Downloads: {{ downloads }}</h7>
+				<div class="row">
+					<h7 class="col-md-8 text">{{ likes }}👍{{ dislikes }}👎<br>Downloads: {{ downloads }}</h7>
+					<h7 class="col-md-4 text text-align-right-md">
+						{{ game_tag }}<br>
+						{{ type_tag }}
+					</h7>
+				</div>
 			</div>
 		</a>
 		{% if draw_remove %}
@@ -284,9 +295,11 @@ extra_images) %}
 		<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
 			{% set draw_remove = who_is_logged_in == uploader_id %}
 			{% for post in dependencies %}
+			{% set game_tag = game_tags | filter(attribute="id", value=post.game_tag) | first %}
+			{% set type_tag = type_tags | filter(attribute="id", value=post.type_tag) | first %}
 			{{ posts::draw_post_short(id=post.id, name=post.name, text_short=post.text_short, image=post.image,
-			likes=post.likes,
-			dislikes=post.dislikes, downloads=post.downloads, draw_remove=draw_remove) }}
+			likes=post.likes, dislikes=post.dislikes, downloads=post.downloads, draw_remove=draw_remove,
+			game_tag=game_tag.name, type_tag=type_tag.name) }}
 			{% endfor %}
 		</div>
 	</div>

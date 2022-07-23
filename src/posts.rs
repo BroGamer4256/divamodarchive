@@ -27,6 +27,8 @@ pub fn create_post(
 					chrono::Utc::now().timestamp(),
 					0,
 				)),
+				posts::post_game_tag.eq(post.game_tag),
+				posts::post_type_tag.eq(post.type_tag),
 			))
 			.get_result::<Post>(conn);
 
@@ -45,6 +47,8 @@ pub fn create_post(
 		post_images_extra: &post.images_extra,
 		post_uploader: user.id,
 		post_link: &post.link,
+		post_game_tag: post.game_tag,
+		post_type_tag: post.type_tag,
 	};
 
 	let result = diesel::insert_into(posts::table)
@@ -68,6 +72,8 @@ pub fn update_post(
 			posts::post_name.eq(&post.name),
 			posts::post_text.eq(&post.text),
 			posts::post_text_short.eq(&post.text_short),
+			posts::post_game_tag.eq(post.game_tag),
+			posts::post_type_tag.eq(post.type_tag),
 		))
 		.get_result::<Post>(conn);
 
@@ -182,8 +188,10 @@ pub fn get_latest_posts(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
+	game_tag: i32,
 ) -> Result<Vec<ShortPost>, Status> {
 	let results = posts::table
+		.filter(posts::post_game_tag.eq(game_tag))
 		.left_join(users_liked_posts::table)
 		.left_join(users_disliked_posts::table)
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
@@ -195,6 +203,8 @@ pub fn get_latest_posts(
 			posts::post_name,
 			posts::post_text_short,
 			posts::post_image,
+			posts::post_game_tag,
+			posts::post_type_tag,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -214,8 +224,10 @@ pub fn get_latest_posts_detailed(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
+	game_tag: i32,
 ) -> Result<Vec<DetailedPost>, Status> {
 	let results = posts::table
+		.filter(posts::post_game_tag.eq(game_tag))
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.inner_join(users::table)
 		.left_join(users_liked_posts::table)
@@ -232,6 +244,8 @@ pub fn get_latest_posts_detailed(
 			posts::post_images_extra,
 			posts::post_link,
 			posts::post_date,
+			posts::post_game_tag,
+			posts::post_type_tag,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -273,6 +287,8 @@ pub fn get_latest_posts_detailed(
 				posts::post_images_extra,
 				posts::post_link,
 				posts::post_date,
+				posts::post_game_tag,
+				posts::post_type_tag,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
 				count_distinct(download_stats::timestamp.nullable()),
@@ -291,6 +307,8 @@ pub fn get_latest_posts_detailed(
 			images_extra: post.images_extra,
 			link: post.link,
 			date: post.date,
+			game_tag: post.game_tag,
+			type_tag: post.type_tag,
 			likes: post.likes,
 			dislikes: post.dislikes,
 			downloads: post.downloads,
@@ -304,6 +322,7 @@ pub fn get_latest_posts_disallowed(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
+	game_tag: i32,
 	disallowed: Vec<i32>,
 ) -> Result<Vec<ShortPost>, Status> {
 	let results = posts::table
@@ -313,12 +332,15 @@ pub fn get_latest_posts_disallowed(
 		.group_by(posts::post_id)
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_id.ne_all(disallowed))
+		.filter(posts::post_game_tag.eq(game_tag))
 		.order_by(posts::post_date.desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
 			posts::post_text_short,
 			posts::post_image,
+			posts::post_game_tag,
+			posts::post_type_tag,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -338,9 +360,11 @@ pub fn get_popular_posts(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
+	game_tag: i32,
 ) -> Result<Vec<ShortPost>, Status> {
 	let results = posts::table
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
+		.filter(posts::post_game_tag.eq(game_tag))
 		.left_join(users_liked_posts::table)
 		.left_join(users_disliked_posts::table)
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
@@ -355,6 +379,8 @@ pub fn get_popular_posts(
 			posts::post_name,
 			posts::post_text_short,
 			posts::post_image,
+			posts::post_game_tag,
+			posts::post_type_tag,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -375,8 +401,10 @@ pub fn get_popular_posts_detailed(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
+	game_tag: i32,
 ) -> Result<Vec<DetailedPost>, Status> {
 	let results = posts::table
+		.filter(posts::post_game_tag.eq(game_tag))
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.inner_join(users::table)
 		.left_join(users_liked_posts::table)
@@ -397,6 +425,8 @@ pub fn get_popular_posts_detailed(
 			posts::post_images_extra,
 			posts::post_link,
 			posts::post_date,
+			posts::post_game_tag,
+			posts::post_type_tag,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -438,6 +468,8 @@ pub fn get_popular_posts_detailed(
 				posts::post_images_extra,
 				posts::post_link,
 				posts::post_date,
+				posts::post_game_tag,
+				posts::post_type_tag,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
 				count_distinct(download_stats::timestamp.nullable()),
@@ -456,6 +488,8 @@ pub fn get_popular_posts_detailed(
 			images_extra: post.images_extra,
 			link: post.link,
 			date: post.date,
+			game_tag: post.game_tag,
+			type_tag: post.type_tag,
 			likes: post.likes,
 			dislikes: post.dislikes,
 			downloads: post.downloads,
@@ -469,6 +503,7 @@ pub fn get_popular_posts_disallowed(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
+	game_tag: i32,
 	disallowed: Vec<i32>,
 ) -> Result<Vec<ShortPost>, Status> {
 	let results = posts::table
@@ -478,6 +513,7 @@ pub fn get_popular_posts_disallowed(
 		.group_by(posts::post_id)
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_id.ne_all(disallowed))
+		.filter(posts::post_game_tag.eq(game_tag))
 		.order_by(
 			(count_distinct(users_liked_posts::user_id.nullable())
 				- count_distinct(users_disliked_posts::user_id.nullable()))
@@ -488,6 +524,8 @@ pub fn get_popular_posts_disallowed(
 			posts::post_name,
 			posts::post_text_short,
 			posts::post_image,
+			posts::post_game_tag,
+			posts::post_type_tag,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -520,6 +558,8 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 			posts::post_images_extra,
 			posts::post_link,
 			posts::post_date,
+			posts::post_game_tag,
+			posts::post_type_tag,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -556,6 +596,8 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 			posts::post_images_extra,
 			posts::post_link,
 			posts::post_date,
+			posts::post_game_tag,
+			posts::post_type_tag,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
@@ -574,6 +616,8 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 		images_extra: result.images_extra,
 		link: result.link,
 		date: result.date,
+		game_tag: result.game_tag,
+		type_tag: result.type_tag,
 		likes: result.likes,
 		dislikes: result.dislikes,
 		downloads: result.downloads,

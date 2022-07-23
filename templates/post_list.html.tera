@@ -9,8 +9,11 @@
 {{ posts::draw_search_box(previous_title=previous_search, previous_sort=previous_sort) }}
 <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
 	{% for post in posts %}
+	{% set game_tag = game_tags | filter(attribute="id", value=post.game_tag) | first %}
+	{% set type_tag = type_tags | filter(attribute="id", value=post.type_tag) | first %}
 	{{ posts::draw_post_short(id=post.id, name=post.name, text_short=post.text_short, image=post.image,
-	likes=post.likes, dislikes=post.dislikes, downloads=post.downloads) }}
+	likes=post.likes, dislikes=post.dislikes, downloads=post.downloads, game_tag=game_tag.name, type_tag=type_tag.name)
+	}}
 	{% endfor %}
 </div>
 {{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 30) }}

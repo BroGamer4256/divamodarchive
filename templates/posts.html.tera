@@ -37,7 +37,6 @@ type_tag="Other") %}
 				<div class="row">
 					<h7 class="col-md-8 text">{{ likes }}👍{{ dislikes }}👎<br>Downloads: {{ downloads }}</h7>
 					<h7 class="col-md-4 text text-align-right-md">
-						{{ game_tag }}<br>
 						{{ type_tag }}
 					</h7>
 				</div>
@@ -71,9 +70,9 @@ type_tag="Other") %}
 <br>
 <div style="display: flex; justify-content: center;">
 	<form class="nav">
-		<div class="row container">
+		<div class="row row-cols-2 row-cols-md-4 container">
 			{% if previous_title != false %}
-			<div class="col-5">
+			<div class="col">
 				<input class="form-control" type="text" placeholder="Search" name="name" autocomplete="off"
 					value="{{ previous_title }}">
 			</div>

@@ -22,17 +22,17 @@
 	<div id="content" class="container">{% block content %}{% endblock content %}</div>
 	<br><br><br><br><br>
 	<nav class="navbar navbar-light bg-secondary fixed-bottom d-flex justify-content-around">
-		<a class="nav-link text" href="/">Mods</a>
+		<a class="nav-link p-0 text" href="/">Mods</a>
 		{% if is_logged_in == true %}
-		<a class="nav-link text" href="/upload">Upload</a>
+		<a class="nav-link p-0 text" href="/upload">Upload</a>
 		{% else %}
 		<a class="nav-link text"
 			href="https://discord.com/api/oauth2/authorize?client_id=995951474959990824&redirect_uri=https%3A%2F%2Fdivamodarchive.xyz%2Flogin&response_type=code&scope=identify">Login</a>
 		{% endif %}
-		<a class="nav-link text" href="/theme">
+		<a class="nav-link p-0 text" href="/theme">
 			Switch theme
 		</a>
-		<a class="nav-link text" href="/about">About</a>
+		<a class="nav-link p-0 text" href="/about">About</a>
 	</nav>
 </body>
 

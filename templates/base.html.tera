@@ -19,7 +19,7 @@
 
 <body>
 	<br>
-	<div id="content" class="container">{% block content %}{% endblock content %}</div>
+	<div id="content" class="container g-3">{% block content %}{% endblock content %}</div>
 	<br><br><br><br><br>
 	<nav class="navbar navbar-light bg-secondary fixed-bottom d-flex justify-content-around">
 		<a class="nav-link p-0 text" href="/">Mods</a>

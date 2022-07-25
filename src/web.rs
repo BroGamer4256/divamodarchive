@@ -386,3 +386,40 @@ pub fn about(connection: &ConnectionState, cookies: &CookieJar<'_>) -> Template 
 		],
 	)
 }
+
+#[get("/liked?<offset>")]
+pub fn liked(
+	connection: &ConnectionState,
+	user: User,
+	offset: Option<i64>,
+	cookies: &CookieJar<'_>,
+) -> Template {
+	let connection = &mut connection.lock().unwrap();
+	let posts = get_user_liked_posts(connection, user.id, offset.unwrap_or(0));
+	Template::render(
+		"liked",
+		context![
+			posts: &posts,
+			is_logged_in: is_logged_in(connection, cookies),
+			title: "Liked Posts",
+			description: "Liked Posts",
+			offset: offset,
+			light_mode: is_light_mode(cookies),
+			game_tags: TAG_TOML.game_tags.clone(),
+			type_tags: TAG_TOML.type_tags.clone(),
+		],
+	)
+}
+
+#[get("/logout")]
+pub fn logout(cookies: &CookieJar<'_>) -> Redirect {
+	let jwt = cookies.get_pending("jwt");
+	if jwt.is_none() {
+		return Redirect::to("/");
+	}
+	let jwt = jwt.unwrap();
+	let jwt = jwt.value();
+	let jwt_string = String::from(jwt);
+	cookies.remove(Cookie::new("jwt", jwt_string));
+	Redirect::to("/")
+}

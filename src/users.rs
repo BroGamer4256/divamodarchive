@@ -163,3 +163,30 @@ pub fn get_user_stats(conn: &mut PgConnection, id: i64) -> UserStats {
 		.unwrap_or_default();
 	results
 }
+
+pub fn get_user_liked_posts(
+	conn: &mut PgConnection,
+	id: i64,
+	offset: i64,
+) -> Vec<ShortPostNoLikes> {
+	let results = users_liked_posts::table
+		.filter(users_liked_posts::user_id.eq(id))
+		.inner_join(posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+		.group_by(posts::post_id)
+		.order_by(posts::post_date.desc())
+		.select((
+			posts::post_id,
+			posts::post_name,
+			posts::post_text_short,
+			posts::post_image,
+			posts::post_game_tag,
+			posts::post_type_tag,
+			count_distinct(download_stats::timestamp.nullable()),
+		))
+		.limit(30)
+		.offset(offset)
+		.load::<ShortPostNoLikes>(conn)
+		.unwrap_or_else(|_| vec![]);
+	results
+}

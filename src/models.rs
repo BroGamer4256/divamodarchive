@@ -225,6 +225,17 @@ pub struct ShortPost {
 	pub downloads: i64,
 }
 
+#[derive(Queryable, Serialize, Deserialize, Default)]
+pub struct ShortPostNoLikes {
+	pub id: i32,
+	pub name: String,
+	pub text_short: String,
+	pub image: String,
+	pub game_tag: i32,
+	pub type_tag: i32,
+	pub downloads: i64,
+}
+
 #[derive(Queryable, Serialize, Deserialize)]
 pub struct DetailedPostNoDepends {
 	pub id: i32,

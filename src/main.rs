@@ -107,6 +107,8 @@ fn rocket() -> _ {
 				web::dependency_add,
 				web::dependency_remove,
 				web::about,
+				web::liked,
+				web::logout,
 				get_from_storage,
 				robots,
 				favicon,

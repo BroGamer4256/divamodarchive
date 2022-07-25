@@ -24,8 +24,8 @@
 
 {% endmacro draw_embed %}
 
-{% macro draw_post_short(id, name, text_short, image, likes, dislikes, downloads, draw_remove=false, game_tag="MM+",
-type_tag="Other") %}
+{% macro draw_post_short(id, name, text_short, image, likes=-1, dislikes=-1, downloads=-1, draw_remove=false,
+game_tag="MM+", type_tag="Other") %}
 <div class="col">
 	<div class="card shadow-sm">
 		<a class="" title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
@@ -35,7 +35,11 @@ type_tag="Other") %}
 			<div class="card-body">
 				<h4 class="text">{{ name | striptags | truncate(length=15) }}</h4>
 				<div class="row">
+					{% if likes != -1 %}
 					<h7 class="col-md-8 text">{{ likes }}👍{{ dislikes }}👎<br>Downloads: {{ downloads }}</h7>
+					{% elif downloads != -1 %}
+					<h7 class="col-md-8 text">Downloads: {{ downloads }}</h7>
+					{% endif %}
 					<h7 class="col-md-4 text text-align-right-md">
 						{{ type_tag }}
 					</h7>

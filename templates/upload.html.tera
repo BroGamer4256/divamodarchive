@@ -8,7 +8,7 @@
 {% block content %}
 <script>
 	{% if update_id %}
-	async function upload_metadata() {
+	function upload_metadata() {
 		var form = document.getElementById("form")
 		var name = form['title'].value
 		var text = form['text'].value
@@ -19,8 +19,8 @@
 			alert("Upload failed\nMissing text fields");
 			return
 		}
-		document.getElementById('upload').classList.add("disabled")
-		document.getElementById('upload_metadata').classList.add("disabled")
+		document.getElementById('upload_btn').classList.add("disabled")
+		document.getElementById('upload_metadata_btn').classList.add("disabled")
 
 		let post_data = {
 			'name': name,
@@ -48,7 +48,7 @@
 	}
 	{% endif %}
 
-	async function upload() {
+	function upload() {
 		var form = document.getElementById("form")
 
 		var image = form['imagePicker']
@@ -67,9 +67,9 @@
 			alert("Upload failed\nMissing text fields");
 			return
 		}
-		document.getElementById('upload').classList.add("disabled")
+		document.getElementById('upload_btn').classList.add("disabled")
 		{% if update_id %}
-		document.getElementById('upload_metadata').classList.add("disabled")
+		document.getElementById('upload_metadata_btn').classList.add("disabled")
 		{% endif %}
 
 		options = {
@@ -259,12 +259,12 @@
 			{% endif %}
 		</div>
 		<div class="{{ posts::btn_success_outer() }}" onclick="upload()">
-			<button type="button" id="upload" style="box-shadow: none"
+			<button type="button" id="upload_btn" style="box-shadow: none"
 				class="{{ posts::btn_success_inner() }}">Upload</button>
 		</div>
 		{% if update_id %}
 		<div class="{{ posts::btn_success_outer() }}" onclick="upload_metadata()">
-			<button type="button" id="upload_metadata" style="box-shadow: none"
+			<button type="button" id="upload_metadata_btn" style="box-shadow: none"
 				class="{{ posts::btn_success_inner() }}">Update metadata</button>
 		</div>
 		{% endif %}

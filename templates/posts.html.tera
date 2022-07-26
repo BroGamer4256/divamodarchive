@@ -1,6 +1,6 @@
 {% macro draw_embed(title="DIVA Mod Archive", description="", image="", author="DIVA Mod Archive") %}
 <title>{{ title }} - DIVA Mod Archive</title>
-<meta property="og:title" content="{{ title }}">
+<meta property="og:title" content="{{ title }} - {{ author }}">
 {% if description != "" %}
 <meta property="og:description" content="{{ description }}">
 {% endif %}
@@ -8,7 +8,7 @@
 <meta property="og:image" content="{{ image }}">
 <meta name="twitter:card" content="summary_large_image">
 {% endif %}
-<meta property="og:site_name" content="{{ author }}">
+<meta property="og:site_name" content="DIVA Mod Archive">
 
 <style>
 	@media (min-width: 768px) {

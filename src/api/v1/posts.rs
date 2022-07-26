@@ -58,51 +58,6 @@ pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
 	Ok(Json(response.result.uploadURL))
 }
 
-#[post("/upload_archive?<name>", data = "<archive>")]
-pub async fn upload_archive(
-	archive: Data<'_>,
-	name: String,
-	user: User,
-) -> Result<Json<String>, Status> {
-	let stream = archive.open(MAX_FILE_SIZE.mebibytes());
-	let bytes = stream.into_bytes().await.unwrap_or(Capped::<Vec<u8>>::new(
-		Vec::new(),
-		N {
-			written: 0,
-			complete: true,
-		},
-	));
-	let archive_type = match &bytes[0..4] {
-		&[0x50, 0x4B, 0x03, 0x04] => Some("zip"),
-		&[0x37, 0x7A, 0xBC, 0xAF] => Some("7z"),
-		&[0x52, 0x61, 0x72, 0x21] => Some("rar"),
-		_ => None,
-	};
-	if bytes.len() >= MAX_FILE_SIZE.mebibytes() || bytes.len() == 0 || archive_type.is_none() {
-		return Err(Status::BadRequest);
-	}
-
-	let result = std::fs::create_dir_all(format!("storage/{}/posts", user.id));
-	if result.is_err() {
-		return Err(Status::InternalServerError);
-	}
-	let result = File::create(format!("storage/{}/posts/{}", user.id, name));
-	if result.is_err() {
-		return Err(Status::InternalServerError);
-	}
-	let mut file = result.unwrap();
-	let result = file.write_all(&bytes);
-	if result.is_err() {
-		return Err(Status::InternalServerError);
-	}
-	Ok(Json(format!(
-		"{}/storage/{}/posts/{}",
-		BASE_URL.to_string(),
-		user.id,
-		name
-	)))
-}
-
 #[post("/upload_archive_chunk?<name>&<chunk>", data = "<archive_chunk>")]
 pub async fn upload_archive_chunk(
 	archive_chunk: Data<'_>,

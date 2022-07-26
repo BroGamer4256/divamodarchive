@@ -2,7 +2,7 @@
 {% import "posts" as posts %}
 
 {% block head %}
-{{ posts::draw_embed(title=post.name, description=post.text, image=post.image, author=post.user.name) }}
+{{ posts::draw_embed(title=post.name, description=post.text_short, image=post.image, author=post.user.name) }}
 {% endblock head %}
 
 {% block content %}

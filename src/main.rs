@@ -119,7 +119,6 @@ fn rocket() -> _ {
 			"/api/v1/posts",
 			routes![
 				api::v1::posts::upload_image,
-				api::v1::posts::upload_archive,
 				api::v1::posts::upload_archive_chunk,
 				api::v1::posts::finish_upload_archive_chunk,
 				api::v1::posts::upload,

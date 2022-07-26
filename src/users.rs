@@ -121,6 +121,7 @@ pub fn get_user_posts_popular(
 				- count_distinct(users_disliked_posts::user_id.nullable()))
 			.desc(),
 		)
+		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
 		.select((
 			(
 				posts::post_id,

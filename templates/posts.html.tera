@@ -244,7 +244,7 @@ extra_images) %}
 			</div>
 			<h5 class="card-subtitle text">Last updated: {{ last_updated | date }}</h5>
 		</div>
-		<a href="{{ image}}" target="_blank" class="ratio ratio-16x9" style="background: black">
+		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9" style="background: black">
 			<img src="{{ image }}" style="object-fit: contain;" class="card-img-top" loading="lazy">
 		</a>
 	</div>

@@ -374,7 +374,7 @@ pub fn get_popular_posts(
 				- count_distinct(users_disliked_posts::user_id.nullable()))
 			.desc(),
 		)
-		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.then_order_by(count_distinct(download_stats::timestamp.nullable()).desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -417,7 +417,7 @@ pub fn get_popular_posts_detailed(
 				- count_distinct(users_disliked_posts::user_id.nullable()))
 			.desc(),
 		)
-		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.then_order_by(count_distinct(download_stats::timestamp.nullable()).desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -521,7 +521,7 @@ pub fn get_popular_posts_disallowed(
 				- count_distinct(users_disliked_posts::user_id.nullable()))
 			.desc(),
 		)
-		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.then_order_by(count_distinct(download_stats::timestamp.nullable()).desc())
 		.select((
 			posts::post_id,
 			posts::post_name,

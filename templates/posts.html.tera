@@ -36,11 +36,11 @@ game_tag="MM+", type_tag="Other") %}
 				<h4 class="text">{{ name | striptags | truncate(length=15) }}</h4>
 				<div class="row">
 					{% if likes != -1 %}
-					<h7 class="col-md-8 text">{{ likes }}👍{{ dislikes }}👎<br>Downloads: {{ downloads }}</h7>
+					<h7 class="col-md-6 text">{{ likes }}👍{{ dislikes }}👎<br>Downloads: {{ downloads }}</h7>
 					{% elif downloads != -1 %}
-					<h7 class="col-md-8 text">Downloads: {{ downloads }}</h7>
+					<h7 class="col-md-6 text">Downloads: {{ downloads }}</h7>
 					{% endif %}
-					<h7 class="col-md-4 text text-align-right-md">
+					<h7 class="col-md-6 text text-align-right-md">
 						{{ type_tag }}
 					</h7>
 				</div>
@@ -74,14 +74,14 @@ game_tag="MM+", type_tag="Other") %}
 <br>
 <div style="display: flex; justify-content: center;">
 	<form class="nav">
-		<div class="row row-cols-2 row-cols-md-4 container">
+		<div class="row row-cols-2 row-cols-md-4">
 			{% if previous_title != false %}
-			<div class="col">
+			<div class="col flex-md-grow-1">
 				<input class="form-control" type="text" placeholder="Search" name="name" autocomplete="off"
 					value="{{ previous_title }}">
 			</div>
 			{% endif %}
-			<div class="col">
+			<div class="col flex-md-grow-1">
 				<select name="order" class="form-control" selected="{{ previous_sort }}">
 					<option value="latest">Latest</option>
 					{% if previous_sort == "popular" %}
@@ -92,7 +92,7 @@ game_tag="MM+", type_tag="Other") %}
 				</select>
 			</div>
 			{% if previous_game_tag != -1 %}
-			<div class="col">
+			<div class="col flex-md-grow-1">
 				<select class="form-control" id="game_tag" name="game_tag">
 					{% for game_tag in game_tags %}
 					<option value="{{ game_tag.id }}" {% if game_tag.id==previous_game_tag %}selected{% endif %}>

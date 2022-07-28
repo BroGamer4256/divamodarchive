@@ -299,7 +299,7 @@ extra_images) %}
 			<button type="button" style="box-shadow: none" class="{{ self::btn_danger_inner() }}">Delete</button>
 		</div>
 		{% endif %}
-		{% if is_logged_in == true %}
+		{% if is_logged_in == true and who_is_logged_in != uploader_id %}
 		<a href="/posts/{{ id }}/report" class="{{ self::btn_info_outer() }}">
 			<button type="button" style="box-shadow: none" class="{{ self::btn_info_inner() }}">Report</button>
 		</a>

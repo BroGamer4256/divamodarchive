@@ -389,7 +389,7 @@ pub fn about(
 		context![
 			is_logged_in: is_logged_in(&mut connection.lock().unwrap(), cookies),
 			light_mode: is_light_mode(cookies),
-			user: user.unwrap_or_default(),
+			is_admin: ADMINS.contains(&user.unwrap_or_default().id)
 		],
 	)
 }

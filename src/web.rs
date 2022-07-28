@@ -89,6 +89,7 @@ pub fn find_posts(
 	name: Option<String>,
 	order: Option<String>,
 	game_tag: Option<i32>,
+	user: Option<User>,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Status> {
 	let sort_order = match order.clone() {
@@ -103,19 +104,18 @@ pub fn find_posts(
 	let offset = offset.unwrap_or(0);
 	let name = name.unwrap_or_default();
 	let title = match sort_order {
-		Order::Latest => "Latest",
-		Order::Popular => "Popular",
+		Order::Latest => "Latest DIVA Mods",
+		Order::Popular => "Popular DIVA Mods",
 	};
 	let results = match sort_order {
 		Order::Latest => get_latest_posts(connection, name.clone(), offset, game_tag.unwrap_or(0)),
 		Order::Popular => {
 			get_popular_posts(connection, name.clone(), offset, game_tag.unwrap_or(0))
 		}
-	}
-	.unwrap_or_default();
+	};
 	let description = match sort_order {
-		Order::Latest => "The latest posts",
-		Order::Popular => "The most popular posts",
+		Order::Latest => "The latest project DIVA mods",
+		Order::Popular => "The most popular project DIVA mods",
 	};
 	Ok(Template::render(
 		"post_list",
@@ -131,6 +131,7 @@ pub fn find_posts(
 			light_mode: is_light_mode(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
+			is_admin: ADMINS.contains(&user.unwrap_or_default().id)
 		],
 	))
 }
@@ -151,12 +152,12 @@ pub fn details(
 		let jwt = cookies.get_pending("jwt").unwrap();
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(),],
+			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&who_is_logged_in)],
 		))
 	} else {
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(),],
+			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone()],
 		))
 	}
 }
@@ -197,8 +198,7 @@ pub fn upload(
 	let connection = &mut connection.lock().unwrap();
 	Ok(Template::render(
 		"upload",
-		context![user: user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), light_mode: is_light_mode(cookies),base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(),
-		type_tags: TAG_TOML.type_tags.clone(),],
+		context![user: &user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), light_mode: is_light_mode(cookies),base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id)],
 	))
 }
 
@@ -210,6 +210,7 @@ pub fn user(
 	order: Option<String>,
 	game_tag: Option<i32>,
 	cookies: &CookieJar<'_>,
+	current_user: Option<User>,
 ) -> Result<Template, Status> {
 	let connection = &mut connection.lock().unwrap();
 	let user = get_user(connection, id)?;
@@ -223,8 +224,8 @@ pub fn user(
 	};
 	let offset = offset.unwrap_or(0);
 	let title = match sort_order {
-		Order::Latest => "Latest",
-		Order::Popular => "Popular",
+		Order::Latest => format!("Mods by {}", user.name),
+		Order::Popular => format!("Popular mods by {}", user.name),
 	};
 	let results = match sort_order {
 		Order::Latest => get_user_posts_latest(connection, user.id, offset, game_tag.unwrap_or(0)),
@@ -234,8 +235,8 @@ pub fn user(
 	}
 	.unwrap_or_default();
 	let description = match sort_order {
-		Order::Latest => format!("The latest posts by {}", user.name),
-		Order::Popular => format!("The most popular posts by {}", user.name),
+		Order::Latest => format!("The latest DIVA mods by {}", user.name),
+		Order::Popular => format!("The most popular DIVA mods by {}", user.name),
 	};
 	let user_stats = get_user_stats(connection, user.id);
 
@@ -256,6 +257,7 @@ pub fn user(
 			light_mode: is_light_mode(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
+			is_admin: ADMINS.contains(&current_user.unwrap_or_default().id)
 		],
 	))
 }
@@ -281,8 +283,7 @@ pub fn edit(
 			let jwt = cookies.get_pending("jwt").unwrap();
 			Ok(Template::render(
 				"upload",
-				context![user: user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies), update_id: id, base_url: BASE_URL.to_string(), previous_game_tag: post.game_tag, previous_type_tag: post.type_tag, game_tags: TAG_TOML.game_tags.clone(),
-				type_tags: TAG_TOML.type_tags.clone(),],
+				context![user: &user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies), update_id: id, base_url: BASE_URL.to_string(), previous_game_tag: post.game_tag, previous_type_tag: post.type_tag, game_tags: TAG_TOML.game_tags.clone(),type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id)],
 			))
 		} else {
 			Err(Redirect::to(format!("/posts/{}", id)))
@@ -344,6 +345,7 @@ pub fn dependency(
 			offset: offset,
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
+			is_admin: ADMINS.contains(&user.id)
 		],
 	))
 }
@@ -377,12 +379,17 @@ pub fn dependency_remove(
 }
 
 #[get("/about")]
-pub fn about(connection: &ConnectionState, cookies: &CookieJar<'_>) -> Template {
+pub fn about(
+	connection: &ConnectionState,
+	cookies: &CookieJar<'_>,
+	user: Option<User>,
+) -> Template {
 	Template::render(
 		"about",
 		context![
 			is_logged_in: is_logged_in(&mut connection.lock().unwrap(), cookies),
 			light_mode: is_light_mode(cookies),
+			user: user.unwrap_or_default(),
 		],
 	)
 }
@@ -401,12 +408,13 @@ pub fn liked(
 		context![
 			posts: &posts,
 			is_logged_in: is_logged_in(connection, cookies),
-			title: "Liked Posts",
-			description: "Liked Posts",
+			title: "Liked Mods",
+			description: "Liked Mods",
 			offset: offset,
 			light_mode: is_light_mode(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
+			is_admin: ADMINS.contains(&user.id)
 		],
 	)
 }
@@ -421,5 +429,96 @@ pub fn logout(cookies: &CookieJar<'_>) -> Redirect {
 	let jwt = jwt.value();
 	let jwt_string = String::from(jwt);
 	cookies.remove(Cookie::new("jwt", jwt_string));
+	Redirect::to("/")
+}
+
+#[get("/admin")]
+pub fn admin(
+	connection: &ConnectionState,
+	user: User,
+	cookies: &CookieJar<'_>,
+) -> Result<Template, Redirect> {
+	let connection = &mut connection.lock().unwrap();
+	if !ADMINS.contains(&user.id) {
+		return Err(Redirect::to("/"));
+	}
+	Ok(Template::render(
+		"admin",
+		context![
+			is_logged_in: true,
+			light_mode: is_light_mode(cookies),
+			game_tags: TAG_TOML.game_tags.clone(),
+			type_tags: TAG_TOML.type_tags.clone(),
+			is_admin: true,
+			reports: get_reports(connection),
+			posts: get_latest_posts_unfiltered(connection)
+		],
+	))
+}
+
+#[get("/posts/<id>/remove")]
+pub fn remove_post_admin(connection: &ConnectionState, user: User, id: i32) -> Redirect {
+	let connection = &mut connection.lock().unwrap();
+	if !ADMINS.contains(&user.id) {
+		return Redirect::to("/");
+	}
+	delete_post(connection, id);
+	Redirect::to("/admin")
+}
+
+#[get("/report/<id>/remove")]
+pub fn remove_report(connection: &ConnectionState, user: User, id: i32) -> Redirect {
+	let connection = &mut connection.lock().unwrap();
+	if !ADMINS.contains(&user.id) {
+		return Redirect::to("/");
+	}
+	delete_report(connection, id);
+	Redirect::to("/admin")
+}
+
+// Button on post detail if logged in leads here
+// Use to send a report against a post
+#[allow(unused_variables)]
+#[get("/posts/<id>/report")]
+pub fn report(
+	connection: &ConnectionState,
+	user: User,
+	id: i32,
+	cookies: &CookieJar<'_>,
+) -> Result<Template, Redirect> {
+	let connection = &mut connection.lock().unwrap();
+	let post = get_post(connection, id);
+	if post.is_err() {
+		return Err(Redirect::to("/"));
+	}
+	let post = post.unwrap();
+	Ok(Template::render(
+		"report",
+		context![
+			is_logged_in: is_logged_in(connection, cookies),
+			light_mode: is_light_mode(cookies),
+			user: &user,
+			post: &post,
+			game_tags: TAG_TOML.game_tags.clone(),
+			type_tags: TAG_TOML.type_tags.clone(),
+			is_admin: ADMINS.contains(&user.id)
+		],
+	))
+}
+
+// Sends a report
+// Put in database then redirect to the mod
+#[allow(unused_variables)]
+#[post("/posts/<id>/report_send", data = "<reason>")]
+pub fn report_send(
+	connection: &ConnectionState,
+	user: User,
+	id: i32,
+	reason: String,
+	cookies: &CookieJar<'_>,
+) -> Redirect {
+	let reason = reason.replace("reason=", "");
+	let connection = &mut connection.lock().unwrap();
+	let _ = add_report(connection, id, user.id, reason);
 	Redirect::to("/")
 }

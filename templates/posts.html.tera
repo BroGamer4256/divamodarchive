@@ -2,6 +2,7 @@
 <title>{{ title }} - DIVA Mod Archive</title>
 <meta property="og:title" content="{{ title }} - {{ author }}">
 {% if description != "" %}
+<meta name="description" content="{{ description }}">
 <meta property="og:description" content="{{ description }}">
 {% endif %}
 {% if image != "" %}
@@ -30,24 +31,24 @@ game_tag="MM+", type_tag="Other") %}
 	<div class="card shadow-sm">
 		<a class="" title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
 			<div class="card-img-top ratio ratio-16x9" style="background: black" loading="lazy">
-				<img src="{{ image }}" style="object-fit: contain;" width="100%">
+				<img src="{{ image }}" style="object-fit: contain;" width="100%" alt="{{ text_short | striptags }}" loading="lazy">
 			</div>
 			<div class="card-body">
 				<h4 class="text">{{ name | striptags | truncate(length=15) }}</h4>
 				<div class="row">
 					{% if likes != -1 %}
-					<h7 class="col-md-6 text">{{ likes }}👍{{ dislikes }}👎<br>Downloads: {{ downloads }}</h7>
+					<h7 class="col-md-7 text">{{ likes }}👍{{ dislikes }}👎<br>Downloads: {{ downloads }}</h7>
 					{% elif downloads != -1 %}
-					<h7 class="col-md-6 text">Downloads: {{ downloads }}</h7>
+					<h7 class="col-md-7 text">Downloads: {{ downloads }}</h7>
 					{% endif %}
-					<h7 class="col-md-6 text text-align-right-md">
+					<h7 class="col-md-5 text text-align-right-md">
 						{{ type_tag }}
 					</h7>
 				</div>
 			</div>
 		</a>
-		{% if draw_remove %}
-		<a href="/posts/{{ post.id }}/dependency/{{ id }}/remove" class="{{ self::btn_danger_outer() }}">
+		{% if draw_remove != false %}
+		<a href="{{ draw_remove }}" class="{{ self::btn_danger_outer() }}">
 			<button type="button" style="box-shadow: none" class="{{ self::btn_danger_inner() }}">Remove</button>
 		</a>
 		{% endif %}
@@ -245,7 +246,7 @@ extra_images) %}
 			<h5 class="card-subtitle text">Last updated: {{ last_updated | date }}</h5>
 		</div>
 		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9" style="background: black">
-			<img src="{{ image }}" style="object-fit: contain;" class="card-img-top" loading="lazy">
+			<img src="{{ image }}" style="object-fit: contain;" class="card-img-top" loading="lazy" alt="Preview of {{ name }}">
 		</a>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
@@ -298,6 +299,11 @@ extra_images) %}
 			<button type="button" style="box-shadow: none" class="{{ self::btn_danger_inner() }}">Delete</button>
 		</div>
 		{% endif %}
+		{% if is_logged_in == true %}
+		<a href="/posts/{{ id }}/report" class="{{ self::btn_info_outer() }}">
+			<button type="button" style="box-shadow: none" class="{{ self::btn_info_inner() }}">Report</button>
+		</a>
+		{% endif %}
 	</div>
 	<div class="card card-body">
 		{{ text | striptags | linebreaksbr | safe }}
@@ -306,8 +312,12 @@ extra_images) %}
 	<div class="card card-body">
 		<h4>This mod requires: </h4>
 		<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
-			{% set draw_remove = who_is_logged_in == uploader_id %}
 			{% for post in dependencies %}
+			{% if who_is_logged_in == uploader_id %}
+			{% set draw_remove = "/posts/" ~ id ~ "/dependency/" ~ post.id ~ "/remove" %}
+			{% else %}
+			{% set draw_remove = false %}
+			{% endif %}
 			{% set game_tag = game_tags | filter(attribute="id", value=post.game_tag) | first %}
 			{% set type_tag = type_tags | filter(attribute="id", value=post.type_tag) | first %}
 			{{ posts::draw_post_short(id=post.id, name=post.name, text_short=post.text_short, image=post.image,
@@ -326,7 +336,7 @@ extra_images) %}
 				<div class="card shadow-sm">
 					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9"
 						style="background: black">
-						<img src="{{ image }}" style="object-fit: contain;" width="100%" loading="lazy">
+						<img src="{{ image }}" style="object-fit: contain;" width="100%" loading="lazy" alt="Preview of {{ name }}">
 					</a>
 				</div>
 			</div>

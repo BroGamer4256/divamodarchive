@@ -189,8 +189,8 @@ pub fn get_latest_posts(
 	name: String,
 	offset: i64,
 	game_tag: i32,
-) -> Result<Vec<ShortPost>, Status> {
-	let results = posts::table
+) -> Vec<ShortPost> {
+	posts::table
 		.filter(posts::post_game_tag.eq(game_tag))
 		.left_join(users_liked_posts::table)
 		.left_join(users_disliked_posts::table)
@@ -212,12 +212,7 @@ pub fn get_latest_posts(
 		.limit(30)
 		.offset(offset)
 		.load::<ShortPost>(connection)
-		.unwrap_or_else(|_| vec![]);
-
-	if results.is_empty() {
-		return Err(Status::NotFound);
-	}
-	Ok(results)
+		.unwrap_or_else(|_| vec![])
 }
 
 pub fn get_latest_posts_detailed(
@@ -356,13 +351,36 @@ pub fn get_latest_posts_disallowed(
 	Ok(results)
 }
 
+pub fn get_latest_posts_unfiltered(connection: &mut PgConnection) -> Vec<ShortPost> {
+	posts::table
+		.left_join(users_liked_posts::table)
+		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+		.group_by(posts::post_id)
+		.order_by(posts::post_date.desc())
+		.select((
+			posts::post_id,
+			posts::post_name,
+			posts::post_text_short,
+			posts::post_image,
+			posts::post_game_tag,
+			posts::post_type_tag,
+			count_distinct(users_liked_posts::user_id.nullable()),
+			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
+		))
+		.limit(30)
+		.load::<ShortPost>(connection)
+		.unwrap_or_else(|_| vec![])
+}
+
 pub fn get_popular_posts(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
 	game_tag: i32,
-) -> Result<Vec<ShortPost>, Status> {
-	let results = posts::table
+) -> Vec<ShortPost> {
+	posts::table
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_game_tag.eq(game_tag))
 		.left_join(users_liked_posts::table)
@@ -389,13 +407,7 @@ pub fn get_popular_posts(
 		.limit(30)
 		.offset(offset)
 		.load::<ShortPost>(connection)
-		.unwrap_or_else(|_| vec![]);
-
-	if results.is_empty() {
-		return Err(Status::NotFound);
-	}
-	// For every post in results create ShortPost and push it to result vector
-	Ok(results)
+		.unwrap_or_else(|_| vec![])
 }
 
 pub fn get_popular_posts_detailed(
@@ -628,14 +640,8 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 	})
 }
 
-pub fn delete_post(conn: &mut PgConnection, id: i32, user_id: i64) -> Status {
-	let result = diesel::delete(
-		posts::table
-			.filter(posts::post_uploader.eq(user_id))
-			.filter(posts::post_id.eq(id)),
-	)
-	.execute(conn);
-
+pub fn delete_post(conn: &mut PgConnection, id: i32) -> Status {
+	let result = diesel::delete(posts::table.filter(posts::post_id.eq(id))).execute(conn);
 	if result.is_ok() {
 		Status::Ok
 	} else {
@@ -696,6 +702,66 @@ pub fn remove_dependency(conn: &mut PgConnection, post_id: i32, dependency_id: i
 			.filter(post_dependencies::dependency_id.eq(dependency_id)),
 	)
 	.execute(conn);
+
+	if result.is_ok() {
+		Status::Ok
+	} else {
+		Status::InternalServerError
+	}
+}
+
+pub fn get_reports(conn: &mut PgConnection) -> Vec<Report> {
+	reports::table
+		.inner_join(posts::table.on(posts::post_id.eq(reports::post_id)))
+		.inner_join(users::table.on(users::user_id.eq(reports::user_id)))
+		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(reports::post_id)))
+		.left_join(
+			users_disliked_posts::table.on(users_disliked_posts::post_id.eq(reports::post_id)),
+		)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(reports::post_id)))
+		.order_by(reports::time.desc())
+		.group_by((posts::post_id, users::user_id, reports::report_id))
+		.select((
+			reports::report_id,
+			(users::user_id, users::user_name, users::user_avatar),
+			(
+				posts::post_id,
+				posts::post_name,
+				posts::post_text_short,
+				posts::post_image,
+				posts::post_game_tag,
+				posts::post_type_tag,
+				count_distinct(users_liked_posts::user_id.nullable()),
+				count_distinct(users_disliked_posts::user_id.nullable()),
+				count_distinct(download_stats::timestamp.nullable()),
+			),
+			reports::description,
+		))
+		.load::<Report>(conn)
+		.unwrap_or_else(|_| vec![])
+}
+
+pub fn delete_report(conn: &mut PgConnection, id: i32) -> Status {
+	let result = diesel::delete(reports::table.filter(reports::report_id.eq(id))).execute(conn);
+	if result.is_ok() {
+		Status::Ok
+	} else {
+		Status::NotFound
+	}
+}
+
+pub fn add_report(conn: &mut PgConnection, post_id: i32, user_id: i64, reason: String) -> Status {
+	let result = diesel::insert_into(reports::table)
+		.values((
+			reports::post_id.eq(post_id),
+			reports::user_id.eq(user_id),
+			reports::time.eq(chrono::NaiveDateTime::from_timestamp(
+				chrono::Utc::now().timestamp(),
+				0,
+			)),
+			reports::description.eq(reason),
+		))
+		.execute(conn);
 
 	if result.is_ok() {
 		Status::Ok

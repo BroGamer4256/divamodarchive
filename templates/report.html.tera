@@ -1,0 +1,40 @@
+{% extends "base" %}
+{% import "posts" as posts %}
+
+{% block head %}
+{{ posts::draw_embed(title="Report Mod", description="Report") }}
+{% endblock head %}
+
+{% block content %}
+<div class="row align-items-md-stretch gap-3">
+	<div class="col-md-7 card card-body">
+		<h2 class="text card-title" style="text-align: center">{{ post.name | striptags }} </h2>
+		<div class="row d-flex align-items-center">
+			<div class="col-md">
+				<h5>
+					<a href=" /user/{{ post.user.id }}" class="card-subtitle text">{{ post.user.name | striptags }}</a>
+				</h5>
+			</div>
+			<div class="col-md">
+				<h5 class="card-subtitle text-align-right-md text">Downloads: {{ post.downloads }}</h5>
+			</div>
+			<h5 class="card-subtitle text">Last updated: {{ post.date | date }}</h5>
+		</div>
+		<a href="{{ post.image }}" target="_blank" class="ratio ratio-16x9" style="background: black">
+			<img src="{{ post.image }}" style="object-fit: contain;" class="card-img-top" loading="lazy" alt="Preview of {{ post.name }}">
+		</a>
+	</div>
+    <div class="col-md-3 card card-body gap-3">
+        <form action="/posts/{{ post.id }}/report_send" method="POST" enctype="text/plain">
+            <div class="form-group">
+                <label for="reason">Reason</label>
+                <textarea class="form-control" id="reason" name="reason" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-success">Report</button>
+		</form>
+    </div>
+    <div class="card card-body">
+		{{ post.text | striptags | linebreaksbr | safe }}
+	</div>
+</div>
+{% endblock content %}

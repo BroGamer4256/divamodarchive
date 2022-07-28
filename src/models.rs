@@ -65,6 +65,15 @@ lazy_static! {
 			.expect("static/tags.toml must be a valid toml file");
 		toml::from_str(&tag_toml).expect("static/tags.toml must be a valid tags toml file")
 	};
+	pub static ref ADMINS: Vec<i64> = {
+		dotenv().ok();
+		let admin_str = env::var("ADMIN_IDS").expect("ADMIN_IDS must exist");
+		let admin_ids: Vec<i64> = admin_str
+			.split(",")
+			.map(|x| x.parse::<i64>().unwrap())
+			.collect();
+		admin_ids
+	};
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -349,4 +358,21 @@ pub struct DislikedPost {
 pub struct NewDislikedPost {
 	pub post_id: i32,
 	pub user_id: i64,
+}
+
+#[derive(Queryable, Serialize, Deserialize)]
+pub struct Report {
+	pub id: i32,
+	pub user: User,
+	pub post: ShortPost,
+	pub description: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = reports)]
+pub struct NewReport {
+	pub report_id: i32,
+	pub user_id: i64,
+	pub post_id: i32,
+	pub description: String,
 }

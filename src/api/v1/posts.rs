@@ -277,5 +277,10 @@ pub fn popular(
 
 #[delete("/<id>/delete")]
 pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
-	delete_post(&mut connection.lock().unwrap(), id, user.id)
+	let connection = &mut connection.lock().unwrap();
+	if !owns_post(connection, id, user.id) {
+		Status::Forbidden
+	} else {
+		delete_post(connection, id)
+	}
 }

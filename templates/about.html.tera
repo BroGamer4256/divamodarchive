@@ -13,16 +13,14 @@
 			<h3 class="text">About DIVA Mod Archive</h3>
 			<p class="text">
 				Developed by BroGamer#6927<br>
-				Development is currently hosted on the <a href="https://discord.gg/cvBVGDZ" class="text">Project
-					DIVA
+				Development is currently hosted on the <a href="https://discord.gg/cvBVGDZ" class="text">Project DIVA
 					Modding 2nd server</a>.<br>
 				The source code can be found on <a href="https://github.com/BroGamer4256/divamodarchive" class="text">my
 					github</a>.
 			</p>
 			<p class="text">
-				This web-interface is powered by <a href="https://getbootstrap.com" class="text">Bootstrap</a> v5,
-				with the
-				<a href="https://bootswatch.com/darkly/" class="text">Bootswatch.com Darkly Theme</a>.
+				This web-interface is powered by <a href="https://getbootstrap.com" class="text">Bootstrap</a> v5, with
+				the <a href="https://bootswatch.com/darkly/" class="text">Bootswatch.com Darkly Theme</a>.
 			</p>
 			<p class="text">
 				Project DIVA © 2009-2022 SEGA. CO., LTD. All rights reserved<br>
@@ -32,8 +30,7 @@
 				The following people have made this project possible, in no particular order<br>
 				MushieBLUSH: Icon design<br>
 				Y2K, M&M, Holiday, swigz, ManMan, and everyone else at the clock and gong torture team for initial
-				feedback
-				and motivation<br>
+				feedback and motivation<br>
 				It was a fun time indeed.
 			</p>
 		</div>

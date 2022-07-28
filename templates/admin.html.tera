@@ -1,0 +1,65 @@
+{% extends "base" %}
+{% import "posts" as posts %}
+
+{% block head %}
+{{ posts::draw_embed(title="Admin", description="Admin") }}
+{% endblock head %}
+
+{% block content %}
+{% if reports | length > 0 %}
+<div class="container card">
+	<div class="row border border-dark">
+		<!--
+			Show all reports in report with the post_short
+			Show report description and user
+			Show delete report button and delete post button
+		-->
+		{% for report in reports %}
+			<div class="row row-cols-1 row-cols-md-2">
+				{% set draw_remove = "/posts/" ~ report.post.id ~ "/remove" %}
+				{% set game_tag = game_tags | filter(attribute="id", value=report.post.game_tag) | first %}
+				{% set type_tag = type_tags | filter(attribute="id", value=report.post.type_tag) | first %}
+				{{ posts::draw_post_short(id=report.post.id, name=report.post.name, text_short=report.post.text_short, image=report.post.image,
+				likes=report.post.likes, dislikes=report.post.dislikes, downloads=report.post.downloads, draw_remove=draw_remove,
+				game_tag=game_tag.name, type_tag=type_tag.name) }}
+
+				<div class="col">
+					<div class="container card">
+						<div class="row">
+							<div class="col-2 card-img-left">
+								<div class="ratio ratio-1x1">
+									<img src="{{ report.user.avatar }}" crossorigin="anonymous">
+								</div>
+							</div>
+							<div class="col-10 card-body">
+								<h5 class="text">{{ report.user.name | striptags }}</h1>
+							</div>
+						</div>
+					</div>
+					<div class="container card card-body">
+						<p class="text">
+							{{ report.description | striptags | linebreaksbr | safe }}
+						</p>
+					</div>
+					<a href="/report/{{ report.id }}/remove" class="{{ posts::btn_danger_outer() }}">
+						<button type="button" style="box-shadow: none" class="{{ posts::btn_danger_inner() }}">Remove</button>
+					</a>
+				</div>
+			</div>
+		{% endfor %}
+	</div>
+</div>
+{% endif %}
+<div class="container card">
+	<div class="card-body row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
+		{% for post in posts %}
+			{% set game_tag = game_tags | filter(attribute="id", value=post.game_tag) | first %}
+			{% set type_tag = type_tags | filter(attribute="id", value=post.type_tag) | first %}
+			{% set draw_remove = "/posts/" ~ post.id ~ "/remove" %}
+			{{ posts::draw_post_short(id=post.id, name=post.name, text_short=post.text_short, image=post.image,
+			likes=post.likes, dislikes=post.dislikes, downloads=post.downloads, game_tag=game_tag.name, type_tag=type_tag.name, draw_remove=draw_remove)
+			}}
+		{% endfor %}
+	</div>
+</div>
+{% endblock content %}

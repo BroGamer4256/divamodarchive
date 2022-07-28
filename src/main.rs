@@ -38,7 +38,12 @@ allow_columns_to_appear_in_same_group_by_clause!(
 	schema::posts::post_type_tag,
 	schema::users::user_id,
 	schema::users::user_name,
-	schema::users::user_avatar
+	schema::users::user_avatar,
+	schema::reports::report_id,
+	schema::reports::user_id,
+	schema::reports::post_id,
+	schema::reports::description,
+	schema::reports::time,
 );
 
 #[get("/robots.txt")]
@@ -57,6 +62,11 @@ pub fn favicon() -> (ContentType, &'static [u8]) {
 #[get("/large_icon.png")]
 pub fn large_icon() -> (ContentType, &'static [u8]) {
 	(ContentType::PNG, include_bytes!("../static/DMA_BLACK.png"))
+}
+
+#[get("/sitemap.xml")]
+pub fn sitemap() -> (ContentType, &'static [u8]) {
+	(ContentType::XML, include_bytes!("../static/sitemap.xml"))
 }
 
 #[get("/storage/<user_id>/<file_type>/<file_name>")]
@@ -109,10 +119,16 @@ fn rocket() -> _ {
 				web::about,
 				web::liked,
 				web::logout,
+				web::admin,
+				web::remove_post_admin,
+				web::remove_report,
+				web::report,
+				web::report_send,
 				get_from_storage,
 				robots,
 				favicon,
 				large_icon,
+				sitemap,
 			],
 		)
 		.mount(

@@ -456,6 +456,45 @@
 				]
 			}
 		},
+		"/posts/posts": {
+			"get": {
+				"tags": [
+					"posts"
+				],
+				"summary": "Get specified posts details",
+				"operationId": "api::v1::posts::posts",
+				"parameters": [
+					{
+						"name": "post_id",
+						"in": "query",
+						"description": "The IDs of the posts",
+						"required": true,
+						"schema": {
+							"type": "array",
+							"items": {
+								"type": "integer",
+								"format": "int32"
+							}
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Posts",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/DetailedPost"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/users/{id}": {
 			"get": {
 				"tags": [

@@ -640,6 +640,29 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 	})
 }
 
+pub fn get_short_post(conn: &mut PgConnection, id: i32) -> Option<ShortPost> {
+	posts::table
+		.filter(posts::post_id.eq(id))
+		.inner_join(users::table)
+		.left_join(users_liked_posts::table)
+		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+		.group_by((posts::post_id, users::user_id))
+		.select((
+			posts::post_id,
+			posts::post_name,
+			posts::post_text_short,
+			posts::post_image,
+			posts::post_game_tag,
+			posts::post_type_tag,
+			count_distinct(users_liked_posts::user_id.nullable()),
+			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
+		))
+		.first::<ShortPost>(conn)
+		.ok()
+}
+
 pub fn delete_post(conn: &mut PgConnection, id: i32) -> Status {
 	let result = diesel::delete(posts::table.filter(posts::post_id.eq(id))).execute(conn);
 	if result.is_ok() {

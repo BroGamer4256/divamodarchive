@@ -284,3 +284,18 @@ pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
 		delete_post(connection, id)
 	}
 }
+
+// Usage of this is a bit weird
+// /api/v1/posts/posts?post_id=1&post_id=2
+// Gets the details of posts with id 1 and 2
+#[get("/posts?<post_id>")]
+pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> Json<Vec<DetailedPost>> {
+	let mut connection = connection.lock().unwrap();
+	let mut result = Vec::new();
+	for id in post_id {
+		if let Ok(post) = get_post(&mut connection, id) {
+			result.push(post);
+		}
+	}
+	Json(result)
+}

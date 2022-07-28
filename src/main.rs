@@ -146,6 +146,7 @@ fn rocket() -> _ {
 				api::v1::posts::latest,
 				api::v1::posts::popular,
 				api::v1::posts::delete,
+				api::v1::posts::posts,
 			],
 		)
 		.mount(

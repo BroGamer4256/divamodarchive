@@ -157,7 +157,7 @@ pub fn details(
 	} else {
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone()],
+			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: false],
 		))
 	}
 }

@@ -112,11 +112,7 @@ game_tag="MM+", type_tag="Other") %}
 {% endmacro draw_search_box %}
 
 {% macro btn_success_outer() %}
-{% if light_mode %}
 btn btn-sm btn-outline-success btn-success
-{% else %}
-btn btn-sm btn-success
-{% endif %}
 {% endmacro %}
 
 {% macro btn_success_inner() %}
@@ -128,11 +124,7 @@ btn
 {% endmacro %}
 
 {% macro btn_info_outer() %}
-{% if light_mode %}
 btn btn-sm btn-outline-info btn-info
-{% else %}
-btn btn-sm btn-info
-{% endif %}
 {% endmacro %}
 
 {% macro btn_info_inner() %}
@@ -144,11 +136,7 @@ btn
 {% endmacro %}
 
 {% macro btn_danger_outer() %}
-{% if light_mode %}
 btn btn-sm btn-outline-danger btn-danger
-{% else %}
-btn btn-sm btn-danger
-{% endif %}
 {% endmacro %}
 
 {% macro btn_danger_inner() %}

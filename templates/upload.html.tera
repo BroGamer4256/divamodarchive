@@ -19,8 +19,8 @@
 			alert("Upload failed\nMissing text fields");
 			return
 		}
-		document.getElementById('upload_btn').classList.add("disabled")
-		document.getElementById('upload_metadata_btn').classList.add("disabled")
+		document.getElementById('upload_btn_div').classList.add("disabled")
+		document.getElementById('upload_metadata_btn_div').classList.add("disabled")
 
 		let post_data = {
 			'name': name,
@@ -67,9 +67,9 @@
 			alert("Upload failed\nMissing text fields");
 			return
 		}
-		document.getElementById('upload_btn').classList.add("disabled")
+		document.getElementById('upload_btn_div').classList.add("disabled")
 		{% if update_id %}
-		document.getElementById('upload_metadata_btn').classList.add("disabled")
+		document.getElementById('upload_metadata_btn_div').classList.add("disabled")
 		{% endif %}
 
 		options = {
@@ -258,12 +258,12 @@
 			<label class="btn btn-outline-primary disabled" for="dislikedradiobtn" id="dislikes">0👎</label>
 			{% endif %}
 		</div>
-		<div class="{{ posts::btn_success_outer() }}" onclick="upload()">
+		<div class="{{ posts::btn_success_outer() }}" id="upload_btn_div" onclick="upload()">
 			<button type="button" id="upload_btn" style="box-shadow: none"
 				class="{{ posts::btn_success_inner() }}">Upload</button>
 		</div>
 		{% if update_id %}
-		<div class="{{ posts::btn_success_outer() }}" onclick="upload_metadata()">
+		<div class="{{ posts::btn_success_outer() }}" id="upload_metadata_btn_div" onclick="upload_metadata()">
 			<button type="button" id="upload_metadata_btn" style="box-shadow: none"
 				class="{{ posts::btn_success_inner() }}">Update metadata</button>
 		</div>

@@ -41,7 +41,7 @@ pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
 		.send()
 		.await;
 	if let Ok(response) = response {
-		if !response.status().is_success() {
+		if response.status().is_success() {
 			let response: Result<CloudflareDirectUpload, _> = response.json().await;
 			if let Ok(response) = response {
 				if response.success {

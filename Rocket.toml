@@ -1,5 +1,6 @@
 [default]
 address = "0.0.0.0"
+temp_dir = "storage/temp"
 
 [default.limits]
 file = "10 MiB"
@@ -11,3 +12,4 @@ port = 8000
 [release]
 port = 7000
 cli_colors = false
+temp_dir = "storage/temp"

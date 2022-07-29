@@ -67,6 +67,7 @@
 			alert("Upload failed\nMissing text fields");
 			return
 		}
+		alert("Your mod is being uploaded, please wait as this can take a large amount of time");
 		document.getElementById('upload_btn_div').classList.add("disabled")
 		{% if update_id %}
 		document.getElementById('upload_metadata_btn_div').classList.add("disabled")
@@ -104,7 +105,6 @@
 							return
 						}
 						var image_url = image_url.replace("https://imagedelivery.net/", "{{ base_url | safe }}/cdn-cgi/imagedelivery/")
-						alert("Your mod is being uploaded, please wait as this can take a large amount of time");
 
 						var images_extra = form['imagesExtra'];
 						var images_extra_urls = [];
@@ -143,7 +143,7 @@
 						}
 
 						var file = archive.files[0];
-						var chunkSize = 1024 * 1024 * 10;
+						var chunkSize = 1024 * 1024 * 8;
 						var chunkCount = Math.ceil(file.size / chunkSize);
 						var chunkStart = 0;
 						var chunksCompleted = 0;

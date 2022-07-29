@@ -4,7 +4,7 @@ use std::io::Write;
 
 use crate::models::*;
 use crate::posts::*;
-use rocket::data::{Capped, Data, ToByteUnit, N};
+use rocket::fs::TempFile;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use serde::Deserialize;
@@ -55,41 +55,26 @@ pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
 
 #[post("/upload_archive_chunk?<name>&<chunk>", data = "<archive_chunk>")]
 pub async fn upload_archive_chunk(
-	archive_chunk: Data<'_>,
+	mut archive_chunk: TempFile<'_>,
 	name: String,
 	chunk: u32,
 	user: User,
 ) -> Status {
-	let stream = archive_chunk.open(MAX_FILE_SIZE.mebibytes());
-	let bytes = stream.into_bytes().await.unwrap_or_else(|_| {
-		Capped::<Vec<u8>>::new(
-			Vec::new(),
-			N {
-				written: 0,
-				complete: false,
-			},
-		)
-	});
-	if !bytes.is_complete() {
-		return Status::BadRequest;
-	}
-
 	let result = std::fs::create_dir_all(format!("storage/{}/posts/{}_chunks", user.id, name));
 	if result.is_err() {
 		return Status::InternalServerError;
 	}
-	let result = File::create(format!(
-		"storage/{}/posts/{}_chunks/{}",
-		user.id, name, chunk
-	));
-	if let Ok(mut file) = result {
-		let result = file.write_all(&bytes);
-		if result.is_err() {
-			return Status::InternalServerError;
-		}
-		return Status::Ok;
+	let result = archive_chunk
+		.persist_to(format!(
+			"storage/{}/posts/{}_chunks/{}",
+			user.id, name, chunk
+		))
+		.await;
+	if result.is_err() {
+		Status::InternalServerError
+	} else {
+		Status::Ok
 	}
-	Status::InternalServerError
 }
 
 // For this function, fuck rewriting it to remove unwraps

@@ -46,26 +46,30 @@ allow_columns_to_appear_in_same_group_by_clause!(
 	schema::reports::time,
 );
 
+#[must_use]
 #[get("/robots.txt")]
-pub fn robots() -> String {
-	String::from("User-agent: *\nDisallow: /api/")
+pub const fn robots() -> &'static str {
+	"User-agent: *\nDisallow: /api/"
 }
 
+#[must_use]
 #[get("/favicon.ico")]
-pub fn favicon() -> (ContentType, &'static [u8]) {
+pub const fn favicon() -> (ContentType, &'static [u8]) {
 	(
 		ContentType::PNG,
 		include_bytes!("../static/DMA_BLACK_STARLESS.png"),
 	)
 }
 
+#[must_use]
 #[get("/large_icon.png")]
-pub fn large_icon() -> (ContentType, &'static [u8]) {
+pub const fn large_icon() -> (ContentType, &'static [u8]) {
 	(ContentType::PNG, include_bytes!("../static/DMA_BLACK.png"))
 }
 
+#[must_use]
 #[get("/sitemap.xml")]
-pub fn sitemap() -> (ContentType, &'static [u8]) {
+pub const fn sitemap() -> (ContentType, &'static [u8]) {
 	(ContentType::XML, include_bytes!("../static/sitemap.xml"))
 }
 
@@ -73,93 +77,102 @@ pub fn sitemap() -> (ContentType, &'static [u8]) {
 pub fn get_from_storage(
 	connection: &models::ConnectionState,
 	user_id: i64,
-	file_type: String,
-	file_name: String,
+	file_type: &str,
+	file_name: &str,
 ) -> Option<(Status, (ContentType, std::fs::File))> {
 	let file = format!("storage/{}/{}/{}", user_id, file_type, file_name);
 	if file_type == "posts" {
-		let path = format!("{}/{}", models::BASE_URL.to_string(), file);
+		let path = format!("{}/{}", *models::BASE_URL, file);
 		let _ = posts::update_download_count(&mut connection.lock().unwrap(), path);
 	}
 	let file = std::fs::File::open(file);
 	if file.is_err() {
 		return None;
 	}
-	let file = file.unwrap();
-	let content_type = match file_type.as_str() {
-		"posts" => ContentType::ZIP,
-		"images" => ContentType::PNG,
-		_ => return None,
-	};
-	Some((Status::Ok, (content_type, file)))
+	let file = file;
+	if let Ok(file) = file {
+		let content_type = match file_type {
+			"posts" => ContentType::ZIP,
+			"images" => ContentType::PNG,
+			_ => return None,
+		};
+		Some((Status::Ok, (content_type, file)))
+	} else {
+		None
+	}
 }
 
+// Rockets macros give clippy an aneurysm here, disable no_effect_underscore_binding
 #[launch]
-fn rocket() -> _ {
+pub fn rocket() -> _ {
 	dotenv().ok();
 	let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| String::new());
-	if database_url.is_empty() {
-		panic!("DATABASE_URL must not be empty");
+	assert!(!database_url.is_empty(), "DATABASE_URL must not be empty");
+	let connection = PgConnection::establish(&database_url);
+	if let Ok(connection) = connection {
+		let connection = Mutex::new(connection);
+
+		rocket::build()
+			.mount(
+				"/",
+				routes![
+					web::find_posts,
+					web::details,
+					web::login,
+					web::upload,
+					web::user,
+					web::edit,
+					web::set_theme,
+					web::dependency,
+					web::dependency_add,
+					web::dependency_remove,
+					web::about,
+					web::liked,
+					web::logout,
+					web::admin,
+					web::remove_post_admin,
+					web::remove_report,
+					web::report,
+					web::report_send,
+					get_from_storage,
+					robots,
+					favicon,
+					large_icon,
+					sitemap,
+				],
+			)
+			.mount(
+				"/api/v1/posts",
+				routes![
+					api::v1::posts::upload_image,
+					api::v1::posts::upload_archive_chunk,
+					api::v1::posts::finish_upload_archive_chunk,
+					api::v1::posts::upload,
+					api::v1::posts::edit,
+					api::v1::posts::details,
+					api::v1::posts::like,
+					api::v1::posts::dislike,
+					api::v1::posts::dependency,
+					api::v1::posts::latest,
+					api::v1::posts::popular,
+					api::v1::posts::delete,
+					api::v1::posts::posts,
+				],
+			)
+			.mount(
+				"/api/v1/users",
+				routes![
+					api::v1::users::login,
+					api::v1::users::details,
+					api::v1::users::latest,
+					api::v1::users::popular,
+					api::v1::users::delete
+				],
+			)
+			.mount("/api/v1", routes![api::v1::get_spec])
+			.manage(connection)
+			.attach(Template::fairing())
+	} else {
+		panic!("Failed to connect to database");
 	}
-	let connection = Mutex::new(PgConnection::establish(&database_url).unwrap());
-	rocket::build()
-		.mount(
-			"/",
-			routes![
-				web::find_posts,
-				web::details,
-				web::login,
-				web::upload,
-				web::user,
-				web::edit,
-				web::set_theme,
-				web::dependency,
-				web::dependency_add,
-				web::dependency_remove,
-				web::about,
-				web::liked,
-				web::logout,
-				web::admin,
-				web::remove_post_admin,
-				web::remove_report,
-				web::report,
-				web::report_send,
-				get_from_storage,
-				robots,
-				favicon,
-				large_icon,
-				sitemap,
-			],
-		)
-		.mount(
-			"/api/v1/posts",
-			routes![
-				api::v1::posts::upload_image,
-				api::v1::posts::upload_archive_chunk,
-				api::v1::posts::finish_upload_archive_chunk,
-				api::v1::posts::upload,
-				api::v1::posts::edit,
-				api::v1::posts::details,
-				api::v1::posts::like,
-				api::v1::posts::dislike,
-				api::v1::posts::dependency,
-				api::v1::posts::latest,
-				api::v1::posts::popular,
-				api::v1::posts::delete,
-				api::v1::posts::posts,
-			],
-		)
-		.mount(
-			"/api/v1/users",
-			routes![
-				api::v1::users::login,
-				api::v1::users::details,
-				api::v1::users::latest,
-				api::v1::users::popular,
-				api::v1::users::delete
-			],
-		)
-		.mount("/api/v1", routes![api::v1::get_spec])
-		.manage(connection)
-		.attach(Template::fairing())
 }

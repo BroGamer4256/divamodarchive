@@ -27,7 +27,7 @@ struct CloudflareDirectUpload {
 pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
 	let cloudflare_url = format!(
 		"https://api.cloudflare.com/client/v4/accounts/{}/images/v2/direct_upload",
-		CLOUDFLARE_ACCOUNT_ID.to_string()
+		*CLOUDFLARE_ACCOUNT_ID
 	);
 	let params =
 		reqwest::multipart::Form::new().text("metadata", format!("{{\"user\":\"{}\"}}", user.id));
@@ -35,27 +35,22 @@ pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
 		.post(&cloudflare_url)
 		.header(
 			"Authorization",
-			format!("Bearer {}", CLOUDFLARE_IMAGE_TOKEN.to_string()),
+			format!("Bearer {}", *CLOUDFLARE_IMAGE_TOKEN),
 		)
 		.multipart(params)
 		.send()
 		.await;
-	if response.is_err() {
-		return Err(Status::InternalServerError);
+	if let Ok(response) = response {
+		if !response.status().is_success() {
+			let response: Result<CloudflareDirectUpload, _> = response.json().await;
+			if let Ok(response) = response {
+				if response.success {
+					return Ok(Json(response.result.uploadURL));
+				}
+			}
+		}
 	}
-	let response = response.unwrap();
-	if !response.status().is_success() {
-		return Err(Status::InternalServerError);
-	}
-	let response = response.json().await;
-	if response.is_err() {
-		return Err(Status::InternalServerError);
-	}
-	let response: CloudflareDirectUpload = response.unwrap();
-	if !response.success {
-		return Err(Status::InternalServerError);
-	}
-	Ok(Json(response.result.uploadURL))
+	Err(Status::InternalServerError)
 }
 
 #[post("/upload_archive_chunk?<name>&<chunk>", data = "<archive_chunk>")]
@@ -66,13 +61,15 @@ pub async fn upload_archive_chunk(
 	user: User,
 ) -> Status {
 	let stream = archive_chunk.open(MAX_FILE_SIZE.mebibytes());
-	let bytes = stream.into_bytes().await.unwrap_or(Capped::<Vec<u8>>::new(
-		Vec::new(),
-		N {
-			written: 0,
-			complete: false,
-		},
-	));
+	let bytes = stream.into_bytes().await.unwrap_or_else(|_| {
+		Capped::<Vec<u8>>::new(
+			Vec::new(),
+			N {
+				written: 0,
+				complete: false,
+			},
+		)
+	});
 	if !bytes.is_complete() {
 		return Status::BadRequest;
 	}
@@ -85,17 +82,17 @@ pub async fn upload_archive_chunk(
 		"storage/{}/posts/{}_chunks/{}",
 		user.id, name, chunk
 	));
-	if result.is_err() {
-		return Status::InternalServerError;
+	if let Ok(mut file) = result {
+		let result = file.write_all(&bytes);
+		if result.is_err() {
+			return Status::InternalServerError;
+		}
+		return Status::Ok;
 	}
-	let mut file = result.unwrap();
-	let result = file.write_all(&bytes);
-	if result.is_err() {
-		return Status::InternalServerError;
-	}
-	Status::Ok
+	Status::InternalServerError
 }
 
+// For this function, fuck rewriting it to remove unwraps
 #[post("/finish_upload_archive_chunk?<name>")]
 pub fn finish_upload_archive_chunk(name: String, user: User) -> Result<Json<String>, Status> {
 	let merged_file = File::create(format!("storage/{}/posts/{}", user.id, name));
@@ -157,12 +154,10 @@ pub fn finish_upload_archive_chunk(name: String, user: User) -> Result<Json<Stri
 			}
 		}
 	}
-	let _ = std::fs::remove_dir_all(format!("storage/{}/posts/{}_chunks", user.id, name));
+	let _result = std::fs::remove_dir_all(format!("storage/{}/posts/{}_chunks", user.id, name));
 	Ok(Json(format!(
 		"{}/storage/{}/posts/{}",
-		BASE_URL.to_string(),
-		user.id,
-		name
+		*BASE_URL, user.id, name
 	)))
 }
 
@@ -176,10 +171,10 @@ pub async fn upload(
 	let post = post.into_inner();
 	if !post
 		.image
-		.starts_with(format!("{}/cdn-cgi/imagedelivery", BASE_URL.to_string()).as_str())
+		.starts_with(&format!("{}/cdn-cgi/imagedelivery", *BASE_URL))
 		|| !post
 			.link
-			.starts_with(format!("{}/storage/{}/posts/", BASE_URL.to_string(), user.id).as_str())
+			.starts_with(&format!("{}/storage/{}/posts/", *BASE_URL, user.id))
 		|| reqwest::get(post.image.clone()).await.is_err()
 		|| reqwest::get(post.link.clone()).await.is_err()
 	{
@@ -195,18 +190,19 @@ pub async fn upload(
 }
 
 #[post("/edit?<update_id>", data = "<post>")]
-pub async fn edit(
+pub fn edit(
 	connection: &ConnectionState,
 	user: User,
 	post: Json<PostMetadata>,
 	update_id: i32,
 ) -> Result<Json<Post>, Status> {
 	let post = post.into_inner();
-	if !owns_post(&mut connection.lock().unwrap(), update_id, user.id) {
+	let connection = &mut connection.lock().unwrap();
+	if !owns_post(connection, update_id, user.id) {
 		return Err(Status::Unauthorized);
 	}
 
-	let result = update_post(&mut connection.lock().unwrap(), post, update_id)?;
+	let result = update_post(connection, post, update_id)?;
 	Ok(Json(result))
 }
 
@@ -236,10 +232,10 @@ pub fn dislike(
 #[post("/<id>/dependency/<dependency>")]
 pub fn dependency(connection: &ConnectionState, id: i32, dependency: i32, user: User) -> Status {
 	let connection = &mut connection.lock().unwrap();
-	if !owns_post(connection, id, user.id) {
-		Status::Forbidden
-	} else {
+	if owns_post(connection, id, user.id) {
 		add_dependency(connection, id, dependency)
+	} else {
+		Status::Forbidden
 	}
 }
 
@@ -252,7 +248,7 @@ pub fn latest(
 ) -> Result<Json<Vec<DetailedPost>>, Status> {
 	let result = get_latest_posts_detailed(
 		&mut connection.lock().unwrap(),
-		name.unwrap_or(String::new()),
+		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 	)?;
@@ -268,7 +264,7 @@ pub fn popular(
 ) -> Result<Json<Vec<DetailedPost>>, Status> {
 	let result = get_popular_posts_detailed(
 		&mut connection.lock().unwrap(),
-		name.unwrap_or(String::new()),
+		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 	)?;
@@ -278,10 +274,10 @@ pub fn popular(
 #[delete("/<id>/delete")]
 pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
 	let connection = &mut connection.lock().unwrap();
-	if !owns_post(connection, id, user.id) {
-		Status::Forbidden
-	} else {
+	if owns_post(connection, id, user.id) {
 		delete_post(connection, id)
+	} else {
+		Status::Forbidden
 	}
 }
 

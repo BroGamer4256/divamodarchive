@@ -19,8 +19,8 @@ pub fn create_user<'a>(
 		let result = diesel::update(users::table.filter(users::user_id.eq(id)))
 			.set((users::user_name.eq(name), users::user_avatar.eq(avatar)))
 			.get_result(conn);
-		if result.is_ok() {
-			Ok(result.unwrap())
+		if let Ok(result) = result {
+			Ok(result)
 		} else {
 			Err(Status::InternalServerError)
 		}
@@ -33,8 +33,8 @@ pub fn create_user<'a>(
 		let result = diesel::insert_into(users::table)
 			.values(&new_user)
 			.get_result(conn);
-		if result.is_ok() {
-			Ok(result.unwrap())
+		if let Ok(result) = result {
+			Ok(result)
 		} else {
 			Err(Status::InternalServerError)
 		}
@@ -55,8 +55,8 @@ pub fn delete_user(conn: &mut PgConnection, id: i64) -> Status {
 pub fn get_user(conn: &mut PgConnection, id: i64) -> Result<User, Status> {
 	let result = users::table.filter(users::user_id.eq(id)).get_result(conn);
 
-	if result.is_ok() {
-		Ok(result.unwrap())
+	if let Ok(result) = result {
+		Ok(result)
 	} else {
 		Err(Status::NotFound)
 	}
@@ -67,8 +67,8 @@ pub fn get_user_posts_latest(
 	id: i64,
 	offset: i64,
 	game_tag: i32,
-) -> Result<Vec<ShortUserPosts>, Status> {
-	let results = users::table
+) -> Vec<ShortUserPosts> {
+	users::table
 		.filter(users::user_id.eq(id))
 		.inner_join(posts::table)
 		.filter(posts::post_game_tag.eq(game_tag))
@@ -94,12 +94,7 @@ pub fn get_user_posts_latest(
 		.limit(30)
 		.offset(offset)
 		.load::<ShortUserPosts>(conn)
-		.unwrap_or_else(|_| vec![]);
-
-	if results.is_empty() {
-		return Err(Status::NotFound);
-	}
-	Ok(results)
+		.unwrap_or_else(|_| vec![])
 }
 
 pub fn get_user_posts_popular(
@@ -107,8 +102,8 @@ pub fn get_user_posts_popular(
 	id: i64,
 	offset: i64,
 	game_tag: i32,
-) -> Result<Vec<ShortUserPosts>, Status> {
-	let results = users::table
+) -> Vec<ShortUserPosts> {
+	users::table
 		.filter(users::user_id.eq(id))
 		.inner_join(posts::table)
 		.filter(posts::post_game_tag.eq(game_tag))
@@ -139,16 +134,11 @@ pub fn get_user_posts_popular(
 		.limit(30)
 		.offset(offset)
 		.load::<ShortUserPosts>(conn)
-		.unwrap_or_else(|_| vec![]);
-
-	if results.is_empty() {
-		return Err(Status::NotFound);
-	}
-	Ok(results)
+		.unwrap_or_else(|_| vec![])
 }
 
 pub fn get_user_stats(conn: &mut PgConnection, id: i64) -> UserStats {
-	let results = users::table
+	users::table
 		.filter(users::user_id.eq(id))
 		.inner_join(posts::table)
 		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
@@ -161,8 +151,7 @@ pub fn get_user_stats(conn: &mut PgConnection, id: i64) -> UserStats {
 			count_distinct(download_stats::timestamp.nullable()),
 		))
 		.get_result::<UserStats>(conn)
-		.unwrap_or_default();
-	results
+		.unwrap_or_default()
 }
 
 pub fn get_user_liked_posts(
@@ -170,7 +159,7 @@ pub fn get_user_liked_posts(
 	id: i64,
 	offset: i64,
 ) -> Vec<ShortPostNoLikes> {
-	let results = users_liked_posts::table
+	users_liked_posts::table
 		.filter(users_liked_posts::user_id.eq(id))
 		.inner_join(posts::table)
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
@@ -188,6 +177,5 @@ pub fn get_user_liked_posts(
 		.limit(30)
 		.offset(offset)
 		.load::<ShortPostNoLikes>(conn)
-		.unwrap_or_else(|_| vec![]);
-	results
+		.unwrap_or_else(|_| vec![])
 }

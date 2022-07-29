@@ -22,18 +22,15 @@ lazy_static! {
 	};
 	pub static ref DISCORD_ID: String = {
 		dotenv().ok();
-		let discord_id = env::var("DISCORD_ID").expect("DISCORD_ID must exist");
-		discord_id
+		env::var("DISCORD_ID").expect("DISCORD_ID must exist")
 	};
 	pub static ref DISCORD_SECRET: String = {
 		dotenv().ok();
-		let discord_secret = env::var("DISCORD_SECRET").expect("DISCORD_SECRET must exist");
-		discord_secret
+		env::var("DISCORD_SECRET").expect("DISCORD_SECRET must exist")
 	};
 	pub static ref BASE_URL: String = {
 		dotenv().ok();
-		let base_url = env::var("BASE_URL").expect("BASE_URL must exist");
-		base_url
+		env::var("BASE_URL").expect("BASE_URL must exist")
 	};
 	pub static ref MAX_IMAGE_SIZE: u64 = {
 		dotenv().ok();
@@ -47,14 +44,11 @@ lazy_static! {
 	};
 	pub static ref CLOUDFLARE_IMAGE_TOKEN: String = {
 		dotenv().ok();
-		let token = env::var("CLOUDFLARE_IMAGE_TOKEN").expect("CLOUDFLARE_IMAGE_TOKEN must exist");
-		token
+		env::var("CLOUDFLARE_IMAGE_TOKEN").expect("CLOUDFLARE_IMAGE_TOKEN must exist")
 	};
 	pub static ref CLOUDFLARE_ACCOUNT_ID: String = {
 		dotenv().ok();
-		let account_id =
-			env::var("CLOUDFLARE_ACCOUNT_ID").expect("CLOUDFLARE_ACCOUNT_ID must exist");
-		account_id
+		env::var("CLOUDFLARE_ACCOUNT_ID").expect("CLOUDFLARE_ACCOUNT_ID must exist")
 	};
 	pub static ref TAG_TOML: TagToml = {
 		let mut tag_file =
@@ -68,11 +62,10 @@ lazy_static! {
 	pub static ref ADMINS: Vec<i64> = {
 		dotenv().ok();
 		let admin_str = env::var("ADMIN_IDS").expect("ADMIN_IDS must exist");
-		let admin_ids: Vec<i64> = admin_str
-			.split(",")
+		admin_str
+			.split(',')
 			.map(|x| x.parse::<i64>().unwrap())
-			.collect();
-		admin_ids
+			.collect()
 	};
 }
 
@@ -97,14 +90,15 @@ pub struct Token {
 	pub user_id: i64,
 }
 
+#[must_use]
 pub fn create_jwt(user_id: i64) -> String {
 	let time = chrono::offset::Utc::now().timestamp();
 	let token_data = Token {
 		iat: time,
-		exp: time + 604800,
+		exp: time + 604_800,
 		user_id,
 	};
-	encode(&Header::default(), &token_data, &ENCODE_KEY).unwrap()
+	encode(&Header::default(), &token_data, &ENCODE_KEY).unwrap_or_default()
 }
 
 #[derive(Debug)]
@@ -117,11 +111,11 @@ pub struct Verified {}
 
 impl Verified {
 	pub fn verify(token: &str) -> Outcome<Self, GenericErorr> {
-		let token = decode::<Token>(&token, &DECODE_KEY, &Validation::default());
+		let token = decode::<Token>(token, &DECODE_KEY, &Validation::default());
 		if token.is_err() {
 			Outcome::Failure((Status::Unauthorized, GenericErorr::Invalid))
 		} else {
-			Outcome::Success(Verified {})
+			Outcome::Success(Self {})
 		}
 	}
 }
@@ -151,7 +145,7 @@ impl User {
 		token: &str,
 		connection: &std::sync::Mutex<diesel::PgConnection>,
 	) -> Outcome<Self, GenericErorr> {
-		let token_data = decode::<Token>(&token, &DECODE_KEY, &Validation::default());
+		let token_data = decode::<Token>(token, &DECODE_KEY, &Validation::default());
 		if let Ok(token_data) = token_data {
 			let result =
 				crate::users::get_user(&mut connection.lock().unwrap(), token_data.claims.user_id);

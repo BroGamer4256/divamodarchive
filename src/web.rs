@@ -12,58 +12,41 @@ pub fn who_is_logged_in(
 	cookies: &CookieJar<'_>,
 ) -> Result<User, Status> {
 	let jwt = cookies.get_pending("jwt");
-	if jwt.is_none() {
-		return Err(Status::Unauthorized);
-	}
-	let jwt = jwt.unwrap();
-	let jwt = jwt.value();
-	let jwt_string = String::from(jwt);
-	let token_data = decode::<Token>(&jwt, &DECODE_KEY, &Validation::default());
-	if let Ok(token_data) = token_data {
-		let result = get_user(connection, token_data.claims.user_id);
-		if result.is_ok() {
-			Ok(result.unwrap())
-		} else {
-			cookies.remove(Cookie::new("jwt", jwt_string));
-			Err(Status::Unauthorized)
+	if let Some(jwt) = jwt {
+		let jwt = jwt.value();
+		let jwt_string = String::from(jwt);
+		let token_data = decode::<Token>(jwt, &DECODE_KEY, &Validation::default());
+		if let Ok(token_data) = token_data {
+			let result = get_user(connection, token_data.claims.user_id);
+			if let Ok(result) = result {
+				return Ok(result);
+			}
 		}
-	} else {
 		cookies.remove(Cookie::new("jwt", jwt_string));
-		Err(Status::Unauthorized)
 	}
+	Err(Status::Unauthorized)
 }
 
 pub fn is_logged_in(connection: &mut PgConnection, cookies: &CookieJar<'_>) -> bool {
 	let jwt = cookies.get_pending("jwt");
-	if jwt.is_none() {
-		return false;
-	}
-	let jwt = jwt.unwrap();
-	let jwt = jwt.value();
-	let jwt_string = String::from(jwt);
-	let token_data = decode::<Token>(&jwt, &DECODE_KEY, &Validation::default());
-	if let Ok(token_data) = token_data {
-		let result = get_user(connection, token_data.claims.user_id).is_ok();
-		if result {
-			true
-		} else {
-			cookies.remove(Cookie::new("jwt", jwt_string));
-			false
+	if let Some(jwt) = jwt {
+		let jwt = jwt.value();
+		let jwt_string = String::from(jwt);
+		let token_data = decode::<Token>(jwt, &DECODE_KEY, &Validation::default());
+		if let Ok(token_data) = token_data {
+			let result = get_user(connection, token_data.claims.user_id).is_ok();
+			if result {
+				return true;
+			}
 		}
-	} else {
 		cookies.remove(Cookie::new("jwt", jwt_string));
-		false
 	}
+	false
 }
 
 pub fn is_light_mode(cookies: &CookieJar<'_>) -> bool {
 	let light_mode = cookies.get_pending("light_mode");
-	if light_mode.is_none() {
-		return false;
-	}
-	let light_mode = light_mode.unwrap();
-	let light_mode = light_mode.value();
-	light_mode == "true"
+	light_mode.map_or(false, |light_mode| light_mode.value() == "true")
 }
 
 #[get("/theme")]
@@ -94,7 +77,6 @@ pub fn find_posts(
 ) -> Result<Template, Status> {
 	let sort_order = match order.clone() {
 		Some(order) => match order.as_str() {
-			"latest" => Order::Latest,
 			"popular" => Order::Popular,
 			_ => Order::Latest,
 		},
@@ -146,8 +128,8 @@ pub fn details(
 	let connection = &mut connection.lock().unwrap();
 	let post = get_post(connection, id)?;
 	let who_is_logged_in = who_is_logged_in(connection, cookies);
-	if who_is_logged_in.is_ok() {
-		let who_is_logged_in = who_is_logged_in.unwrap().id;
+	if let Ok(who_is_logged_in) = who_is_logged_in {
+		let who_is_logged_in = who_is_logged_in.id;
 		let has_liked = has_liked_post(connection, who_is_logged_in, id);
 		let has_disliked = has_disliked_post(connection, who_is_logged_in, id);
 		let jwt = cookies.get_pending("jwt").unwrap();
@@ -169,25 +151,18 @@ pub async fn login(
 	code: Option<String>,
 	cookies: &CookieJar<'_>,
 ) -> Redirect {
-	if code.is_none() {
-		return Redirect::to("/");
+	if let Some(code) = code {
+		let jwt =
+			crate::api::v1::users::login(connection, code, Some(format!("{}/login", *BASE_URL)))
+				.await;
+		if let Ok(jwt) = jwt {
+			let mut cookie = Cookie::new("jwt", jwt);
+			cookie.set_same_site(SameSite::Lax);
+			cookies.add(cookie);
+		}
 	}
-	let code = code.unwrap();
-	let jwt = crate::api::v1::users::login(
-		connection,
-		code,
-		Some(format!("{}/login", BASE_URL.to_string())),
-	)
-	.await;
-	if jwt.is_err() {
-		Redirect::to("/")
-	} else {
-		let jwt = jwt.unwrap();
-		let mut cookie = Cookie::new("jwt", jwt);
-		cookie.set_same_site(SameSite::Lax);
-		cookies.add(cookie);
-		Redirect::to(uri!("/"))
-	}
+
+	Redirect::to("/")
 }
 
 #[get("/upload")]
@@ -217,7 +192,6 @@ pub fn user(
 	let user = get_user(connection, id)?;
 	let sort_order = match order.clone() {
 		Some(order) => match order.as_str() {
-			"latest" => Order::Latest,
 			"popular" => Order::Popular,
 			_ => Order::Latest,
 		},
@@ -233,8 +207,7 @@ pub fn user(
 		Order::Popular => {
 			get_user_posts_popular(connection, user.id, offset, game_tag.unwrap_or(0))
 		}
-	}
-	.unwrap_or_default();
+	};
 	let description = match sort_order {
 		Order::Latest => format!("The latest DIVA mods by {}", user.name),
 		Order::Popular => format!("The most popular DIVA mods by {}", user.name),
@@ -268,19 +241,14 @@ pub fn user(
 pub fn edit(
 	connection: &ConnectionState,
 	id: i32,
-	user: Option<User>,
+	user: User,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
-	if user.is_none() {
-		return Err(Redirect::to(format!("/posts/{}", id)));
-	}
-	let user = user.unwrap();
 	let connection = &mut connection.lock().unwrap();
 	let post = get_post(connection, id);
 	let who_is_logged_in = who_is_logged_in(connection, cookies);
-	if post.is_ok() && who_is_logged_in.is_ok() {
-		let post = post.unwrap();
-		let who_is_logged_in = who_is_logged_in.unwrap().id;
+	if let Ok(post) = post && let Ok(who_is_logged_in) = who_is_logged_in {
+		let who_is_logged_in = who_is_logged_in.id;
 		if post.user.id == who_is_logged_in {
 			let jwt = cookies.get_pending("jwt").unwrap();
 			Ok(Template::render(
@@ -307,50 +275,57 @@ pub fn dependency(
 ) -> Result<Template, Redirect> {
 	let connection = &mut connection.lock().unwrap();
 	let post = get_post(connection, id);
-	if post.is_err() {
-		return Err(Redirect::to(format!("/posts/{}", id)));
-	}
-	let post = post.unwrap();
-	if post.user.id != user.id {
-		return Err(Redirect::to(format!("/posts/{}", id)));
-	}
-
-	let offset = offset.unwrap_or(0);
-	let name = name.unwrap_or_default();
-
-	let sort_order = match order.clone() {
-		Some(order) => match order.as_str() {
-			"latest" => Order::Latest,
-			"popular" => Order::Popular,
-			_ => Order::Latest,
-		},
-		None => Order::Latest,
-	};
-	let posts = match sort_order {
-		Order::Latest => {
-			get_latest_posts_disallowed(connection, name.clone(), offset, post.game_tag, vec![id])
+	if let Ok(post) = post {
+		if post.user.id != user.id {
+			return Err(Redirect::to(format!("/posts/{}", id)));
 		}
-		Order::Popular => {
-			get_popular_posts_disallowed(connection, name.clone(), offset, post.game_tag, vec![id])
+
+		let offset = offset.unwrap_or(0);
+		let name = name.unwrap_or_default();
+
+		let sort_order = match order.clone() {
+			Some(order) => match order.as_str() {
+				"popular" => Order::Popular,
+				_ => Order::Latest,
+			},
+			None => Order::Latest,
+		};
+		let posts = match sort_order {
+			Order::Latest => get_latest_posts_disallowed(
+				connection,
+				name.clone(),
+				offset,
+				post.game_tag,
+				vec![id],
+			),
+			Order::Popular => get_popular_posts_disallowed(
+				connection,
+				name.clone(),
+				offset,
+				post.game_tag,
+				vec![id],
+			),
 		}
+		.unwrap_or_default();
+		Ok(Template::render(
+			"dependencies",
+			context![
+				id: id,
+				posts: &posts,
+				is_logged_in: true,
+				light_mode: is_light_mode(cookies),
+				previous_search: name,
+				previous_sort: order.unwrap_or_default(),
+				offset: offset,
+				game_tags: TAG_TOML.game_tags.clone(),
+				type_tags: TAG_TOML.type_tags.clone(),
+				is_admin: ADMINS.contains(&user.id),
+				base_url: BASE_URL.to_string(),
+			],
+		))
+	} else {
+		Err(Redirect::to(format!("/posts/{}", id)))
 	}
-	.unwrap_or_default();
-	Ok(Template::render(
-		"dependencies",
-		context![
-			id: id,
-			posts: &posts,
-			is_logged_in: true,
-			light_mode: is_light_mode(cookies),
-			previous_search: name,
-			previous_sort: order.unwrap_or_default(),
-			offset: offset,
-			game_tags: TAG_TOML.game_tags.clone(),
-			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&user.id),
-			base_url: BASE_URL.to_string(),
-		],
-	))
 }
 
 #[get("/posts/<id>/dependency/<dependency_id>")]
@@ -427,13 +402,11 @@ pub fn liked(
 #[get("/logout")]
 pub fn logout(cookies: &CookieJar<'_>) -> Redirect {
 	let jwt = cookies.get_pending("jwt");
-	if jwt.is_none() {
-		return Redirect::to("/");
+	if let Some(jwt) = jwt {
+		let jwt = jwt.value();
+		let jwt_string = String::from(jwt);
+		cookies.remove(Cookie::new("jwt", jwt_string));
 	}
-	let jwt = jwt.unwrap();
-	let jwt = jwt.value();
-	let jwt_string = String::from(jwt);
-	cookies.remove(Cookie::new("jwt", jwt_string));
 	Redirect::to("/")
 }
 
@@ -494,23 +467,23 @@ pub fn report(
 ) -> Result<Template, Redirect> {
 	let connection = &mut connection.lock().unwrap();
 	let post = get_post(connection, id);
-	if post.is_err() {
-		return Err(Redirect::to("/"));
+	if let Ok(post) = post {
+		Ok(Template::render(
+			"report",
+			context![
+				is_logged_in: is_logged_in(connection, cookies),
+				light_mode: is_light_mode(cookies),
+				user: &user,
+				post: &post,
+				game_tags: TAG_TOML.game_tags.clone(),
+				type_tags: TAG_TOML.type_tags.clone(),
+				is_admin: ADMINS.contains(&user.id),
+				base_url: BASE_URL.to_string(),
+			],
+		))
+	} else {
+		Err(Redirect::to("/"))
 	}
-	let post = post.unwrap();
-	Ok(Template::render(
-		"report",
-		context![
-			is_logged_in: is_logged_in(connection, cookies),
-			light_mode: is_light_mode(cookies),
-			user: &user,
-			post: &post,
-			game_tags: TAG_TOML.game_tags.clone(),
-			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&user.id),
-			base_url: BASE_URL.to_string(),
-		],
-	))
 }
 
 // Sends a report
@@ -521,7 +494,7 @@ pub fn report_send(
 	connection: &ConnectionState,
 	user: User,
 	id: i32,
-	reason: String,
+	reason: &str,
 	cookies: &CookieJar<'_>,
 ) -> Redirect {
 	let reason = reason.replace("reason=", "");

@@ -5,7 +5,7 @@ use rocket::serde::json::Json;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 struct DiscordTokenResponse {
 	access_token: String,
 	token_type: String,
@@ -14,7 +14,7 @@ struct DiscordTokenResponse {
 	scope: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 struct DiscordUser {
 	id: String,
 	username: String,
@@ -61,49 +61,52 @@ pub async fn login(
 	params.insert("code", code);
 	params.insert(
 		"redirect_uri",
-		redirect_uri.unwrap_or(format!("{}/api/v1/users/login", BASE_URL.to_string())),
+		redirect_uri.unwrap_or(format!("{}/api/v1/users/login", *BASE_URL)),
 	);
 	let response = reqwest::Client::new()
 		.post("https://discord.com/api/v10/oauth2/token")
 		.form(&params)
 		.send()
-		.await
-		.unwrap();
-	if !response.status().is_success() {
-		return Err(Status::BadRequest);
-	};
-	let response: DiscordTokenResponse = response.json().await.unwrap();
-	let response = reqwest::Client::new()
-		.get("https://discord.com/api/users/@me")
-		.header(
-			"authorization",
-			format!("{} {}", response.token_type, response.access_token),
-		)
-		.send()
-		.await
-		.unwrap();
-	if !response.status().is_success() {
-		return Err(Status::BadRequest);
-	}
-	let response: DiscordUser = response.json().await.unwrap();
-	let id: i64 = response.id.parse().unwrap();
-	let avatar = if let Some(avatar) = response.avatar {
-		format!("https://cdn.discordapp.com/avatars/{}/{}.png", id, avatar)
-	} else {
-		let discriminator: i32 = response.discriminator.parse().unwrap();
-		format!(
-			"https://cdn.discordapp.com/embed/avatars/{}.png",
-			discriminator % 5
-		)
-	};
-	create_user(
-		&mut connection.lock().unwrap(),
-		id,
-		&response.username,
-		&avatar,
-	)?;
+		.await;
+	if let Ok(response) = response {
+		if !response.status().is_success() {
+			return Err(Status::BadRequest);
+		};
+		let response: DiscordTokenResponse = response.json().await.unwrap_or_default();
+		let response = reqwest::Client::new()
+			.get("https://discord.com/api/users/@me")
+			.header(
+				"authorization",
+				format!("{} {}", response.token_type, response.access_token),
+			)
+			.send()
+			.await;
+		if let Ok(response) = response {
+			if !response.status().is_success() {
+				return Err(Status::BadRequest);
+			}
+			let response: DiscordUser = response.json().await.unwrap_or_default();
+			let id: i64 = response.id.parse().unwrap_or_default();
+			let avatar = if let Some(avatar) = response.avatar {
+				format!("https://cdn.discordapp.com/avatars/{}/{}.png", id, avatar)
+			} else {
+				let discriminator: i32 = response.discriminator.parse().unwrap_or_default();
+				format!(
+					"https://cdn.discordapp.com/embed/avatars/{}.png",
+					discriminator % 5
+				)
+			};
+			create_user(
+				&mut connection.lock().unwrap(),
+				id,
+				&response.username,
+				&avatar,
+			)?;
 
-	Ok(create_jwt(id))
+			return Ok(create_jwt(id));
+		}
+	}
+	Err(Status::BadRequest)
 }
 
 #[get("/<id>")]
@@ -124,7 +127,7 @@ pub fn latest(
 		id,
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
-	)?;
+	);
 	Ok(Json(result))
 }
 
@@ -140,7 +143,7 @@ pub fn popular(
 		id,
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
-	)?;
+	);
 	Ok(Json(result))
 }
 

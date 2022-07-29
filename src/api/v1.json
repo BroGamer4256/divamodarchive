@@ -746,7 +746,7 @@
 					}
 				}
 			},
-			"DetailedPost": {
+			"DetailedPostNoDepends": {
 				"type": "object",
 				"required": [
 					"id",
@@ -777,6 +777,88 @@
 					},
 					"description_short": {
 						"type": "string"
+					},
+					"image": {
+						"type": "string"
+					},
+					"images_extra": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"link": {
+						"type": "string"
+					},
+					"date": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"game_tag": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"type_tag": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"likes": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"dislikes": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"downloads": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"user": {
+						"type": "object",
+						"$ref": "#/components/schemas/User"
+					}
+				}
+			},
+			"DetailedPost": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"description",
+					"description_short",
+					"dependencies",
+					"image",
+					"images_extra",
+					"link",
+					"date",
+					"game_tag",
+					"type_tag",
+					"likes",
+					"dislikes",
+					"downloads",
+					"user"
+				],
+				"properties": {
+					"id": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"description_short": {
+						"type": "string"
+					},
+					"dependencies": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"$ref": "#/components/schemas/DetailedPostNoDepends"
+						}
 					},
 					"image": {
 						"type": "string"

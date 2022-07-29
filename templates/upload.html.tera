@@ -260,12 +260,12 @@
 		</div>
 		<div class="{{ posts::btn_success_outer() }}" id="upload_btn_div" onclick="upload()">
 			<button type="button" id="upload_btn" style="box-shadow: none"
-				class="{{ posts::btn_success_inner() }}">Upload</button>
+				class="{{ posts::btn_inner() }}">Upload</button>
 		</div>
 		{% if update_id %}
 		<div class="{{ posts::btn_success_outer() }}" id="upload_metadata_btn_div" onclick="upload_metadata()">
 			<button type="button" id="upload_metadata_btn" style="box-shadow: none"
-				class="{{ posts::btn_success_inner() }}">Update metadata</button>
+				class="{{ posts::btn_inner() }}">Update metadata</button>
 		</div>
 		{% endif %}
 		<div class="progress">

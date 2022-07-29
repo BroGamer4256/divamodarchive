@@ -44,19 +44,32 @@ pub fn is_logged_in(connection: &mut PgConnection, cookies: &CookieJar<'_>) -> b
 	false
 }
 
-pub fn is_light_mode(cookies: &CookieJar<'_>) -> bool {
-	let light_mode = cookies.get_pending("light_mode");
-	light_mode.map_or(false, |light_mode| light_mode.value() == "true")
+pub fn get_theme(cookies: &CookieJar<'_>) -> Theme {
+	let theme = cookies.get_pending("theme");
+	let theme_id = theme.map_or(0, |theme| theme.value().parse::<i32>().unwrap_or(0));
+	let theme_result = THEMES_TOML.themes.iter().find(|theme| theme.id == theme_id);
+	if let Some(theme) = theme_result {
+		theme.clone()
+	} else {
+		Theme::default()
+	}
 }
 
 #[get("/theme")]
 pub fn set_theme(cookies: &CookieJar<'_>) -> Redirect {
-	let new = if is_light_mode(cookies) {
-		"false"
+	let current_id = get_theme(cookies).id;
+	let ids = THEMES_TOML
+		.themes
+		.iter()
+		.map(|x| x.id)
+		.collect::<Vec<i32>>();
+	let max = ids.iter().max().unwrap_or(&0);
+	let new = if &current_id == max {
+		0
 	} else {
-		"true"
+		current_id + 1
 	};
-	cookies.add(Cookie::new("light_mode", new));
+	cookies.add(Cookie::new("theme", new.to_string()));
 	Redirect::to("/")
 }
 
@@ -110,7 +123,7 @@ pub fn find_posts(
 			previous_search: name,
 			previous_sort: order.unwrap_or_default(),
 			previous_game_tag: game_tag.unwrap_or(0),
-			light_mode: is_light_mode(cookies),
+			theme: get_theme(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
 			is_admin: ADMINS.contains(&user.unwrap_or_default().id),
@@ -135,12 +148,12 @@ pub fn details(
 		let jwt = cookies.get_pending("jwt").unwrap();
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&who_is_logged_in), base_url: BASE_URL.to_string(),],
+			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, theme: get_theme(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&who_is_logged_in), base_url: BASE_URL.to_string(),],
 		))
 	} else {
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: false, base_url: BASE_URL.to_string(),],
+			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, theme: get_theme(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: false, base_url: BASE_URL.to_string(),],
 		))
 	}
 }
@@ -174,7 +187,7 @@ pub fn upload(
 	let connection = &mut connection.lock().unwrap();
 	Ok(Template::render(
 		"upload",
-		context![user: &user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), light_mode: is_light_mode(cookies),base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id)],
+		context![user: &user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), theme: get_theme(cookies),base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id)],
 	))
 }
 
@@ -228,7 +241,7 @@ pub fn user(
 			total_likes: user_stats.likes,
 			total_dislikes: user_stats.dislikes,
 			total_downloads: user_stats.downloads,
-			light_mode: is_light_mode(cookies),
+			theme: get_theme(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
 			is_admin: ADMINS.contains(&current_user.unwrap_or_default().id),
@@ -253,7 +266,7 @@ pub fn edit(
 			let jwt = cookies.get_pending("jwt").unwrap();
 			Ok(Template::render(
 				"upload",
-				context![user: &user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, light_mode: is_light_mode(cookies), update_id: id, base_url: BASE_URL.to_string(), previous_game_tag: post.game_tag, previous_type_tag: post.type_tag, game_tags: TAG_TOML.game_tags.clone(),type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id)],
+				context![user: &user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, theme: get_theme(cookies), update_id: id, base_url: BASE_URL.to_string(), previous_game_tag: post.game_tag, previous_type_tag: post.type_tag, game_tags: TAG_TOML.game_tags.clone(),type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id)],
 			))
 		} else {
 			Err(Redirect::to(format!("/posts/{}", id)))
@@ -313,7 +326,7 @@ pub fn dependency(
 				id: id,
 				posts: &posts,
 				is_logged_in: true,
-				light_mode: is_light_mode(cookies),
+				theme: get_theme(cookies),
 				previous_search: name,
 				previous_sort: order.unwrap_or_default(),
 				offset: offset,
@@ -366,7 +379,7 @@ pub fn about(
 		"about",
 		context![
 			is_logged_in: is_logged_in(&mut connection.lock().unwrap(), cookies),
-			light_mode: is_light_mode(cookies),
+			theme: get_theme(cookies),
 			is_admin: ADMINS.contains(&user.unwrap_or_default().id),
 			base_url: BASE_URL.to_string(),
 		],
@@ -390,7 +403,7 @@ pub fn liked(
 			title: "Liked Mods",
 			description: "Liked Mods",
 			offset: offset,
-			light_mode: is_light_mode(cookies),
+			theme: get_theme(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
 			is_admin: ADMINS.contains(&user.id),
@@ -424,7 +437,7 @@ pub fn admin(
 		"admin",
 		context![
 			is_logged_in: true,
-			light_mode: is_light_mode(cookies),
+			theme: get_theme(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
 			is_admin: true,
@@ -472,7 +485,7 @@ pub fn report(
 			"report",
 			context![
 				is_logged_in: is_logged_in(connection, cookies),
-				light_mode: is_light_mode(cookies),
+				theme: get_theme(cookies),
 				user: &user,
 				post: &post,
 				game_tags: TAG_TOML.game_tags.clone(),

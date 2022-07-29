@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-
+<!-- Beware, jank ahead -->
 <head>
 	<meta charset="utf8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,14 +16,20 @@
 	</script>
 
 	{% block head %}{% endblock head %}
-	{% if light_mode %}
-	<link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/5.2.0/morph/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-	{% else %}
-	<link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/5.2.0/darkly/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-	{% endif %}
+	<link href="{{ theme.url }}" rel="stylesheet" crossorigin="anonymous">
 	<style>
 		.text {
 			color: var(--bs-body-color) !important;
+		}
+		.nav-text {
+			{% if theme.name != "Zephyr" %}
+				color: var(--bs-body-color) !important;
+			{% else %}
+				color: var(--bs-navbar-color) !important;
+			{% endif %}
+		}
+		.text-light {
+			color: var(--bs-btn-active-color) !important;
 		}
 	</style>
 </head>
@@ -32,25 +38,25 @@
 	<br>
 	<div id="content" class="container g-3">{% block content %}{% endblock content %}</div>
 	<br><br><br><br><br>
-	<nav class="navbar navbar-light bg-secondary fixed-bottom d-flex justify-content-around">
-		<a class="nav-link p-0 text" href="/">Mods</a>
+	<nav class="navbar navbar-dark bg-dark fixed-bottom d-flex justify-content-around" style="">
+		<a class="nav-link p-0 nav-text" href="/">Mods</a>
 		{% if is_logged_in == true %}
-		<a class="nav-link p-0 text" href="/liked">Liked Mods</a>
-		<a class="nav-link p-0 text" href="/upload">Upload</a>
-		<a class="nav-link p-0 text" href="/logout">Logout</a>
+		<a class="nav-link p-0 nav-text" href="/liked">Liked Mods</a>
+		<a class="nav-link p-0 nav-text" href="/upload">Upload</a>
+		<a class="nav-link p-0 nav-text" href="/logout">Logout</a>
 		{% else %}
 		{% set redirect_link = base_url ~ "/login" %}
 		{% set redirect_link = redirect_link | urlencode_strict %}
 		{% set discord_link = "https://discord.com/api/oauth2/authorize?client_id=995951474959990824&redirect_uri=" ~ redirect_link ~ "&response_type=code&scope=identify" %}
-		<a class="nav-link text"
+		<a class="nav-link p-0 nav-text"
 			href="{{ discord_link }}">Login</a>
 		{% endif %}
-		<a class="nav-link p-0 text" href="/theme">
+		<a class="nav-link p-0 nav-text" href="/theme">
 			Switch theme
 		</a>
-		<a class="nav-link p-0 text" href="/about">About</a>
+		<a class="nav-link p-0 nav-text" href="/about">About</a>
 		{% if is_admin == true %}
-		<a class="nav-link p-0 text" href="/admin">Admin</a>
+		<a class="nav-link p-0 nav-text" href="/admin">Admin</a>
 		{% endif %}
 	</nav>
 </body>

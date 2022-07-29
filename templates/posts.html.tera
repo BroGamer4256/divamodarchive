@@ -30,7 +30,7 @@ game_tag="MM+", type_tag="Other") %}
 <div class="col">
 	<div class="card shadow-sm">
 		<a class="" title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
-			<div class="card-img-top ratio ratio-16x9" style="background: black" loading="lazy">
+			<div class="card-img-top ratio ratio-16x9 bg-black" loading="lazy">
 				<img src="{{ image }}" style="object-fit: contain;" width="100%" alt="{{ text_short | striptags }}" loading="lazy">
 			</div>
 			<div class="card-body">
@@ -49,7 +49,7 @@ game_tag="MM+", type_tag="Other") %}
 		</a>
 		{% if draw_remove != false %}
 		<a href="{{ draw_remove }}" class="{{ self::btn_danger_outer() }}">
-			<button type="button" style="box-shadow: none" class="{{ self::btn_danger_inner() }}">Remove</button>
+			<button type="button" class="{{ self::btn_inner() }}">Remove</button>
 		</a>
 		{% endif %}
 	</div>
@@ -115,36 +115,16 @@ game_tag="MM+", type_tag="Other") %}
 btn btn-sm btn-outline-success btn-success
 {% endmacro %}
 
-{% macro btn_success_inner() %}
-{% if light_mode %}
-btn btn-outline-success
-{% else %}
-btn
-{% endif %}
-{% endmacro %}
-
 {% macro btn_info_outer() %}
 btn btn-sm btn-outline-info btn-info
-{% endmacro %}
-
-{% macro btn_info_inner() %}
-{% if light_mode %}
-btn btn-outline-info
-{% else %}
-btn
-{% endif %}
 {% endmacro %}
 
 {% macro btn_danger_outer() %}
 btn btn-sm btn-outline-danger btn-danger
 {% endmacro %}
 
-{% macro btn_danger_inner() %}
-{% if light_mode %}
-btn btn-outline-danger
-{% else %}
-btn
-{% endif %}
+{% macro btn_inner() %}
+btn text-light
 {% endmacro %}
 
 {% macro draw_post_full(id, name, text, image, link, last_updated, uploader_id, uploader_name, likes, dislikes,
@@ -233,7 +213,7 @@ extra_images) %}
 			</div>
 			<h5 class="card-subtitle text">Last updated: {{ last_updated | date }}</h5>
 		</div>
-		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9" style="background: black">
+		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9 bg-black">
 			<img src="{{ image }}" style="object-fit: contain;" class="card-img-top" loading="lazy" alt="Preview of {{ name }}">
 		</a>
 	</div>
@@ -274,26 +254,26 @@ extra_images) %}
 			{% endif %}
 		</div>
 		<a href="{{ link }}" class="{{ self::btn_success_outer() }}" download>
-			<button type="button" style="box-shadow: none" class="{{ self::btn_success_inner() }}">Download</button>
+			<button type="button" class="{{ self::btn_inner() }}">Download</button>
 		</a>
 		{% if who_is_logged_in == uploader_id %}
 		<a href="/posts/{{ id }}/edit" class="{{ self::btn_info_outer() }}">
-			<button type="button" style="box-shadow: none" class="{{ self::btn_info_inner() }}">Edit</button>
+			<button type="button" class="{{ self::btn_inner() }}">Edit</button>
 		</a>
 		<a href="/posts/{{ id }}/dependency" class="{{ self::btn_info_outer() }}">
-			<button type="button" style="box-shadow: none" class="{{ self::btn_info_inner() }}">Add dependency</button>
+			<button type="button" class="{{ self::btn_inner() }}">Add dependency</button>
 		</a>
 		<div class="{{ self::btn_danger_outer() }}" onclick="deletePost()">
-			<button type="button" style="box-shadow: none" class="{{ self::btn_danger_inner() }}">Delete</button>
+			<button type="button" class="{{ self::btn_inner() }}">Delete</button>
 		</div>
 		{% endif %}
 		{% if is_logged_in == true and who_is_logged_in != uploader_id %}
 		<a href="/posts/{{ id }}/report" class="{{ self::btn_info_outer() }}">
-			<button type="button" style="box-shadow: none" class="{{ self::btn_info_inner() }}">Report</button>
+			<button type="button" class="{{ self::btn_inner() }}">Report</button>
 		</a>
 		{% endif %}
 	</div>
-	<div class="card card-body">
+	<div class="card card-body text">
 		{{ text | striptags | linebreaksbr | safe }}
 	</div>
 	{% if dependencies | length > 0 %}
@@ -322,8 +302,7 @@ extra_images) %}
 			{% for image in extra_images %}
 			<div class="col">
 				<div class="card shadow-sm">
-					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9"
-						style="background: black">
+					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9 bg-black">
 						<img src="{{ image }}" style="object-fit: contain;" width="100%" loading="lazy" alt="Preview of {{ name }}">
 					</a>
 				</div>

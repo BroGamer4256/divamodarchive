@@ -67,6 +67,39 @@ lazy_static! {
 			.map(|x| x.parse::<i64>().unwrap())
 			.collect()
 	};
+	pub static ref THEMES_TOML: ThemeToml = {
+		let mut theme_file =
+			std::fs::File::open("static/themes.toml").expect("static/themes.toml must exist");
+		let mut theme_toml = String::new();
+		theme_file
+			.read_to_string(&mut theme_toml)
+			.expect("static/themes.toml must be a valid toml file");
+		toml::from_str(&theme_toml).expect("static/themes.toml must be a valid themes toml file")
+	};
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Theme {
+	pub id: i32,
+	pub url: String,
+	pub name: String,
+}
+
+impl Default for Theme {
+	fn default() -> Self {
+		Theme {
+			id: 0,
+			url: String::from(
+				"https://cdnjs.cloudflare.com/ajax/libs/bootswatch/5.2.0/darkly/bootstrap.min.css",
+			),
+			name: String::from("Darkly"),
+		}
+	}
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ThemeToml {
+	pub themes: Vec<Theme>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

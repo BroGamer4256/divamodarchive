@@ -30,8 +30,8 @@ game_tag="MM+", type_tag="Other") %}
 <div class="col">
 	<div class="card shadow-sm">
 		<a class="" title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
-			<div class="card-img-top ratio ratio-16x9 bg-black rounded-image" loading="lazy">
-				<img src="{{ image }}" class="rounded-image" width="100%" alt="{{ text_short | striptags }}" loading="lazy">
+			<div class="card-img-top ratio ratio-16x9 bg-black" loading="lazy">
+				<img src="{{ image }}" class="rounded-image image-contain" width="100%" alt="{{ text_short | striptags }}" loading="lazy">
 			</div>
 			<div class="card-body">
 				<!-- Yes the 15 character limit is completely arbitrary -->
@@ -215,7 +215,7 @@ extra_images) %}
 			<h5 class="card-subtitle text">Last updated: {{ last_updated | date }}</h5>
 		</div>
 		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9 bg-black">
-			<img src="{{ image }}" class="rounded-image" class="card-img-top" loading="lazy" alt="Preview of {{ name }}">
+			<img src="{{ image }}" class="card-img-top image-contain" loading="lazy" alt="Preview of {{ name }}">
 		</a>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
@@ -280,7 +280,7 @@ extra_images) %}
 	{% if dependencies | length > 0 %}
 	<div class="card card-body">
 		<h4>This mod requires: </h4>
-		<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
+		<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 gy-3">
 			{% for post in dependencies %}
 			{% if who_is_logged_in == uploader_id %}
 			{% set draw_remove = "/posts/" ~ id ~ "/dependency/" ~ post.id ~ "/remove" %}
@@ -299,12 +299,12 @@ extra_images) %}
 	{% if extra_images | length > 0 %}
 	<div class="card card-body">
 		<h4>Additional screenshots:</h4>
-		<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
+		<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 gy-3">
 			{% for image in extra_images %}
 			<div class="col">
 				<div class="card shadow-sm">
 					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9 bg-black">
-						<img src="{{ image }}" class="rounded-image" width="100%" loading="lazy" alt="Preview of {{ name }}">
+						<img src="{{ image }}" class="image-contain" width="100%" loading="lazy" alt="Preview of {{ name }}">
 					</a>
 				</div>
 			</div>

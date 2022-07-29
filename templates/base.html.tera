@@ -40,6 +40,8 @@
 		}
 		.rounded-image {
 			border-radius: var(--bs-card-border-radius);
+		}
+		.image-contain {
 			object-fit: contain;
 		}
 	</style>
@@ -47,7 +49,7 @@
 
 <body>
 	<br>
-	<div id="content" class="container g-3">{% block content %}{% endblock content %}</div>
+	<div id="content" class="container">{% block content %}{% endblock content %}</div>
 	<br><br><br><br><br>
 	<nav class="navbar navbar-dark bg-dark fixed-bottom d-flex justify-content-around shadow">
 		<a class="nav-link p-0 nav-text" href="/">Mods</a>

@@ -293,14 +293,14 @@
 
 			<label for="game_tag">Game</label>
 			{% if previous_game_tag %}
-			<select class="form-control" id="game_tag" name="game_tag">
+			<select class="form-control list-text" id="game_tag" name="game_tag">
 				{% for game_tag in game_tags %}
 				<option value="{{ game_tag.id }}" {% if game_tag.id==previous_game_tag %}selected{% endif %}>
 					{{ game_tag.name }}</option>
 				{% endfor %}
 			</select>
 			{% else %}
-			<select class="form-control" id="game_tag" name="game_tag">
+			<select class="form-control list-text" id="game_tag" name="game_tag">
 				{% for game_tag in game_tags %}
 				<option value="{{ game_tag.id }}">{{ game_tag.name }}</option>
 				{% endfor %}
@@ -309,14 +309,14 @@
 
 			<label for="type_tag">Type</label>
 			{% if previous_type_tag %}
-			<select class="form-control" id="type_tag" name="type_tag">
+			<select class="form-control list-text" id="type_tag" name="type_tag">
 				{% for type_tag in type_tags %}
 				<option value="{{ type_tag.id }}" {% if type_tag.id==previous_type_tag %}selected{% endif %}>
 					{{ type_tag.name }}</option>
 				{% endfor %}
 			</select>
 			{% else %}
-			<select class="form-control" id="type_tag" name="type_tag">
+			<select class="form-control list-text" id="type_tag" name="type_tag">
 				{% for type_tag in type_tags %}
 				<option value="{{ type_tag.id }}">{{ type_tag.name }}</option>
 				{% endfor %}

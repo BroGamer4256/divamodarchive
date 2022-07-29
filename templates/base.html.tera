@@ -31,6 +31,17 @@
 		.text-light {
 			color: var(--bs-btn-active-color) !important;
 		}
+		.list-text {
+			{% if theme.name == "Quartz" %}
+			color: var(--bs-dark) !important;
+			--bs-bg-opacity: 1;
+			background-color: rgba(var(--bs-light-rgb),var(--bs-bg-opacity))!important;
+			{% endif %}
+		}
+		.rounded-image {
+			border-radius: var(--bs-card-border-radius);
+			object-fit: contain;
+		}
 	</style>
 </head>
 
@@ -38,7 +49,7 @@
 	<br>
 	<div id="content" class="container g-3">{% block content %}{% endblock content %}</div>
 	<br><br><br><br><br>
-	<nav class="navbar navbar-dark bg-dark fixed-bottom d-flex justify-content-around" style="">
+	<nav class="navbar navbar-dark bg-dark fixed-bottom d-flex justify-content-around shadow">
 		<a class="nav-link p-0 nav-text" href="/">Mods</a>
 		{% if is_logged_in == true %}
 		<a class="nav-link p-0 nav-text" href="/liked">Liked Mods</a>

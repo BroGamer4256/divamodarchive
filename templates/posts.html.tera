@@ -30,18 +30,19 @@ game_tag="MM+", type_tag="Other") %}
 <div class="col">
 	<div class="card shadow-sm">
 		<a class="" title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
-			<div class="card-img-top ratio ratio-16x9 bg-black" loading="lazy">
-				<img src="{{ image }}" style="object-fit: contain;" width="100%" alt="{{ text_short | striptags }}" loading="lazy">
+			<div class="card-img-top ratio ratio-16x9 bg-black rounded-image" loading="lazy">
+				<img src="{{ image }}" class="rounded-image" width="100%" alt="{{ text_short | striptags }}" loading="lazy">
 			</div>
 			<div class="card-body">
+				<!-- Yes the 15 character limit is completely arbitrary -->
 				<h4 class="text">{{ name | striptags | truncate(length=15) }}</h4>
 				<div class="row">
 					{% if likes != -1 %}
-					<h7 class="col-md-7 text">{{ likes }}👍{{ dislikes }}👎<br>Downloads: {{ downloads }}</h7>
+					<h7 class="col-md-6 text">{{ likes }}👍{{ dislikes }}👎<br>DLs: {{ downloads }}</h7>
 					{% elif downloads != -1 %}
-					<h7 class="col-md-7 text">Downloads: {{ downloads }}</h7>
+					<h7 class="col-md-6 text">DLs: {{ downloads }}</h7>
 					{% endif %}
-					<h7 class="col-md-5 text text-align-right-md">
+					<h7 class="col-md-6 text text-align-right-md">
 						{{ type_tag }}
 					</h7>
 				</div>
@@ -83,7 +84,7 @@ game_tag="MM+", type_tag="Other") %}
 			</div>
 			{% endif %}
 			<div class="col flex-md-grow-1">
-				<select name="order" class="form-control" selected="{{ previous_sort }}">
+				<select name="order" class="form-control list-text" selected="{{ previous_sort }}">
 					<option value="latest">Latest</option>
 					{% if previous_sort == "popular" %}
 					<option value="popular" selected>Popular</option>
@@ -94,7 +95,7 @@ game_tag="MM+", type_tag="Other") %}
 			</div>
 			{% if previous_game_tag != -1 %}
 			<div class="col flex-md-grow-1">
-				<select class="form-control" id="game_tag" name="game_tag">
+				<select class="form-control list-text" id="game_tag" name="game_tag">
 					{% for game_tag in game_tags %}
 					<option value="{{ game_tag.id }}" {% if game_tag.id==previous_game_tag %}selected{% endif %}>
 						{{ game_tag.name }}</option>
@@ -145,12 +146,12 @@ extra_images) %}
 		fetch('/api/v1/posts/{{ id }}/like/', options)
 			.then(response => response.json())
 			.then(data => {
-				document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML[0]) + 1 + "👍"
+				document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) + 1 + "👍"
 				document.getElementById('likes').classList.add("disabled")
 				document.getElementById('likedradiobtn').checked = true
 				had_liked = true
 				if (had_disliked) {
-					document.getElementById('dislikes').innerHTML = Number(document.getElementById('dislikes').innerHTML[0]) - 1 + "👎"
+					document.getElementById('dislikes').innerHTML = Number(document.getElementById('dislikes').innerHTML.slice(0, -2)) - 1 + "👎"
 					document.getElementById('dislikes').classList.remove("disabled")
 					had_disliked = false
 					document.getElementById('dislikedradiobtn').checked = false
@@ -170,12 +171,12 @@ extra_images) %}
 		fetch('/api/v1/posts/{{ id }}/dislike/', options)
 			.then(response => response.json())
 			.then(data => {
-				document.getElementById('dislikes').innerHTML = Number(document.getElementById('dislikes').innerHTML[0]) + 1 + "👎"
+				document.getElementById('dislikes').innerHTML = Number(document.getElementById('dislikes').innerHTML.slice(0, -2)) + 1 + "👎"
 				document.getElementById('dislikes').classList.add("disabled")
 				document.getElementById('dislikedradiobtn').checked = true
 				had_disliked = true
 				if (had_liked) {
-					document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML[0]) - 1 + "👍"
+					document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) - 1 + "👍"
 					document.getElementById('likes').classList.remove("disabled")
 					document.getElementById('likedradiobtn').checked = false
 					had_liked = false
@@ -214,7 +215,7 @@ extra_images) %}
 			<h5 class="card-subtitle text">Last updated: {{ last_updated | date }}</h5>
 		</div>
 		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9 bg-black">
-			<img src="{{ image }}" style="object-fit: contain;" class="card-img-top" loading="lazy" alt="Preview of {{ name }}">
+			<img src="{{ image }}" class="rounded-image" class="card-img-top" loading="lazy" alt="Preview of {{ name }}">
 		</a>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
@@ -303,7 +304,7 @@ extra_images) %}
 			<div class="col">
 				<div class="card shadow-sm">
 					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9 bg-black">
-						<img src="{{ image }}" style="object-fit: contain;" width="100%" loading="lazy" alt="Preview of {{ name }}">
+						<img src="{{ image }}" class="rounded-image" width="100%" loading="lazy" alt="Preview of {{ name }}">
 					</a>
 				</div>
 			</div>

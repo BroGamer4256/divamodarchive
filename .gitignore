@@ -1,3 +1,5 @@
 /target
 /storage
 .env
+run.sh
+run_full.sh

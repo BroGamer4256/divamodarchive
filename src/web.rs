@@ -131,7 +131,8 @@ pub fn find_posts(
 			light_mode: is_light_mode(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&user.unwrap_or_default().id)
+			is_admin: ADMINS.contains(&user.unwrap_or_default().id),
+			base_url: BASE_URL.to_string(),
 		],
 	))
 }
@@ -152,12 +153,12 @@ pub fn details(
 		let jwt = cookies.get_pending("jwt").unwrap();
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&who_is_logged_in)],
+			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&who_is_logged_in), base_url: BASE_URL.to_string(),],
 		))
 	} else {
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: false],
+			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, light_mode: is_light_mode(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: false, base_url: BASE_URL.to_string(),],
 		))
 	}
 }
@@ -257,7 +258,8 @@ pub fn user(
 			light_mode: is_light_mode(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&current_user.unwrap_or_default().id)
+			is_admin: ADMINS.contains(&current_user.unwrap_or_default().id),
+			base_url: BASE_URL.to_string(),
 		],
 	))
 }
@@ -345,7 +347,8 @@ pub fn dependency(
 			offset: offset,
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&user.id)
+			is_admin: ADMINS.contains(&user.id),
+			base_url: BASE_URL.to_string(),
 		],
 	))
 }
@@ -389,7 +392,8 @@ pub fn about(
 		context![
 			is_logged_in: is_logged_in(&mut connection.lock().unwrap(), cookies),
 			light_mode: is_light_mode(cookies),
-			is_admin: ADMINS.contains(&user.unwrap_or_default().id)
+			is_admin: ADMINS.contains(&user.unwrap_or_default().id),
+			base_url: BASE_URL.to_string(),
 		],
 	)
 }
@@ -414,7 +418,8 @@ pub fn liked(
 			light_mode: is_light_mode(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&user.id)
+			is_admin: ADMINS.contains(&user.id),
+			base_url: BASE_URL.to_string(),
 		],
 	)
 }
@@ -451,7 +456,8 @@ pub fn admin(
 			type_tags: TAG_TOML.type_tags.clone(),
 			is_admin: true,
 			reports: get_reports(connection),
-			posts: get_latest_posts_unfiltered(connection)
+			posts: get_latest_posts_unfiltered(connection),
+			base_url: BASE_URL.to_string(),
 		],
 	))
 }
@@ -501,7 +507,8 @@ pub fn report(
 			post: &post,
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&user.id)
+			is_admin: ADMINS.contains(&user.id),
+			base_url: BASE_URL.to_string(),
 		],
 	))
 }

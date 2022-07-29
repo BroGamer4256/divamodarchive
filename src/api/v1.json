@@ -763,7 +763,8 @@
 							"type_tag",
 							"likes",
 							"dislikes",
-							"downloads"
+							"downloads",
+							"user"
 						],
 						"properties": {
 							"id": {
@@ -814,11 +815,12 @@
 							"downloads": {
 								"type": "integer",
 								"format": "int64"
+							},
+							"user": {
+								"type": "object",
+								"$ref": "#/components/schemas/User"
 							}
 						}
-					},
-					{
-						"$ref": "#/components/schemas/User"
 					}
 				]
 			},

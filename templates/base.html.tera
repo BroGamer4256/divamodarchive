@@ -39,8 +39,11 @@
 		<a class="nav-link p-0 text" href="/upload">Upload</a>
 		<a class="nav-link p-0 text" href="/logout">Logout</a>
 		{% else %}
+		{% set redirect_link = base_url ~ "/login" %}
+		{% set redirect_link = redirect_link | urlencode_strict %}
+		{% set discord_link = "https://discord.com/api/oauth2/authorize?client_id=995951474959990824&redirect_uri=" ~ redirect_link ~ "&response_type=code&scope=identify" %}
 		<a class="nav-link text"
-			href="https://discord.com/api/oauth2/authorize?client_id=995951474959990824&redirect_uri=https%3A%2F%2Fdivamodarchive.xyz%2Flogin&response_type=code&scope=identify">Login</a>
+			href="{{ discord_link }}">Login</a>
 		{% endif %}
 		<a class="nav-link p-0 text" href="/theme">
 			Switch theme

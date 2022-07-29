@@ -9,5 +9,5 @@ file = "10 MiB"
 port = 8000
 
 [release]
-port = 80
+port = 7000
 cli_colors = false

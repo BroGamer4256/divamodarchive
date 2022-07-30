@@ -157,6 +157,7 @@ pub fn rocket() -> _ {
 					api::v1::posts::popular,
 					api::v1::posts::delete,
 					api::v1::posts::posts,
+					api::v1::posts::post_count,
 				],
 			)
 			.mount(

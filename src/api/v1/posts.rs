@@ -280,3 +280,17 @@ pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> Json<Vec<Detail
 	}
 	Json(result)
 }
+
+#[get("/post_count?<name>&<game_tag>")]
+pub fn post_count(
+	connection: &ConnectionState,
+	name: Option<String>,
+	game_tag: Option<i32>,
+) -> Json<i64> {
+	let connection = &mut connection.lock().unwrap();
+	Json(get_post_count(
+		connection,
+		name.unwrap_or_default(),
+		game_tag.unwrap_or(0),
+	))
+}

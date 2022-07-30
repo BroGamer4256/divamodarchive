@@ -101,7 +101,17 @@ pub fn like_post_from_ids(
 	let has_liked = has_liked_post(conn, user_id, post_id);
 
 	if has_liked {
-		return Err(Status::Conflict);
+		let result = diesel::delete(
+			users_liked_posts::table
+				.filter(users_liked_posts::user_id.eq(user_id))
+				.filter(users_liked_posts::post_id.eq(post_id)),
+		)
+		.get_result::<LikedPost>(conn);
+		if let Ok(result) = result {
+			return Ok(result);
+		} else {
+			return Err(Status::InternalServerError);
+		}
 	}
 
 	let has_disliked = users_disliked_posts::table
@@ -146,7 +156,17 @@ pub fn dislike_post_from_ids(
 	let has_disliked = has_disliked_post(conn, user_id, post_id);
 
 	if has_disliked {
-		return Err(Status::Conflict);
+		let result = diesel::delete(
+			users_disliked_posts::table
+				.filter(users_disliked_posts::user_id.eq(user_id))
+				.filter(users_disliked_posts::post_id.eq(post_id)),
+		)
+		.get_result::<DislikedPost>(conn);
+		if let Ok(result) = result {
+			return Ok(result);
+		} else {
+			return Err(Status::InternalServerError);
+		}
 	}
 
 	let has_liked = users_liked_posts::table
@@ -780,4 +800,13 @@ pub fn add_report(conn: &mut PgConnection, post_id: i32, user_id: i64, reason: S
 	} else {
 		Status::InternalServerError
 	}
+}
+
+pub fn get_post_count(conn: &mut PgConnection, name: String, game_tag: i32) -> i64 {
+	posts::table
+		.filter(posts::post_name.ilike(format!("%{}%", name)))
+		.filter(posts::post_game_tag.eq(game_tag))
+		.count()
+		.get_result(conn)
+		.unwrap_or(0)
 }

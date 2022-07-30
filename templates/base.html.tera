@@ -39,9 +39,11 @@
 			{% endif %}
 		}
 		.rounded-image {
-			border-radius: var(--bs-card-border-radius);
+			border-radius: var(--bs-card-border-radius) var(--bs-card-border-radius) 0 0;
+			object-fit: contain;
 		}
-		.image-contain {
+		.flat-image {
+			border-radius: 0;
 			object-fit: contain;
 		}
 	</style>

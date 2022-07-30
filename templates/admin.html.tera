@@ -42,7 +42,7 @@
 						</p>
 					</div>
 					<a href="/report/{{ report.id }}/remove" class="{{ posts::btn_danger_outer() }}">
-						<button type="button" style="box-shadow: none" class="{{ posts::btn_danger_inner() }}">Remove</button>
+						<button type="button" style="box-shadow: none" class="{{ posts::btn_inner() }}">Remove</button>
 					</a>
 				</div>
 			</div>

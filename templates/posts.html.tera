@@ -29,9 +29,9 @@
 game_tag="MM+", type_tag="Other") %}
 <div class="col">
 	<div class="card shadow-sm">
-		<a class="" title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
+		<a title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
 			<div class="card-img-top ratio ratio-16x9 bg-black" loading="lazy">
-				<img src="{{ image }}" class="rounded-image image-contain" width="100%" alt="{{ text_short | striptags }}" loading="lazy">
+				<img src="{{ image }}" class="rounded-image" width="100%" alt="{{ text_short | striptags }}" loading="lazy">
 			</div>
 			<div class="card-body">
 				<!-- Yes the 15 character limit is completely arbitrary -->
@@ -146,15 +146,19 @@ extra_images) %}
 		fetch('/api/v1/posts/{{ id }}/like/', options)
 			.then(response => response.json())
 			.then(data => {
-				document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) + 1 + "👍"
-				document.getElementById('likes').classList.add("disabled")
-				document.getElementById('likedradiobtn').checked = true
-				had_liked = true
-				if (had_disliked) {
-					document.getElementById('dislikes').innerHTML = Number(document.getElementById('dislikes').innerHTML.slice(0, -2)) - 1 + "👎"
-					document.getElementById('dislikes').classList.remove("disabled")
-					had_disliked = false
-					document.getElementById('dislikedradiobtn').checked = false
+				if (had_liked) {
+					document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) - 1 + "👍"
+					document.getElementById('likedradiobtn').checked = false
+					had_liked = false
+				} else {
+					document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) + 1 + "👍"
+					document.getElementById('likedradiobtn').checked = true
+					had_liked = true
+					if (had_disliked) {
+						document.getElementById('dislikes').innerHTML = Number(document.getElementById('dislikes').innerHTML.slice(0, -2)) - 1 + "👎"
+						had_disliked = false
+						document.getElementById('dislikedradiobtn').checked = false
+					}
 				}
 			})
 			.catch(error => console.error(error))
@@ -171,15 +175,19 @@ extra_images) %}
 		fetch('/api/v1/posts/{{ id }}/dislike/', options)
 			.then(response => response.json())
 			.then(data => {
-				document.getElementById('dislikes').innerHTML = Number(document.getElementById('dislikes').innerHTML.slice(0, -2)) + 1 + "👎"
-				document.getElementById('dislikes').classList.add("disabled")
-				document.getElementById('dislikedradiobtn').checked = true
-				had_disliked = true
-				if (had_liked) {
-					document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) - 1 + "👍"
-					document.getElementById('likes').classList.remove("disabled")
-					document.getElementById('likedradiobtn').checked = false
-					had_liked = false
+				if (had_disliked) {
+					document.getElementById('dislikes').innerHTML = Number(document.getElementById('dislikes').innerHTML.slice(0, -2)) - 1 + "👎"
+					document.getElementById('dislikedradiobtn').checked = false
+					had_disliked = false
+				} else {
+					document.getElementById('dislikes').innerHTML = Number(document.getElementById('dislikes').innerHTML.slice(0, -2)) + 1 + "👎"
+					document.getElementById('dislikedradiobtn').checked = true
+					had_disliked = true
+					if (had_liked) {
+						document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) - 1 + "👍"
+						document.getElementById('likedradiobtn').checked = false
+						had_liked = false
+					}
 				}
 			})
 			.catch(error => console.error(error))
@@ -215,43 +223,29 @@ extra_images) %}
 			<h5 class="card-subtitle text">Last updated: {{ last_updated | date }}</h5>
 		</div>
 		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9 bg-black">
-			<img src="{{ image }}" class="card-img-top image-contain" loading="lazy" alt="Preview of {{ name }}">
+			<img src="{{ image }}" class="card-img-top flat-image" loading="lazy" alt="Preview of {{ name }}">
 		</a>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
 		<div class="btn-group">
-			{% if has_liked %}
-			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" checked="true"
-				onclick="onLike()">
-			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ likes }}👍</label>
-			<input type="radio" class="btn-check" name="btnradio" id="dislikedradiobtn" autocomplete="off"
-				onclick="onDislike()">
-			<label class="btn btn-outline-primary" for="dislikedradiobtn" id="dislikes">{{ dislikes
-				}}👎</label>
-			{% elif has_disliked %}
-			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off"
-				onclick="onLike()">
-			<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ likes
-				}}👍</label>
-			<input type="radio" class="btn-check" name=" btnradio" id="dislikedradiobtn" checked="true"
-				autocomplete="off" onclick="onDislike()">
-			<label class="btn btn-outline-primary disabled" for="dislikedradiobtn" id="dislikes">{{ dislikes
-				}}👎</label>
-			{% elif is_logged_in %}
-			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off"
-				onclick="onLike()">
-			<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ likes }}👍
-			</label>
-			<input type="radio" class="btn-check" name="btnradio" id="dislikedradiobtn" autocomplete="off"
-				onclick="onDislike()">
-			<label class="btn btn-outline-primary" for="dislikedradiobtn" id="dislikes">{{ dislikes }}👎
-			</label>
+			{% if is_logged_in %}
+				<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off"
+				{% if has_liked %}
+				checked="true"
+				{% endif %}
+					onclick="onLike()">
+				<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ likes }}👍</label>
+				<input type="radio" class="btn-check" name="btnradio" id="dislikedradiobtn" autocomplete="off" 
+				{% if has_disliked %}
+				checked="true"
+				{% endif %}
+					onclick="onDislike()">
+				<label class="btn btn-outline-primary" for="dislikedradiobtn" id="dislikes">{{ dislikes }}👎</label>
 			{% else %}
-			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
-			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ likes }}👍</label>
-			<input type="radio" class="btn-check" name="btnradio" id="dislikedradiobtn" autocomplete="off">
-			<label class="btn btn-outline-primary disabled" for="dislikedradiobtn" id="dislikes">{{ dislikes
-				}}👎</label>
+				<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
+				<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ likes }}👍</label>
+				<input type="radio" class="btn-check" name="btnradio" id="dislikedradiobtn" autocomplete="off">
+				<label class="btn btn-outline-primary disabled" for="dislikedradiobtn" id="dislikes">{{ dislikes }}👎</label>
 			{% endif %}
 		</div>
 		<a href="{{ link }}" class="{{ self::btn_success_outer() }}" download>
@@ -304,7 +298,7 @@ extra_images) %}
 			<div class="col">
 				<div class="card shadow-sm">
 					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9 bg-black">
-						<img src="{{ image }}" class="image-contain" width="100%" loading="lazy" alt="Preview of {{ name }}">
+						<img src="{{ image }}" class="flat-image" width="100%" loading="lazy" alt="Preview of {{ name }}">
 					</a>
 				</div>
 			</div>

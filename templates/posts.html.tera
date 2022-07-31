@@ -79,7 +79,7 @@ game_tag="MM+", type_tag="Other") %}
 		<div class="row row-cols-2 row-cols-md-4">
 			{% if previous_title != false %}
 			<div class="col flex-md-grow-1">
-				<input class="form-control" type="text" placeholder="Search" name="name" autocomplete="off"
+				<input class="form-control list-text" type="text" placeholder="Search" name="name" autocomplete="off"
 					value="{{ previous_title }}">
 			</div>
 			{% endif %}

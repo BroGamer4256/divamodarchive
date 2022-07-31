@@ -109,8 +109,8 @@ pub fn find_posts(
 		}
 	};
 	let description = match sort_order {
-		Order::Latest => "The latest project DIVA mods",
-		Order::Popular => "The most popular project DIVA mods",
+		Order::Latest => "The latest Project DIVA mods",
+		Order::Popular => "The most popular Project DIVA mods",
 	};
 	Ok(Template::render(
 		"post_list",

@@ -76,6 +76,11 @@ lazy_static! {
 			.expect("static/themes.toml must be a valid toml file");
 		toml::from_str(&theme_toml).expect("static/themes.toml must be a valid themes toml file")
 	};
+	pub static ref WEBUI_LIMIT: i64 = {
+		dotenv().ok();
+		let limit = env::var("WEBUI_LIMIT").expect("WEBUI_LIMIT must exist");
+		limit.parse::<i64>().unwrap()
+	};
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

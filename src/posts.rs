@@ -198,6 +198,7 @@ pub fn get_latest_posts(
 	name: String,
 	offset: i64,
 	game_tag: i32,
+	limit: i64,
 ) -> Vec<ShortPost> {
 	posts::table
 		.filter(posts::post_game_tag.eq(game_tag))
@@ -218,7 +219,7 @@ pub fn get_latest_posts(
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
 		))
-		.limit(30)
+		.limit(limit)
 		.offset(offset)
 		.load::<ShortPost>(connection)
 		.unwrap_or_else(|_| vec![])
@@ -229,6 +230,7 @@ pub fn get_latest_posts_detailed(
 	name: String,
 	offset: i64,
 	game_tag: i32,
+	limit: i64,
 ) -> Result<Vec<DetailedPost>, Status> {
 	let results = posts::table
 		.filter(posts::post_game_tag.eq(game_tag))
@@ -255,7 +257,7 @@ pub fn get_latest_posts_detailed(
 			count_distinct(download_stats::timestamp.nullable()),
 			(users::user_id, users::user_name, users::user_avatar),
 		))
-		.limit(30)
+		.limit(limit)
 		.offset(offset)
 		.load::<DetailedPostNoDepends>(connection)
 		.unwrap_or_else(|_| vec![]);
@@ -328,6 +330,7 @@ pub fn get_latest_posts_disallowed(
 	offset: i64,
 	game_tag: i32,
 	disallowed: Vec<i32>,
+	limit: i64,
 ) -> Result<Vec<ShortPost>, Status> {
 	let results = posts::table
 		.left_join(users_liked_posts::table)
@@ -349,7 +352,7 @@ pub fn get_latest_posts_disallowed(
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
 		))
-		.limit(30)
+		.limit(limit)
 		.offset(offset)
 		.load::<ShortPost>(connection)
 		.unwrap_or_else(|_| vec![]);
@@ -360,7 +363,7 @@ pub fn get_latest_posts_disallowed(
 	Ok(results)
 }
 
-pub fn get_latest_posts_unfiltered(connection: &mut PgConnection) -> Vec<ShortPost> {
+pub fn get_latest_posts_unfiltered(connection: &mut PgConnection, limit: i64) -> Vec<ShortPost> {
 	posts::table
 		.left_join(users_liked_posts::table)
 		.left_join(users_disliked_posts::table)
@@ -378,7 +381,7 @@ pub fn get_latest_posts_unfiltered(connection: &mut PgConnection) -> Vec<ShortPo
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
 		))
-		.limit(30)
+		.limit(limit)
 		.load::<ShortPost>(connection)
 		.unwrap_or_else(|_| vec![])
 }
@@ -388,6 +391,7 @@ pub fn get_popular_posts(
 	name: String,
 	offset: i64,
 	game_tag: i32,
+	limit: i64,
 ) -> Vec<ShortPost> {
 	posts::table
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
@@ -413,7 +417,7 @@ pub fn get_popular_posts(
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
 		))
-		.limit(30)
+		.limit(limit)
 		.offset(offset)
 		.load::<ShortPost>(connection)
 		.unwrap_or_else(|_| vec![])
@@ -424,6 +428,7 @@ pub fn get_popular_posts_detailed(
 	name: String,
 	offset: i64,
 	game_tag: i32,
+	limit: i64,
 ) -> Result<Vec<DetailedPost>, Status> {
 	let results = posts::table
 		.filter(posts::post_game_tag.eq(game_tag))
@@ -455,7 +460,7 @@ pub fn get_popular_posts_detailed(
 			count_distinct(download_stats::timestamp.nullable()),
 			(users::user_id, users::user_name, users::user_avatar),
 		))
-		.limit(30)
+		.limit(limit)
 		.offset(offset)
 		.load::<DetailedPostNoDepends>(connection)
 		.unwrap_or_else(|_| vec![]);
@@ -528,6 +533,7 @@ pub fn get_popular_posts_disallowed(
 	offset: i64,
 	game_tag: i32,
 	disallowed: Vec<i32>,
+	limit: i64,
 ) -> Result<Vec<ShortPost>, Status> {
 	let results = posts::table
 		.left_join(users_liked_posts::table)
@@ -554,7 +560,7 @@ pub fn get_popular_posts_disallowed(
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
 		))
-		.limit(30)
+		.limit(limit)
 		.offset(offset)
 		.load::<ShortPost>(connection)
 		.unwrap_or_else(|_| vec![]);

@@ -15,5 +15,5 @@
     }}
     {% endfor %}
 </div>
-{{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 30) }}
+{{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 20) }}
 {% endblock content %}

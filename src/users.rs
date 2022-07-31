@@ -67,6 +67,7 @@ pub fn get_user_posts_latest(
 	id: i64,
 	offset: i64,
 	game_tag: i32,
+	limit: i64,
 ) -> Vec<ShortUserPosts> {
 	users::table
 		.filter(users::user_id.eq(id))
@@ -91,7 +92,7 @@ pub fn get_user_posts_latest(
 			),
 			(users::user_id, users::user_name, users::user_avatar),
 		))
-		.limit(30)
+		.limit(limit)
 		.offset(offset)
 		.load::<ShortUserPosts>(conn)
 		.unwrap_or_else(|_| vec![])
@@ -102,6 +103,7 @@ pub fn get_user_posts_popular(
 	id: i64,
 	offset: i64,
 	game_tag: i32,
+	limit: i64,
 ) -> Vec<ShortUserPosts> {
 	users::table
 		.filter(users::user_id.eq(id))
@@ -131,7 +133,7 @@ pub fn get_user_posts_popular(
 			),
 			(users::user_id, users::user_name, users::user_avatar),
 		))
-		.limit(30)
+		.limit(limit)
 		.offset(offset)
 		.load::<ShortUserPosts>(conn)
 		.unwrap_or_else(|_| vec![])
@@ -158,6 +160,7 @@ pub fn get_user_liked_posts(
 	conn: &mut PgConnection,
 	id: i64,
 	offset: i64,
+	limit: i64,
 ) -> Vec<ShortPostNoLikes> {
 	users_liked_posts::table
 		.filter(users_liked_posts::user_id.eq(id))
@@ -174,7 +177,7 @@ pub fn get_user_liked_posts(
 			posts::post_type_tag,
 			count_distinct(download_stats::timestamp.nullable()),
 		))
-		.limit(30)
+		.limit(limit)
 		.offset(offset)
 		.load::<ShortPostNoLikes>(conn)
 		.unwrap_or_else(|_| vec![])

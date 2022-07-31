@@ -103,10 +103,20 @@ pub fn find_posts(
 		Order::Popular => "Popular DIVA Mods",
 	};
 	let results = match sort_order {
-		Order::Latest => get_latest_posts(connection, name.clone(), offset, game_tag.unwrap_or(0)),
-		Order::Popular => {
-			get_popular_posts(connection, name.clone(), offset, game_tag.unwrap_or(0))
-		}
+		Order::Latest => get_latest_posts(
+			connection,
+			name.clone(),
+			offset,
+			game_tag.unwrap_or(0),
+			*WEBUI_LIMIT,
+		),
+		Order::Popular => get_popular_posts(
+			connection,
+			name.clone(),
+			offset,
+			game_tag.unwrap_or(0),
+			*WEBUI_LIMIT,
+		),
 	};
 	let description = match sort_order {
 		Order::Latest => "The latest Project DIVA mods",
@@ -216,10 +226,20 @@ pub fn user(
 		Order::Popular => format!("Popular mods by {}", user.name),
 	};
 	let results = match sort_order {
-		Order::Latest => get_user_posts_latest(connection, user.id, offset, game_tag.unwrap_or(0)),
-		Order::Popular => {
-			get_user_posts_popular(connection, user.id, offset, game_tag.unwrap_or(0))
-		}
+		Order::Latest => get_user_posts_latest(
+			connection,
+			user.id,
+			offset,
+			game_tag.unwrap_or(0),
+			*WEBUI_LIMIT,
+		),
+		Order::Popular => get_user_posts_popular(
+			connection,
+			user.id,
+			offset,
+			game_tag.unwrap_or(0),
+			*WEBUI_LIMIT,
+		),
 	};
 	let description = match sort_order {
 		Order::Latest => format!("The latest DIVA mods by {}", user.name),
@@ -310,6 +330,7 @@ pub fn dependency(
 				offset,
 				post.game_tag,
 				vec![id],
+				*WEBUI_LIMIT,
 			),
 			Order::Popular => get_popular_posts_disallowed(
 				connection,
@@ -317,6 +338,7 @@ pub fn dependency(
 				offset,
 				post.game_tag,
 				vec![id],
+				*WEBUI_LIMIT,
 			),
 		}
 		.unwrap_or_default();
@@ -394,7 +416,7 @@ pub fn liked(
 	cookies: &CookieJar<'_>,
 ) -> Template {
 	let connection = &mut connection.lock().unwrap();
-	let posts = get_user_liked_posts(connection, user.id, offset.unwrap_or(0));
+	let posts = get_user_liked_posts(connection, user.id, offset.unwrap_or(0), *WEBUI_LIMIT);
 	Template::render(
 		"liked",
 		context![
@@ -442,7 +464,7 @@ pub fn admin(
 			type_tags: TAG_TOML.type_tags.clone(),
 			is_admin: true,
 			reports: get_reports(connection),
-			posts: get_latest_posts_unfiltered(connection),
+			posts: get_latest_posts_unfiltered(connection, *WEBUI_LIMIT),
 			base_url: BASE_URL.to_string(),
 		],
 	))

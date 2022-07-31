@@ -8,7 +8,7 @@
 {% block content %}
 {{ posts::draw_search_box(previous_title=previous_search, previous_sort=previous_sort,
 previous_game_tag=previous_game_tag) }}
-<div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 gy-3">
+<div class="row row-cols-2 row-cols-lg-4 gy-3">
 	{% for post in posts %}
 	{% set game_tag = game_tags | filter(attribute="id", value=post.game_tag) | first %}
 	{% set type_tag = type_tags | filter(attribute="id", value=post.type_tag) | first %}
@@ -17,5 +17,5 @@ previous_game_tag=previous_game_tag) }}
 	}}
 	{% endfor %}
 </div>
-{{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 30) }}
+{{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 20) }}
 {% endblock content %}

@@ -84,7 +84,7 @@
 			.then(response => response.json())
 			.then(image_upload_url => async function (image_upload_url) {
 				if (image_upload_url == null) {
-					alert("Image upload failed\nMaximum size for images is 10MiB");
+					alert("Image upload failed");
 					return
 				}
 				var image_form = new FormData();

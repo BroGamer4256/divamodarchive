@@ -51,7 +51,7 @@
 </div>
 {% endif %}
 <div class="container card">
-	<div class="card-body row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
+	<div class="card-body row row-cols-2 row-cols-lg-4 g-3">
 		{% for post in posts %}
 			{% set game_tag = game_tags | filter(attribute="id", value=post.game_tag) | first %}
 			{% set type_tag = type_tags | filter(attribute="id", value=post.type_tag) | first %}

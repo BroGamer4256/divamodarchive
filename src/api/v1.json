@@ -217,6 +217,16 @@
 							"type": "integer",
 							"format": "int64"
 						}
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"description": "How many posts to get",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
 					}
 				],
 				"responses": {
@@ -260,6 +270,16 @@
 						"name": "offset",
 						"in": "query",
 						"description": "An offset to get later result",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"description": "How many posts to get",
 						"required": false,
 						"schema": {
 							"type": "integer",
@@ -558,6 +578,16 @@
 							"type": "integer",
 							"format": "int64"
 						}
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"description": "How many posts to get",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
 					}
 				],
 				"responses": {
@@ -602,6 +632,16 @@
 						"name": "offset",
 						"in": "query",
 						"description": "An offset to get later result",
+						"required": false,
+						"schema": {
+							"type": "integer",
+							"format": "int64"
+						}
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"description": "How many posts to get",
 						"required": false,
 						"schema": {
 							"type": "integer",

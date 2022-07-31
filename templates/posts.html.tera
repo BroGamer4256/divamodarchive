@@ -30,12 +30,11 @@ game_tag="MM+", type_tag="Other") %}
 <div class="col">
 	<div class="card shadow-sm">
 		<a title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
-			<div class="card-img-top ratio ratio-16x9 bg-black" loading="lazy">
+			<div class="card-img-top ratio ratio-16x9 bg-clear" loading="lazy">
 				<img src="{{ image }}" class="rounded-image" width="100%" alt="{{ text_short | striptags }}" loading="lazy">
 			</div>
 			<div class="card-body">
-				<!-- Yes the 15 character limit is completely arbitrary -->
-				<h4 class="text">{{ name | striptags | truncate(length=15) }}</h4>
+				<h5 class="text">{{ name | striptags | truncate(length=20) }}</h5>
 				<div class="row">
 					{% if likes != -1 %}
 					<h7 class="col-md-6 text">{{ likes }}👍{{ dislikes }}👎<br>DLs: {{ downloads }}</h7>
@@ -58,6 +57,7 @@ game_tag="MM+", type_tag="Other") %}
 {% endmacro draw_post_short %}
 
 {% macro draw_buttons(current_offset, draw_forward) %}
+<br>
 <div class="d-flex justify-content-evenly">
 	{% if current_offset != 0 %}
 	<a class="nav-link" href="?offset={{ current_offset - 20 }}">
@@ -222,7 +222,7 @@ extra_images) %}
 			</div>
 			<h5 class="card-subtitle text">Last updated: {{ last_updated | date }}</h5>
 		</div>
-		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9 bg-black">
+		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9 bg-clear">
 			<img src="{{ image }}" class="card-img-top flat-image" loading="lazy" alt="Preview of {{ name }}">
 		</a>
 	</div>
@@ -297,7 +297,7 @@ extra_images) %}
 			{% for image in extra_images %}
 			<div class="col">
 				<div class="card shadow-sm">
-					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9 bg-black">
+					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9 bg-clear">
 						<img src="{{ image }}" class="flat-image" width="100%" loading="lazy" alt="Preview of {{ name }}">
 					</a>
 				</div>

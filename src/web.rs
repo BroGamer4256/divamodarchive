@@ -48,11 +48,7 @@ pub fn get_theme(cookies: &CookieJar<'_>) -> Theme {
 	let theme = cookies.get_pending("theme");
 	let theme_id = theme.map_or(0, |theme| theme.value().parse::<i32>().unwrap_or(0));
 	let theme_result = THEMES_TOML.themes.iter().find(|theme| theme.id == theme_id);
-	if let Some(theme) = theme_result {
-		theme.clone()
-	} else {
-		Theme::default()
-	}
+	theme_result.map_or_else(|| Theme::default(), |theme| theme.clone())
 }
 
 #[get("/theme")]
@@ -99,8 +95,8 @@ pub fn find_posts(
 	let offset = offset.unwrap_or(0);
 	let name = name.unwrap_or_default();
 	let title = match sort_order {
-		Order::Latest => "Latest DIVA Mods",
-		Order::Popular => "Popular DIVA Mods",
+		Order::Latest => format!("Latest {} Mods", *GAME_NAME),
+		Order::Popular => format!("Popular {} Mods", *GAME_NAME),
 	};
 	let results = match sort_order {
 		Order::Latest => get_latest_posts(
@@ -119,8 +115,8 @@ pub fn find_posts(
 		),
 	};
 	let description = match sort_order {
-		Order::Latest => "The latest Project DIVA mods",
-		Order::Popular => "The most popular Project DIVA mods",
+		Order::Latest => format!("The latest {} Mods", *GAME_NAME),
+		Order::Popular => format!("The most popular {} Mods", *GAME_NAME),
 	};
 	Ok(Template::render(
 		"post_list",
@@ -138,6 +134,8 @@ pub fn find_posts(
 			type_tags: TAG_TOML.type_tags.clone(),
 			is_admin: ADMINS.contains(&user.unwrap_or_default().id),
 			base_url: BASE_URL.to_string(),
+			gtag: GTAG.to_string(),
+			game_name: GAME_NAME.to_string(),
 		],
 	))
 }
@@ -158,12 +156,12 @@ pub fn details(
 		let jwt = cookies.get_pending("jwt").unwrap();
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, theme: get_theme(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&who_is_logged_in), base_url: BASE_URL.to_string(),],
+			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, theme: get_theme(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&who_is_logged_in), base_url: BASE_URL.to_string(), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
 		))
 	} else {
 		Ok(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, theme: get_theme(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: false, base_url: BASE_URL.to_string(),],
+			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, theme: get_theme(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: false, base_url: BASE_URL.to_string(), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
 		))
 	}
 }
@@ -197,7 +195,7 @@ pub fn upload(
 	let connection = &mut get_connection(connection);
 	Ok(Template::render(
 		"upload",
-		context![user: &user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), theme: get_theme(cookies),base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id)],
+		context![user: &user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), theme: get_theme(cookies),base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
 	))
 }
 
@@ -242,8 +240,8 @@ pub fn user(
 		),
 	};
 	let description = match sort_order {
-		Order::Latest => format!("The latest DIVA mods by {}", user.name),
-		Order::Popular => format!("The most popular DIVA mods by {}", user.name),
+		Order::Latest => format!("The latest {} mods by {}", *GAME_NAME, user.name),
+		Order::Popular => format!("The most popular {} mods by {}", *GAME_NAME, user.name),
 	};
 	let user_stats = get_user_stats(connection, user.id);
 
@@ -266,6 +264,8 @@ pub fn user(
 			type_tags: TAG_TOML.type_tags.clone(),
 			is_admin: ADMINS.contains(&current_user.unwrap_or_default().id),
 			base_url: BASE_URL.to_string(),
+			gtag: GTAG.to_string(),
+			game_name: GAME_NAME.to_string(),
 		],
 	))
 }
@@ -286,7 +286,7 @@ pub fn edit(
 			let jwt = cookies.get_pending("jwt").unwrap();
 			Ok(Template::render(
 				"upload",
-				context![user: &user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, theme: get_theme(cookies), update_id: id, base_url: BASE_URL.to_string(), previous_game_tag: post.game_tag, previous_type_tag: post.type_tag, game_tags: TAG_TOML.game_tags.clone(),type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id)],
+				context![user: &user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, theme: get_theme(cookies), update_id: id, base_url: BASE_URL.to_string(), previous_game_tag: post.game_tag, previous_type_tag: post.type_tag, game_tags: TAG_TOML.game_tags.clone(),type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
 			))
 		} else {
 			Err(Redirect::to(format!("/posts/{}", id)))
@@ -356,6 +356,8 @@ pub fn dependency(
 				type_tags: TAG_TOML.type_tags.clone(),
 				is_admin: ADMINS.contains(&user.id),
 				base_url: BASE_URL.to_string(),
+				gtag: GTAG.to_string(),
+				game_name: GAME_NAME.to_string(),
 			],
 		))
 	} else {
@@ -404,6 +406,8 @@ pub fn about(
 			theme: get_theme(cookies),
 			is_admin: ADMINS.contains(&user.unwrap_or_default().id),
 			base_url: BASE_URL.to_string(),
+			gtag: GTAG.to_string(),
+			game_name: GAME_NAME.to_string(),
 		],
 	)
 }
@@ -430,6 +434,8 @@ pub fn liked(
 			type_tags: TAG_TOML.type_tags.clone(),
 			is_admin: ADMINS.contains(&user.id),
 			base_url: BASE_URL.to_string(),
+			gtag: GTAG.to_string(),
+			game_name: GAME_NAME.to_string(),
 		],
 	)
 }
@@ -466,6 +472,8 @@ pub fn admin(
 			reports: get_reports(connection),
 			posts: get_latest_posts_unfiltered(connection, *WEBUI_LIMIT),
 			base_url: BASE_URL.to_string(),
+			gtag: GTAG.to_string(),
+			game_name: GAME_NAME.to_string(),
 		],
 	))
 }
@@ -514,6 +522,8 @@ pub fn report(
 				type_tags: TAG_TOML.type_tags.clone(),
 				is_admin: ADMINS.contains(&user.id),
 				base_url: BASE_URL.to_string(),
+				gtag: GTAG.to_string(),
+				game_name: GAME_NAME.to_string(),
 			],
 		))
 	} else {

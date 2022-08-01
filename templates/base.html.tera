@@ -1,18 +1,17 @@
 <!doctype html>
 <html lang="en">
-<!-- Beware, jank ahead -->
 <head>
 	<meta charset="utf8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 
 	<!-- Global site tag (gtag.js) - Google Analytics -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-235377904-1"></script>
+	<script async src="https://www.googletagmanager.com/gtag/js?id={{ gtag }}"></script>
 	<script>
 		window.dataLayer = window.dataLayer || [];
 		function gtag(){dataLayer.push(arguments);}
 		gtag('js', new Date());
 
-		gtag('config', 'UA-235377904-1');
+		gtag('config', '{{ gtag }}');
 	</script>
 
 	{% block head %}{% endblock head %}

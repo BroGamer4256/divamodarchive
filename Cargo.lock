@@ -478,6 +478,7 @@ dependencies = [
  "dotenv",
  "jsonwebtoken",
  "lazy_static",
+ "quick-xml",
  "reqwest",
  "rocket",
  "rocket_dyn_templates",
@@ -1620,6 +1621,16 @@ dependencies = [
  "syn",
  "version_check",
  "yansi",
+]
+
+[[package]]
+name = "quick-xml"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9279fbdacaad3baf559d8cabe0acc3d06e30ea14931af31af79578ac0946decc"
+dependencies = [
+ "memchr",
+ "serde",
 ]
 
 [[package]]

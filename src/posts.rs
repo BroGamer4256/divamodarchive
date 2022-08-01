@@ -109,9 +109,8 @@ pub fn like_post_from_ids(
 		.get_result::<LikedPost>(conn);
 		if let Ok(result) = result {
 			return Ok(result);
-		} else {
-			return Err(Status::InternalServerError);
 		}
+		return Err(Status::InternalServerError);
 	}
 
 	let has_disliked = users_disliked_posts::table
@@ -164,9 +163,8 @@ pub fn dislike_post_from_ids(
 		.get_result::<DislikedPost>(conn);
 		if let Ok(result) = result {
 			return Ok(result);
-		} else {
-			return Err(Status::InternalServerError);
 		}
+		return Err(Status::InternalServerError);
 	}
 
 	let has_liked = users_liked_posts::table
@@ -815,4 +813,11 @@ pub fn get_post_count(conn: &mut PgConnection, name: String, game_tag: i32) -> i
 		.count()
 		.get_result(conn)
 		.unwrap_or(0)
+}
+
+pub fn get_post_ids(conn: &mut PgConnection) -> Vec<i32> {
+	posts::table
+		.select(posts::post_id)
+		.load::<i32>(conn)
+		.unwrap_or_else(|_| vec![])
 }

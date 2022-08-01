@@ -16,13 +16,10 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use dotenv::dotenv;
 use rocket::http::{ContentType, Status};
+use rocket::serde::{Deserialize, Serialize};
 use rocket::*;
 use rocket_dyn_templates::Template;
 use std::env;
-
-// Why do these get deleted from the schema with migration 4?
-joinable!(schema::users_disliked_posts -> schema::posts (post_id));
-joinable!(schema::users_liked_posts -> schema::posts (post_id));
 
 allow_columns_to_appear_in_same_group_by_clause!(
 	schema::posts::post_id,
@@ -48,7 +45,7 @@ allow_columns_to_appear_in_same_group_by_clause!(
 #[must_use]
 #[get("/robots.txt")]
 pub const fn robots() -> &'static str {
-	"User-agent: *\nDisallow: /api/"
+	"User-agent: *\nDisallow: /api/\nSitemap: /sitemap.xml"
 }
 
 #[must_use]
@@ -66,10 +63,90 @@ pub const fn large_icon() -> (ContentType, &'static [u8]) {
 	(ContentType::PNG, include_bytes!("../static/DMA_BLACK.png"))
 }
 
-#[must_use]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "loc")]
+pub struct Loc {
+	#[serde(rename = "$value")]
+	pub loc: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "changefreq")]
+pub struct Changefreq {
+	#[serde(rename = "$value")]
+	pub changefreq: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "priority")]
+pub struct Priority {
+	#[serde(rename = "$value")]
+	pub priority: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "url")]
+pub struct Url {
+	pub loc: Loc,
+	pub changefreq: Changefreq,
+	pub priority: Priority,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "urlset")]
+pub struct Urlset {
+	pub url: Vec<Url>,
+	pub xmlns: String,
+}
+
 #[get("/sitemap.xml")]
-pub const fn sitemap() -> (ContentType, &'static [u8]) {
-	(ContentType::XML, include_bytes!("../static/sitemap.xml"))
+pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
+	let ids = posts::get_post_ids(&mut models::get_connection(connection));
+	let mut urls = Vec::new();
+	let base_url = Url {
+		loc: Loc {
+			loc: format!("{}/", *models::BASE_URL),
+		},
+		changefreq: Changefreq {
+			changefreq: String::from("hourly"),
+		},
+		priority: Priority {
+			priority: String::from("1.0"),
+		},
+	};
+	urls.push(base_url);
+	let about_url = Url {
+		loc: Loc {
+			loc: format!("{}/about", *models::BASE_URL),
+		},
+		changefreq: Changefreq {
+			changefreq: String::from("monthly"),
+		},
+		priority: Priority {
+			priority: String::from("0.5"),
+		},
+	};
+	urls.push(about_url);
+	for id in ids {
+		let url = Url {
+			loc: Loc {
+				loc: format!("{}/posts/{}", *models::BASE_URL, id),
+			},
+			changefreq: Changefreq {
+				changefreq: String::from("weekly"),
+			},
+			priority: Priority {
+				priority: String::from("1.0"),
+			},
+		};
+		urls.push(url);
+	}
+	let xml = Urlset {
+		url: urls,
+		xmlns: String::from("http://www.sitemaps.org/schemas/sitemap/0.9"),
+	};
+	let xml = quick_xml::se::to_string(&xml).unwrap();
+	(ContentType::XML, xml)
 }
 
 #[get("/storage/<user_id>/<file_type>/<file_name>")]

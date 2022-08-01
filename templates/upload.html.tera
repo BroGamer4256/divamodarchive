@@ -2,7 +2,7 @@
 {% import "posts" as posts %}
 
 {% block head %}
-{{ posts::draw_embed(title="Upload", description="Upload your mod to DIVA Mod Archive") }}
+{{ posts::draw_embed(title="Upload", description="Upload your mod to DIVA Mod Archive", author=game_name ~ " Mod Archive") }}
 {% endblock head %}
 
 {% block content %}

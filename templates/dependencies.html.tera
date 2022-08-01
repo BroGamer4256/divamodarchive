@@ -2,7 +2,7 @@
 {% import "posts" as posts %}
 
 {% block head %}
-{{ posts::draw_embed(title="Dependency", description="Select dependency") }}
+{{ posts::draw_embed(title="Dependency", description="Select dependency", author=game_name ~ " Mod Archive") }}
 {% endblock head %}
 
 {% block content %}

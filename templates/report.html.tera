@@ -2,7 +2,7 @@
 {% import "posts" as posts %}
 
 {% block head %}
-{{ posts::draw_embed(title="Report Mod", description="Report") }}
+{{ posts::draw_embed(title="Report Mod", description="Report", author=game_name ~ " Mod Archive") }}
 {% endblock head %}
 
 {% block content %}

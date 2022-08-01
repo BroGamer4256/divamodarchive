@@ -53,8 +53,11 @@ lazy_static! {
 		env::var("CLOUDFLARE_ACCOUNT_ID").expect("CLOUDFLARE_ACCOUNT_ID must exist")
 	};
 	pub static ref TAG_TOML: TagToml = {
-		let mut tag_file =
-			std::fs::File::open("static/tags.toml").expect("static/tags.toml must exist");
+		dotenv().ok();
+		let mut tag_file = std::fs::File::open(
+			env::var("TAG_TOML_PATH").unwrap_or(String::from("static/tags.toml")),
+		)
+		.expect("static/tags.toml must exist");
 		let mut tag_toml = String::new();
 		tag_file
 			.read_to_string(&mut tag_toml)
@@ -70,8 +73,11 @@ lazy_static! {
 			.collect()
 	};
 	pub static ref THEMES_TOML: ThemeToml = {
-		let mut theme_file =
-			std::fs::File::open("static/themes.toml").expect("static/themes.toml must exist");
+		dotenv().ok();
+		let mut theme_file = std::fs::File::open(
+			env::var("THEMES_TOML_PATH").unwrap_or(String::from("static/themes.toml")),
+		)
+		.expect("static/themes.toml must exist");
 		let mut theme_toml = String::new();
 		theme_file
 			.read_to_string(&mut theme_toml)
@@ -82,6 +88,14 @@ lazy_static! {
 		dotenv().ok();
 		let limit = env::var("WEBUI_LIMIT").expect("WEBUI_LIMIT must exist");
 		limit.parse::<i64>().unwrap()
+	};
+	pub static ref GTAG: String = {
+		dotenv().ok();
+		env::var("GTAG").expect("GTAG must exist")
+	};
+	pub static ref GAME_NAME: String = {
+		dotenv().ok();
+		env::var("GAME_NAME").expect("GAME_NAME must exist")
 	};
 }
 
@@ -103,7 +117,7 @@ pub struct Theme {
 
 impl Default for Theme {
 	fn default() -> Self {
-		Theme {
+		Self {
 			id: 0,
 			url: String::from(
 				"https://cdnjs.cloudflare.com/ajax/libs/bootswatch/5.2.0/darkly/bootstrap.min.css",

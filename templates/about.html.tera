@@ -2,17 +2,17 @@
 {% import "posts" as posts %}
 
 {% block head %}
-{{ posts::draw_embed(title="About", description="About DIVA Mod Archive") }}
+{{ posts::draw_embed(title="About", description="About " ~ game_name ~ " Mod Archive", author=game_name ~ " Mod Archive") }}
 {% endblock head %}
 
 {% block content %}
 <div class="card card-body">
 	<div class="row row-lg-cols-2">
 		<div class="col-lg-6 col-xl-4">
-			<img src="/large_icon.png" alt="DIVA Mod Archive logo" class="ratio ratio-1x1">
+			<img src="/large_icon.png" alt="{{ game_name }} Mod Archive logo" class="ratio ratio-1x1">
 		</div>
 		<div class="col-lg-6 col-xl-8">
-			<h3 class="text">About DIVA Mod Archive</h3>
+			<h3 class="text">About {{ game_name }} Mod Archive</h3>
 			<p class="text">
 				Developed by BroGamer#6927<br>
 				Development is currently hosted on the <a href="https://discord.gg/cvBVGDZ" class="text">Project DIVA
@@ -24,10 +24,6 @@
 			<p class="text">
 				This web-interface is powered by <a href="https://getbootstrap.com" class="text">Bootstrap</a> v5, with
 				the <a href="https://bootswatch.com/darkly/" class="text">Bootswatch.com Darkly Theme</a>.
-			</p>
-			<p class="text">
-				Project DIVA © 2009-2022 SEGA. CO., LTD. All rights reserved<br>
-				This site is not affiliated in any way with SEGA CO., LTD.
 			</p>
 			<p class="text">
 				The following people have made this project possible, in no particular order<br>

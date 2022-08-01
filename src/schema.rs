@@ -63,10 +63,13 @@ table! {
     }
 }
 
+joinable!(download_stats -> posts (post_id));
 joinable!(posts -> users (post_uploader));
 joinable!(reports -> posts (post_id));
 joinable!(reports -> users (user_id));
+joinable!(users_disliked_posts -> posts (post_id));
 joinable!(users_disliked_posts -> users (user_id));
+joinable!(users_liked_posts -> posts (post_id));
 joinable!(users_liked_posts -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(

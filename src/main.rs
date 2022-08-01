@@ -109,69 +109,69 @@ pub fn rocket() -> _ {
 	assert!(!database_url.is_empty(), "DATABASE_URL must not be empty");
 	let manager = diesel::r2d2::ConnectionManager::<PgConnection>::new(database_url);
 	let pool = diesel::r2d2::Pool::builder().max_size(20).build(manager);
-	if let Ok(pool) = pool {
-		rocket::build()
-			.mount(
-				"/",
-				routes![
-					web::find_posts,
-					web::details,
-					web::login,
-					web::upload,
-					web::user,
-					web::edit,
-					web::set_theme,
-					web::dependency,
-					web::dependency_add,
-					web::dependency_remove,
-					web::about,
-					web::liked,
-					web::logout,
-					web::admin,
-					web::remove_post_admin,
-					web::remove_report,
-					web::report,
-					web::report_send,
-					get_from_storage,
-					robots,
-					favicon,
-					large_icon,
-					sitemap,
-				],
-			)
-			.mount(
-				"/api/v1/posts",
-				routes![
-					api::v1::posts::upload_image,
-					api::v1::posts::upload_archive_chunk,
-					api::v1::posts::finish_upload_archive_chunk,
-					api::v1::posts::upload,
-					api::v1::posts::edit,
-					api::v1::posts::details,
-					api::v1::posts::like,
-					api::v1::posts::dislike,
-					api::v1::posts::dependency,
-					api::v1::posts::latest,
-					api::v1::posts::popular,
-					api::v1::posts::delete,
-					api::v1::posts::posts,
-					api::v1::posts::post_count,
-				],
-			)
-			.mount(
-				"/api/v1/users",
-				routes![
-					api::v1::users::login,
-					api::v1::users::details,
-					api::v1::users::latest,
-					api::v1::users::popular,
-					api::v1::users::delete
-				],
-			)
-			.mount("/api/v1", routes![api::v1::get_spec])
-			.manage(pool)
-			.attach(Template::fairing())
-	} else {
-		panic!("Failed to connect to database");
-	}
+	let pool = match pool {
+		Ok(pool) => pool,
+		Err(err) => panic!("Failed to create database pool: {}", err),
+	};
+	rocket::build()
+		.mount(
+			"/",
+			routes![
+				web::find_posts,
+				web::details,
+				web::login,
+				web::upload,
+				web::user,
+				web::edit,
+				web::set_theme,
+				web::dependency,
+				web::dependency_add,
+				web::dependency_remove,
+				web::about,
+				web::liked,
+				web::logout,
+				web::admin,
+				web::remove_post_admin,
+				web::remove_report,
+				web::report,
+				web::report_send,
+				get_from_storage,
+				robots,
+				favicon,
+				large_icon,
+				sitemap,
+			],
+		)
+		.mount(
+			"/api/v1/posts",
+			routes![
+				api::v1::posts::upload_image,
+				api::v1::posts::upload_archive_chunk,
+				api::v1::posts::finish_upload_archive_chunk,
+				api::v1::posts::upload,
+				api::v1::posts::edit,
+				api::v1::posts::details,
+				api::v1::posts::like,
+				api::v1::posts::dislike,
+				api::v1::posts::dependency,
+				api::v1::posts::latest,
+				api::v1::posts::popular,
+				api::v1::posts::delete,
+				api::v1::posts::posts,
+				api::v1::posts::post_count,
+			],
+		)
+		.mount(
+			"/api/v1/users",
+			routes![
+				api::v1::users::login,
+				api::v1::users::details,
+				api::v1::users::latest,
+				api::v1::users::popular,
+				api::v1::users::delete
+			],
+		)
+		.mount("/api/v1", routes![api::v1::get_spec])
+		.manage(pool)
+		.attach(Template::fairing())
 }

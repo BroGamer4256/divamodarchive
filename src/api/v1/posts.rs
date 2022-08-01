@@ -166,7 +166,7 @@ pub async fn upload(
 		return Err(Status::BadRequest);
 	}
 	let post = create_post(
-		&mut connection.lock().unwrap(),
+		&mut get_connection(connection),
 		post,
 		user,
 		update_id.unwrap_or(-1),
@@ -182,7 +182,7 @@ pub fn edit(
 	update_id: i32,
 ) -> Result<Json<Post>, Status> {
 	let post = post.into_inner();
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	if !owns_post(connection, update_id, user.id) {
 		return Err(Status::Unauthorized);
 	}
@@ -193,13 +193,13 @@ pub fn edit(
 
 #[get("/<id>")]
 pub fn details(connection: &ConnectionState, id: i32) -> Result<Json<DetailedPost>, Status> {
-	let result = get_post(&mut connection.lock().unwrap(), id)?;
+	let result = get_post(&mut get_connection(connection), id)?;
 	Ok(Json(result))
 }
 
 #[post("/<id>/like")]
 pub fn like(connection: &ConnectionState, id: i32, user: User) -> Result<Json<LikedPost>, Status> {
-	let result = like_post_from_ids(&mut connection.lock().unwrap(), user.id, id)?;
+	let result = like_post_from_ids(&mut get_connection(connection), user.id, id)?;
 	Ok(Json(result))
 }
 #[post("/<id>/dislike")]
@@ -208,7 +208,7 @@ pub fn dislike(
 	id: i32,
 	user: User,
 ) -> Result<Json<DislikedPost>, Status> {
-	let result = dislike_post_from_ids(&mut connection.lock().unwrap(), user.id, id)?;
+	let result = dislike_post_from_ids(&mut get_connection(connection), user.id, id)?;
 	Ok(Json(result))
 }
 
@@ -216,7 +216,7 @@ pub fn dislike(
 // Return the updated post
 #[post("/<id>/dependency/<dependency>")]
 pub fn dependency(connection: &ConnectionState, id: i32, dependency: i32, user: User) -> Status {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	if owns_post(connection, id, user.id) {
 		add_dependency(connection, id, dependency)
 	} else {
@@ -233,7 +233,7 @@ pub fn latest(
 	limit: Option<i64>,
 ) -> Result<Json<Vec<DetailedPost>>, Status> {
 	let result = get_latest_posts_detailed(
-		&mut connection.lock().unwrap(),
+		&mut get_connection(connection),
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
@@ -251,7 +251,7 @@ pub fn popular(
 	limit: Option<i64>,
 ) -> Result<Json<Vec<DetailedPost>>, Status> {
 	let result = get_popular_posts_detailed(
-		&mut connection.lock().unwrap(),
+		&mut get_connection(connection),
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
@@ -262,7 +262,7 @@ pub fn popular(
 
 #[delete("/<id>/delete")]
 pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	if owns_post(connection, id, user.id) {
 		delete_post(connection, id)
 	} else {
@@ -275,10 +275,10 @@ pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
 // Gets the details of posts with id 1 and 2
 #[get("/posts?<post_id>")]
 pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> Json<Vec<DetailedPost>> {
-	let mut connection = connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	let mut result = Vec::new();
 	for id in post_id {
-		if let Ok(post) = get_post(&mut connection, id) {
+		if let Ok(post) = get_post(connection, id) {
 			result.push(post);
 		}
 	}
@@ -291,7 +291,7 @@ pub fn post_count(
 	name: Option<String>,
 	game_tag: Option<i32>,
 ) -> Json<i64> {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	Json(get_post_count(
 		connection,
 		name.unwrap_or_default(),

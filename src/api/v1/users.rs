@@ -97,7 +97,7 @@ pub async fn login(
 				)
 			};
 			create_user(
-				&mut connection.lock().unwrap(),
+				&mut get_connection(connection),
 				id,
 				&response.username,
 				&avatar,
@@ -111,7 +111,7 @@ pub async fn login(
 
 #[get("/<id>")]
 pub fn details(connection: &ConnectionState, id: i64) -> Result<Json<User>, Status> {
-	let result = get_user(&mut connection.lock().unwrap(), id)?;
+	let result = get_user(&mut get_connection(connection), id)?;
 	Ok(Json(result))
 }
 
@@ -124,7 +124,7 @@ pub fn latest(
 	limit: Option<i64>,
 ) -> Result<Json<Vec<ShortUserPosts>>, Status> {
 	let result = get_user_posts_latest(
-		&mut connection.lock().unwrap(),
+		&mut get_connection(connection),
 		id,
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
@@ -142,7 +142,7 @@ pub fn popular(
 	limit: Option<i64>,
 ) -> Result<Json<Vec<ShortUserPosts>>, Status> {
 	let result = get_user_posts_popular(
-		&mut connection.lock().unwrap(),
+		&mut get_connection(connection),
 		id,
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
@@ -153,5 +153,5 @@ pub fn popular(
 
 #[delete("/delete")]
 pub fn delete(connection: &ConnectionState, user: User) -> Status {
-	delete_user(&mut connection.lock().unwrap(), user.id)
+	delete_user(&mut get_connection(connection), user.id)
 }

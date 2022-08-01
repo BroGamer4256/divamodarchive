@@ -19,7 +19,6 @@ use rocket::http::{ContentType, Status};
 use rocket::*;
 use rocket_dyn_templates::Template;
 use std::env;
-use std::sync::Mutex;
 
 // Why do these get deleted from the schema with migration 4?
 joinable!(schema::users_disliked_posts -> schema::posts (post_id));
@@ -83,7 +82,7 @@ pub fn get_from_storage(
 	let file = format!("storage/{}/{}/{}", user_id, file_type, file_name);
 	if file_type == "posts" {
 		let path = format!("{}/{}", *models::BASE_URL, file);
-		let _ = posts::update_download_count(&mut connection.lock().unwrap(), path);
+		let _ = posts::update_download_count(&mut models::get_connection(connection), path);
 	}
 	let file = std::fs::File::open(file);
 	if file.is_err() {
@@ -108,10 +107,9 @@ pub fn rocket() -> _ {
 	dotenv().ok();
 	let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| String::new());
 	assert!(!database_url.is_empty(), "DATABASE_URL must not be empty");
-	let connection = PgConnection::establish(&database_url);
-	if let Ok(connection) = connection {
-		let connection = Mutex::new(connection);
-
+	let manager = diesel::r2d2::ConnectionManager::<PgConnection>::new(database_url);
+	let pool = diesel::r2d2::Pool::builder().max_size(20).build(manager);
+	if let Ok(pool) = pool {
 		rocket::build()
 			.mount(
 				"/",
@@ -171,7 +169,7 @@ pub fn rocket() -> _ {
 				],
 			)
 			.mount("/api/v1", routes![api::v1::get_spec])
-			.manage(connection)
+			.manage(pool)
 			.attach(Template::fairing())
 	} else {
 		panic!("Failed to connect to database");

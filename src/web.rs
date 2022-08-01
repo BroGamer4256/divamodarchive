@@ -95,7 +95,7 @@ pub fn find_posts(
 		},
 		None => Order::Latest,
 	};
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	let offset = offset.unwrap_or(0);
 	let name = name.unwrap_or_default();
 	let title = match sort_order {
@@ -148,7 +148,7 @@ pub fn details(
 	id: i32,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Status> {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	let post = get_post(connection, id)?;
 	let who_is_logged_in = who_is_logged_in(connection, cookies);
 	if let Ok(who_is_logged_in) = who_is_logged_in {
@@ -194,7 +194,7 @@ pub fn upload(
 	user: User,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Status> {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	Ok(Template::render(
 		"upload",
 		context![user: &user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), theme: get_theme(cookies),base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id)],
@@ -211,7 +211,7 @@ pub fn user(
 	cookies: &CookieJar<'_>,
 	current_user: Option<User>,
 ) -> Result<Template, Status> {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	let user = get_user(connection, id)?;
 	let sort_order = match order.clone() {
 		Some(order) => match order.as_str() {
@@ -277,7 +277,7 @@ pub fn edit(
 	user: User,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	let post = get_post(connection, id);
 	let who_is_logged_in = who_is_logged_in(connection, cookies);
 	if let Ok(post) = post && let Ok(who_is_logged_in) = who_is_logged_in {
@@ -306,7 +306,7 @@ pub fn dependency(
 	user: User,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	let post = get_post(connection, id);
 	if let Ok(post) = post {
 		if post.user.id != user.id {
@@ -370,7 +370,7 @@ pub fn dependency_add(
 	dependency_id: i32,
 	user: User,
 ) -> Redirect {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	if owns_post(connection, id, user.id) {
 		add_dependency(connection, id, dependency_id);
 	}
@@ -384,7 +384,7 @@ pub fn dependency_remove(
 	dependency_id: i32,
 	user: User,
 ) -> Redirect {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	if owns_post(connection, id, user.id) {
 		remove_dependency(connection, id, dependency_id);
 	}
@@ -400,7 +400,7 @@ pub fn about(
 	Template::render(
 		"about",
 		context![
-			is_logged_in: is_logged_in(&mut connection.lock().unwrap(), cookies),
+			is_logged_in: is_logged_in(&mut get_connection(connection), cookies),
 			theme: get_theme(cookies),
 			is_admin: ADMINS.contains(&user.unwrap_or_default().id),
 			base_url: BASE_URL.to_string(),
@@ -415,7 +415,7 @@ pub fn liked(
 	offset: Option<i64>,
 	cookies: &CookieJar<'_>,
 ) -> Template {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	let posts = get_user_liked_posts(connection, user.id, offset.unwrap_or(0), *WEBUI_LIMIT);
 	Template::render(
 		"liked",
@@ -451,7 +451,7 @@ pub fn admin(
 	user: User,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	if !ADMINS.contains(&user.id) {
 		return Err(Redirect::to("/"));
 	}
@@ -472,7 +472,7 @@ pub fn admin(
 
 #[get("/posts/<id>/remove")]
 pub fn remove_post_admin(connection: &ConnectionState, user: User, id: i32) -> Redirect {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	if !ADMINS.contains(&user.id) {
 		return Redirect::to("/");
 	}
@@ -482,7 +482,7 @@ pub fn remove_post_admin(connection: &ConnectionState, user: User, id: i32) -> R
 
 #[get("/report/<id>/remove")]
 pub fn remove_report(connection: &ConnectionState, user: User, id: i32) -> Redirect {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	if !ADMINS.contains(&user.id) {
 		return Redirect::to("/");
 	}
@@ -500,7 +500,7 @@ pub fn report(
 	id: i32,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	let post = get_post(connection, id);
 	if let Ok(post) = post {
 		Ok(Template::render(
@@ -533,7 +533,7 @@ pub fn report_send(
 	cookies: &CookieJar<'_>,
 ) -> Redirect {
 	let reason = reason.replace("reason=", "");
-	let connection = &mut connection.lock().unwrap();
+	let connection = &mut get_connection(connection);
 	let _ = add_report(connection, id, user.id, reason);
 	Redirect::to("/")
 }

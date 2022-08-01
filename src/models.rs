@@ -1,4 +1,6 @@
 use super::schema::*;
+use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
+use diesel::PgConnection;
 use dotenv::dotenv;
 use jsonwebtoken::*;
 use lazy_static::lazy_static;
@@ -83,6 +85,15 @@ lazy_static! {
 	};
 }
 
+pub type ConnectionPool = Pool<ConnectionManager<PgConnection>>;
+pub type ConnectionState = rocket::State<ConnectionPool>;
+
+pub fn get_connection(
+	connection: &ConnectionState,
+) -> PooledConnection<ConnectionManager<PgConnection>> {
+	connection.get().unwrap()
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Theme {
 	pub id: i32,
@@ -118,8 +129,6 @@ pub struct Tag {
 	pub id: i32,
 	pub name: String,
 }
-
-pub type ConnectionState = rocket::State<std::sync::Mutex<diesel::PgConnection>>;
 
 #[derive(Serialize, Deserialize)]
 pub struct Token {
@@ -179,14 +188,11 @@ impl<'r> FromRequest<'r> for Verified {
 }
 
 impl User {
-	pub fn verify(
-		token: &str,
-		connection: &std::sync::Mutex<diesel::PgConnection>,
-	) -> Outcome<Self, GenericErorr> {
+	pub fn verify(token: &str, connection: &ConnectionPool) -> Outcome<Self, GenericErorr> {
 		let token_data = decode::<Token>(token, &DECODE_KEY, &Validation::default());
 		if let Ok(token_data) = token_data {
 			let result =
-				crate::users::get_user(&mut connection.lock().unwrap(), token_data.claims.user_id);
+				crate::users::get_user(&mut connection.get().unwrap(), token_data.claims.user_id);
 			match result {
 				Ok(user) => Outcome::Success(user),
 				Err(status) => Outcome::Failure((status, GenericErorr::Invalid)),
@@ -206,19 +212,13 @@ impl<'r> FromRequest<'r> for User {
 				None => Outcome::Failure((Status::Unauthorized, GenericErorr::Missing)),
 				Some(cookie) => {
 					let token = cookie.value();
-					let connection = request
-						.rocket()
-						.state::<std::sync::Mutex<diesel::PgConnection>>()
-						.unwrap();
+					let connection = request.rocket().state::<ConnectionPool>().unwrap();
 					Self::verify(token, connection)
 				}
 			},
 			Some(token) => {
 				let token = token.replace("Bearer ", "");
-				let connection = request
-					.rocket()
-					.state::<std::sync::Mutex<diesel::PgConnection>>()
-					.unwrap();
+				let connection = request.rocket().state::<ConnectionPool>().unwrap();
 				Self::verify(&token, connection)
 			}
 		}

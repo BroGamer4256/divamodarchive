@@ -3,10 +3,6 @@ id = 0
 name = "MM+"
 
 [[game_tags]]
-id = 1
-name = "AFT"
-
-[[game_tags]]
 id = 2
 name = "F"
 

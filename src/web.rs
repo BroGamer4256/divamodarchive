@@ -48,7 +48,7 @@ pub fn get_theme(cookies: &CookieJar<'_>) -> Theme {
 	let theme = cookies.get_pending("theme");
 	let theme_id = theme.map_or(0, |theme| theme.value().parse::<i32>().unwrap_or(0));
 	let theme_result = THEMES_TOML.themes.iter().find(|theme| theme.id == theme_id);
-	theme_result.map_or_else(|| Theme::default(), |theme| theme.clone())
+	theme_result.map_or_else(Theme::default, std::clone::Clone::clone)
 }
 
 #[get("/theme")]
@@ -365,6 +365,7 @@ pub fn dependency(
 	}
 }
 
+#[must_use]
 #[get("/posts/<id>/dependency/<dependency_id>")]
 pub fn dependency_add(
 	connection: &ConnectionState,
@@ -379,6 +380,7 @@ pub fn dependency_add(
 	Redirect::to(format!("/posts/{}", id))
 }
 
+#[must_use]
 #[get("/posts/<id>/dependency/<dependency_id>/remove")]
 pub fn dependency_remove(
 	connection: &ConnectionState,
@@ -457,10 +459,10 @@ pub fn admin(
 	user: User,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
-	let connection = &mut get_connection(connection);
 	if !ADMINS.contains(&user.id) {
 		return Err(Redirect::to("/"));
 	}
+	let connection = &mut get_connection(connection);
 	Ok(Template::render(
 		"admin",
 		context![
@@ -478,23 +480,23 @@ pub fn admin(
 	))
 }
 
+#[must_use]
 #[get("/posts/<id>/remove")]
 pub fn remove_post_admin(connection: &ConnectionState, user: User, id: i32) -> Redirect {
-	let connection = &mut get_connection(connection);
 	if !ADMINS.contains(&user.id) {
 		return Redirect::to("/");
 	}
-	delete_post(connection, id);
+	delete_post(&mut get_connection(connection), id);
 	Redirect::to("/admin")
 }
 
+#[must_use]
 #[get("/report/<id>/remove")]
 pub fn remove_report(connection: &ConnectionState, user: User, id: i32) -> Redirect {
-	let connection = &mut get_connection(connection);
 	if !ADMINS.contains(&user.id) {
 		return Redirect::to("/");
 	}
-	delete_report(connection, id);
+	delete_report(&mut get_connection(connection), id);
 	Redirect::to("/admin")
 }
 

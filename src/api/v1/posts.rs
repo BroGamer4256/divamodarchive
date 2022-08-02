@@ -202,6 +202,7 @@ pub fn like(connection: &ConnectionState, id: i32, user: User) -> Result<Json<Li
 	let result = like_post_from_ids(&mut get_connection(connection), user.id, id)?;
 	Ok(Json(result))
 }
+
 #[post("/<id>/dislike")]
 pub fn dislike(
 	connection: &ConnectionState,
@@ -214,6 +215,7 @@ pub fn dislike(
 
 // Add a dependency to the post with id on dependency
 // Return the updated post
+#[must_use]
 #[post("/<id>/dependency/<dependency>")]
 pub fn dependency(connection: &ConnectionState, id: i32, dependency: i32, user: User) -> Status {
 	let connection = &mut get_connection(connection);
@@ -260,6 +262,7 @@ pub fn popular(
 	Ok(Json(result))
 }
 
+#[must_use]
 #[delete("/<id>/delete")]
 pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
 	let connection = &mut get_connection(connection);
@@ -273,6 +276,7 @@ pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
 // Usage of this is a bit weird
 // /api/v1/posts/posts?post_id=1&post_id=2
 // Gets the details of posts with id 1 and 2
+#[must_use]
 #[get("/posts?<post_id>")]
 pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> Json<Vec<DetailedPost>> {
 	let connection = &mut get_connection(connection);
@@ -285,6 +289,7 @@ pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> Json<Vec<Detail
 	Json(result)
 }
 
+#[must_use]
 #[get("/post_count?<name>&<game_tag>")]
 pub fn post_count(
 	connection: &ConnectionState,

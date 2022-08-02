@@ -55,7 +55,7 @@ lazy_static! {
 	pub static ref TAG_TOML: TagToml = {
 		dotenv().ok();
 		let mut tag_file = std::fs::File::open(
-			env::var("TAG_TOML_PATH").unwrap_or(String::from("static/tags.toml")),
+			env::var("TAG_TOML_PATH").unwrap_or_else(|_| String::from("static/tags.toml")),
 		)
 		.expect("static/tags.toml must exist");
 		let mut tag_toml = String::new();
@@ -75,7 +75,7 @@ lazy_static! {
 	pub static ref THEMES_TOML: ThemeToml = {
 		dotenv().ok();
 		let mut theme_file = std::fs::File::open(
-			env::var("THEMES_TOML_PATH").unwrap_or(String::from("static/themes.toml")),
+			env::var("THEMES_TOML_PATH").unwrap_or_else(|_| String::from("static/themes.toml")),
 		)
 		.expect("static/themes.toml must exist");
 		let mut theme_toml = String::new();
@@ -102,6 +102,7 @@ lazy_static! {
 pub type ConnectionPool = Pool<ConnectionManager<PgConnection>>;
 pub type ConnectionState = rocket::State<ConnectionPool>;
 
+#[must_use]
 pub fn get_connection(
 	connection: &ConnectionState,
 ) -> PooledConnection<ConnectionManager<PgConnection>> {

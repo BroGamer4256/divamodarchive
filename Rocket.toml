@@ -11,5 +11,6 @@ port = 8000
 
 [release]
 port = 7000
-cli_colors = false
 temp_dir = "storage/temp"
+# For debugging
+# log_level = "normal"

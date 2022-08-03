@@ -120,6 +120,7 @@ pub const fn large_icon() -> (ContentType, &'static [u8]) {
 // The code ahead is very fucking jank, I'm sorry
 // This handles creating a dynamic sitemap xml
 // I know this is way too many structs but I can't figure out a better way
+// It's not performance critical anyways so /shrug
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "loc")]

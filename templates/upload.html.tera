@@ -39,7 +39,7 @@
 			body: JSON.stringify(post_data)
 		}
 
-		fetch('/api/v1/posts/edit?update_id=' + {{ update_id }}, options)
+		fetch_retry('/api/v1/posts/edit?update_id=' + {{ update_id }}, options, 3)
 			.then(response => response.json())
 		.then(data => {
 			window.location.href = "/posts/" + data['id']
@@ -48,21 +48,34 @@
 	}
 	{% endif %}
 
-	function upload() {
-		var form = document.getElementById("form")
+	const fetch_retry = (url, options, n) => fetch(url, options).catch(function(error) {
+		if (n == 0) throw error;
+		return fetch_retry(url, options, n - 1);
+	})
 
-		var image = form['imagePicker']
-		var archive = form['filePicker']
+	function crash_and_burn(error, message) {
+		alert(message + "\n" + error);
+		document.getElementById('upload_btn_div').classList.remove("disabled");
+		document.getElementById('upload_metadata_btn_div').classList.remove("disabled");
+		document.getElementById("progress").style.width = 0 + "%";
+		throw error;
+	}
+
+	function upload() {
+		var form = document.getElementById("form");
+
+		var image = form['imagePicker'];
+		var archive = form['filePicker'];
 		if (image.files.length != 1 || archive.files.length != 1) {
 			alert("Upload failed\nMissing image/archive");
-			return
+			return;
 		}
 
-		var name = form['title'].value
-		var text = form['text'].value
-		var text_short = form['text_short'].value
-		var game_tag = form['game_tag'].value
-		var type_tag = form['type_tag'].value
+		var name = form['title'].value;
+		var text = form['text'].value;
+		var text_short = form['text_short'].value;
+		var game_tag = form['game_tag'].value;
+		var type_tag = form['type_tag'].value;
 		if (title == "" || text == "" || text_short == "") {
 			alert("Upload failed\nMissing text fields");
 			return
@@ -80,12 +93,12 @@
 				'Authorization': 'Bearer {{ jwt }}'
 			},
 		}
-		fetch('/api/v1/posts/upload_image', options)
+		fetch_retry('/api/v1/posts/upload_image', options, 3)
 			.then(response => response.json())
 			.then(image_upload_url => async function (image_upload_url) {
 				if (image_upload_url == null) {
 					alert("Image upload failed");
-					return
+					return;
 				}
 				var image_form = new FormData();
 				image_form.append('file', image.files[0]);
@@ -96,7 +109,7 @@
 					},
 					body: image_form
 				}
-				fetch(image_upload_url, options)
+				fetch_retry(image_upload_url, options, 3)
 					.then(response => response.json())
 					.then(result => async function (result) {
 						var image_url = result.result.variants[0]
@@ -116,7 +129,7 @@
 									'Authorization': 'Bearer {{ jwt }}'
 								}
 							}
-							var response = await fetch('/api/v1/posts/upload_image', options);
+							var response = await fetch_retry('/api/v1/posts/upload_image', options, 3);
 							var extra_image_upload_url = await response.json();
 							if (extra_image_upload_url == null) {
 								alert("Image upload failed\nMaximum size for images is 10MiB");
@@ -131,7 +144,7 @@
 								},
 								body: extra_image_form
 							}
-							var response = await fetch(extra_image_upload_url, options);
+							var response = await fetch_retry(extra_image_upload_url, options, 3);
 							var result = await response.json();
 							if (result == null) {
 								alert("Image upload failed\nMaximum size for images is 10MiB");
@@ -163,11 +176,12 @@
 								},
 								body: chunk
 							}
-							fetch("/api/v1/posts/upload_archive_chunk?name=" + file.name + "&chunk=" + i, options)
+							fetch_retry("/api/v1/posts/upload_archive_chunk?name=" + file.name + "&chunk=" + i, options, 10)
 								.then(response => {
 									if (response.status != 200) {
+										console.log(response);
 										alert("Archive chunk upload failed");
-										return
+										return;
 									}
 									chunksCompleted++;
 									document.getElementById("progress").style.width = chunksCompleted / chunkCount * 100 + "%";
@@ -179,7 +193,7 @@
 												'Authorization': 'Bearer {{ jwt }}'
 											},
 										},
-											fetch("/api/v1/posts/finish_upload_archive_chunk?name=" + file.name, options)
+										fetch_retry("/api/v1/posts/finish_upload_archive_chunk?name=" + file.name, options, 10)
 												.then(response => response.json())
 												.then(archive_url => {
 													let post_data = {
@@ -202,26 +216,26 @@
 														body: JSON.stringify(post_data)
 													}
 													{% if update_id %}
-													fetch('/api/v1/posts/upload?update_id={{update_id}}', options)
+													fetch_retry('/api/v1/posts/upload?update_id={{update_id}}', options, 10)
 													{% else %}
-													fetch('/api/v1/posts/upload', options)
+													fetch_retry('/api/v1/posts/upload', options, 10)
 													{% endif %}
-												.then(response => response.json())
+														.then(response => response.json())
 														.then(data => {
 															window.location.href = "/posts/" + data['id']
 														})
-														.catch(error => alert("Unknown error when uploading"))
+														.catch(error => crash_and_burn("Unknown error when uploading"))
 												})
-												.catch(error => alert("Unknown error when uploading"))
+												.catch(error => crash_and_burn("Unknown error when uploading"))
 									}
 								})
-								.catch(error => alert("Unknown error when uploading"))
+								.catch(error => crash_and_burn("Unknown error when uploading"))
 						}
 					}(result))
 					// Errors but just fucking continues?????
 					.catch()
 			}(image_upload_url))
-			.catch(error => alert("Failed to upload image"))
+			.catch(error => crash_and_burn("Failed to upload image"))
 	}
 </script>
 <form id="form" class="row align-items-md-stretch gap-3" enctype="application/x-www-form-urlencoded">

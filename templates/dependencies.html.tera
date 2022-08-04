@@ -16,5 +16,5 @@
 	type_tag=type_tag.name) }}
 	{% endfor %}
 </div>
-{{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 20) }}
+{{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 20, order=previous_sort, name=previous_search) }}
 {% endblock content %}

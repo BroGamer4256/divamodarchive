@@ -102,7 +102,6 @@ lazy_static! {
 pub type ConnectionPool = Pool<ConnectionManager<PgConnection>>;
 pub type ConnectionState = rocket::State<ConnectionPool>;
 
-#[must_use]
 pub fn get_connection(
 	connection: &ConnectionState,
 ) -> PooledConnection<ConnectionManager<PgConnection>> {
@@ -152,7 +151,6 @@ pub struct Token {
 	pub user_id: i64,
 }
 
-#[must_use]
 pub fn create_jwt(user_id: i64) -> String {
 	let time = chrono::offset::Utc::now().timestamp();
 	let token_data = Token {

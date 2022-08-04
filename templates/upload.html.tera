@@ -48,7 +48,13 @@
 	}
 	{% endif %}
 
-	const fetch_retry = (url, options, n) => fetch(url, options).catch(function(error) {
+	const fetch_retry = (url, options, n) => fetch(url, options).then(response => {
+		if (response.status != 200) {
+			if (n == 0) return Promise.reject(response);
+			else return fetch_retry(url, options, n - 1);
+		}
+		return Promise.resolve(response);
+	}).catch(error => {
 		if (n == 0) throw error;
 		return fetch_retry(url, options, n - 1);
 	})
@@ -56,7 +62,9 @@
 	function crash_and_burn(error, message) {
 		alert(message + "\n" + error);
 		document.getElementById('upload_btn_div').classList.remove("disabled");
+		{% if update_id %}
 		document.getElementById('upload_metadata_btn_div').classList.remove("disabled");
+		{% endif %}
 		document.getElementById("progress").style.width = 0 + "%";
 		throw error;
 	}
@@ -86,7 +94,7 @@
 		document.getElementById('upload_metadata_btn_div').classList.add("disabled")
 		{% endif %}
 
-		options = {
+		var options = {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'text/plain',
@@ -176,7 +184,7 @@
 								},
 								body: chunk
 							}
-							fetch_retry("/api/v1/posts/upload_archive_chunk?name=" + file.name + "&chunk=" + i, options, 10)
+							fetch_retry("/api/v1/posts/upload_archive_chunk?name=" + file.name + "&chunk=" + i, options, 5)
 								.then(response => {
 									if (response.status != 200) {
 										console.log(response);
@@ -193,7 +201,7 @@
 												'Authorization': 'Bearer {{ jwt }}'
 											},
 										},
-										fetch_retry("/api/v1/posts/finish_upload_archive_chunk?name=" + file.name, options, 10)
+										fetch_retry("/api/v1/posts/finish_upload_archive_chunk?name=" + file.name, options, 5)
 												.then(response => response.json())
 												.then(archive_url => {
 													let post_data = {
@@ -216,9 +224,9 @@
 														body: JSON.stringify(post_data)
 													}
 													{% if update_id %}
-													fetch_retry('/api/v1/posts/upload?update_id={{update_id}}', options, 10)
+													fetch_retry('/api/v1/posts/upload?update_id={{update_id}}', options, 5)
 													{% else %}
-													fetch_retry('/api/v1/posts/upload', options, 10)
+													fetch_retry('/api/v1/posts/upload', options, 5)
 													{% endif %}
 														.then(response => response.json())
 														.then(data => {

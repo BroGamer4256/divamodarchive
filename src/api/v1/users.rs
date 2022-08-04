@@ -151,7 +151,6 @@ pub fn popular(
 	Ok(Json(result))
 }
 
-#[must_use]
 #[delete("/delete")]
 pub fn delete(connection: &ConnectionState, user: User) -> Status {
 	delete_user(&mut get_connection(connection), user.id)

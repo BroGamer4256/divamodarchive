@@ -56,16 +56,16 @@ game_tag="MM+", type_tag="Other") %}
 </div>
 {% endmacro draw_post_short %}
 
-{% macro draw_buttons(current_offset, draw_forward) %}
+{% macro draw_buttons(current_offset, draw_forward, order="latest", game_tag=0, name="") %}
 <br>
 <div class="d-flex justify-content-evenly">
 	{% if current_offset != 0 %}
-	<a class="nav-link" href="?offset={{ current_offset - 20 }}">
+	<a class="nav-link" href="?offset={{ current_offset - 20 }}&order={{ order }}&game_tag={{ game_tag }}&name={{ name }}">
 		<button class="btn btn-lg btn-secondary" type="button">Previous</button>
 	</a>
 	{% endif %}
 	{% if draw_forward %}
-	<a class="nav-link" href="?offset={{ current_offset + 20 }}">
+	<a class="nav-link" href="?offset={{ current_offset + 20 }}&order={{ order }}&game_tag={{ game_tag }}&name={{ name }}">
 		<button class="btn btn-lg btn-secondary" type="button">Next</button>
 	</a>
 	{% endif %}

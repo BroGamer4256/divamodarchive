@@ -365,7 +365,6 @@ pub fn dependency(
 	}
 }
 
-#[must_use]
 #[get("/posts/<id>/dependency/<dependency_id>")]
 pub fn dependency_add(
 	connection: &ConnectionState,
@@ -380,7 +379,6 @@ pub fn dependency_add(
 	Redirect::to(format!("/posts/{}", id))
 }
 
-#[must_use]
 #[get("/posts/<id>/dependency/<dependency_id>/remove")]
 pub fn dependency_remove(
 	connection: &ConnectionState,
@@ -480,7 +478,6 @@ pub fn admin(
 	))
 }
 
-#[must_use]
 #[get("/posts/<id>/remove")]
 pub fn remove_post_admin(connection: &ConnectionState, user: User, id: i32) -> Redirect {
 	if !ADMINS.contains(&user.id) {
@@ -490,7 +487,6 @@ pub fn remove_post_admin(connection: &ConnectionState, user: User, id: i32) -> R
 	Redirect::to("/admin")
 }
 
-#[must_use]
 #[get("/report/<id>/remove")]
 pub fn remove_report(connection: &ConnectionState, user: User, id: i32) -> Redirect {
 	if !ADMINS.contains(&user.id) {

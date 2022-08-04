@@ -96,13 +96,11 @@ pub fn rocket() -> _ {
 		.attach(Template::fairing())
 }
 
-#[must_use]
 #[get("/robots.txt")]
 pub const fn robots() -> &'static str {
 	"User-agent: *\nDisallow: /api/\nSitemap: /sitemap.xml"
 }
 
-#[must_use]
 #[get("/favicon.ico")]
 pub const fn favicon() -> (ContentType, &'static [u8]) {
 	(
@@ -111,7 +109,6 @@ pub const fn favicon() -> (ContentType, &'static [u8]) {
 	)
 }
 
-#[must_use]
 #[get("/large_icon.png")]
 pub const fn large_icon() -> (ContentType, &'static [u8]) {
 	(ContentType::PNG, include_bytes!("../static/DMA_BLACK.png"))
@@ -158,7 +155,6 @@ pub struct Urlset {
 	pub xmlns: String,
 }
 
-#[must_use]
 #[get("/sitemap.xml")]
 pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 	let ids = posts::get_post_ids(&mut models::get_connection(connection));
@@ -209,7 +205,6 @@ pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 	(ContentType::XML, xml)
 }
 
-#[must_use]
 #[get("/storage/<user_id>/<file_type>/<file_name>")]
 pub fn get_from_storage(
 	connection: &models::ConnectionState,

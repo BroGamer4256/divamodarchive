@@ -17,5 +17,5 @@ previous_game_tag=previous_game_tag) }}
 	}}
 	{% endfor %}
 </div>
-{{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 20) }}
+{{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 20, order=previous_sort, game_tag=previous_game_tag, name=previous_search) }}
 {% endblock content %}

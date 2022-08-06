@@ -500,7 +500,7 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Posts",
+						"description": "All posts in the query were found",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -511,6 +511,22 @@
 								}
 							}
 						}
+					},
+					"206": {
+						"description": "Some of the posts in the query were found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/DetailedPost"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "None of the posts were found"
 					}
 				}
 			}

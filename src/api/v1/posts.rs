@@ -232,15 +232,19 @@ pub fn latest(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
-) -> Result<Json<Vec<DetailedPost>>, Status> {
+) -> (Status, Json<Vec<DetailedPost>>) {
 	let result = get_latest_posts_detailed(
 		&mut get_connection(connection),
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	)?;
-	Ok(Json(result))
+	);
+	if let Ok(result) = result {
+		(Status::Ok, Json(result))
+	} else {
+		(Status::NotFound, Json(vec![]))
+	}
 }
 
 #[get("/popular?<name>&<offset>&<game_tag>&<limit>")]
@@ -250,15 +254,19 @@ pub fn popular(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
-) -> Result<Json<Vec<DetailedPost>>, Status> {
+) -> (Status, Json<Vec<DetailedPost>>) {
 	let result = get_popular_posts_detailed(
 		&mut get_connection(connection),
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	)?;
-	Ok(Json(result))
+	);
+	if let Ok(result) = result {
+		(Status::Ok, Json(result))
+	} else {
+		(Status::NotFound, Json(vec![]))
+	}
 }
 
 #[delete("/<id>/delete")]
@@ -275,15 +283,21 @@ pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
 // /api/v1/posts/posts?post_id=1&post_id=2
 // Gets the details of posts with id 1 and 2
 #[get("/posts?<post_id>")]
-pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> Json<Vec<DetailedPost>> {
+pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> (Status, Json<Vec<DetailedPost>>) {
 	let connection = &mut get_connection(connection);
-	let mut result = Vec::new();
-	for id in post_id {
-		if let Ok(post) = get_post(connection, id) {
-			result.push(post);
-		}
+	let count = post_id.len();
+	let result = post_id
+		.iter()
+		.map(|id| get_post(connection, *id))
+		.filter_map(|post| post.ok())
+		.collect::<Vec<_>>();
+	if result.is_empty() {
+		(Status::NotFound, Json(result))
+	} else if result.len() != count {
+		(Status::PartialContent, Json(result))
+	} else {
+		(Status::Ok, Json(result))
 	}
-	Json(result)
 }
 
 #[get("/post_count?<name>&<game_tag>")]

@@ -287,8 +287,7 @@ pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> (Status, Json<V
 	let connection = &mut get_connection(connection);
 	let result = post_id
 		.iter()
-		.map(|id| get_post(connection, *id))
-		.filter_map(|post| post.ok())
+		.filter_map(|id| get_post(connection, *id).ok())
 		.collect::<Vec<_>>();
 	if result.is_empty() {
 		(Status::NotFound, Json(result))

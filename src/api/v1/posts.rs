@@ -6,6 +6,7 @@ use crate::models::*;
 use crate::posts::*;
 use rocket::fs::TempFile;
 use rocket::http::Status;
+use rocket::response::stream::{Event, EventStream};
 use rocket::serde::json::Json;
 use serde::Deserialize;
 use serde::Serialize;
@@ -79,71 +80,73 @@ pub async fn upload_archive_chunk(
 
 // For this function, fuck rewriting it to remove unwraps
 #[post("/finish_upload_archive_chunk?<name>")]
-pub fn finish_upload_archive_chunk(name: String, user: User) -> Result<Json<String>, Status> {
-	let merged_file = File::create(format!("storage/{}/posts/{}", user.id, name));
-	if merged_file.is_err() {
-		return Err(Status::InternalServerError);
-	}
-	let mut merged_file = merged_file.unwrap();
-	let files = std::fs::read_dir(format!("storage/{}/posts/{}_chunks", user.id, name));
-	if files.is_err() {
-		return Err(Status::InternalServerError);
-	}
-	let files = files
-		.unwrap()
-		.map(|res| res.map(|e| e.path()))
-		.collect::<Result<Vec<_>, std::io::Error>>();
-	if files.is_err() {
-		return Err(Status::InternalServerError);
-	}
-	let mut files = files.unwrap();
-
-	// Sort files numerically
-	files.sort_by(|a, b| {
-		let a: &u32 = &a
-			.file_name()
-			.unwrap_or_default()
-			.to_str()
-			.unwrap_or_default()
-			.parse()
-			.unwrap_or_default();
-		let b: &u32 = &b
-			.file_name()
-			.unwrap_or_default()
-			.to_str()
-			.unwrap_or_default()
-			.parse()
-			.unwrap_or_default();
-		a.cmp(b)
-	});
-
-	for entry in files {
-		let file = File::open(entry);
-		if file.is_err() {
-			return Err(Status::InternalServerError);
+pub fn finish_upload_archive_chunk(name: String, user: User) -> EventStream![] {
+	EventStream! {
+		let merged_file = File::create(format!("storage/{}/posts/{}", user.id, name));
+		if merged_file.is_err() {
+			return yield Event::data("Cannot create file");
 		}
-		let mut file = file.unwrap();
-		let mut buffer = [0u8; 1024];
-		loop {
-			let read = file.read(&mut buffer);
-			if read.is_err() {
-				return Err(Status::InternalServerError);
+		let mut merged_file = merged_file.unwrap();
+		let files = std::fs::read_dir(format!("storage/{}/posts/{}_chunks", user.id, name));
+		if files.is_err() {
+			return yield Event::data("Cannot read directory");
+		}
+		let files = files
+			.unwrap()
+			.map(|res| res.map(|e| e.path()))
+			.collect::<Result<Vec<_>, std::io::Error>>();
+		if files.is_err() {
+			return yield Event::data("Cannot collect files");
+		}
+		let mut files = files.unwrap();
+
+		// Sort files numerically
+		files.sort_by(|a, b| {
+			let a: &u32 = &a
+				.file_name()
+				.unwrap_or_default()
+				.to_str()
+				.unwrap_or_default()
+				.parse()
+				.unwrap_or_default();
+			let b: &u32 = &b
+				.file_name()
+				.unwrap_or_default()
+				.to_str()
+				.unwrap_or_default()
+				.parse()
+				.unwrap_or_default();
+			a.cmp(b)
+		});
+
+		for entry in files {
+			let file = File::open(entry);
+			if file.is_err() {
+				return yield Event::data("Cannot open file");
 			}
-			let read = read.unwrap();
-			if read == 0 {
-				break;
-			}
-			let result = merged_file.write_all(&buffer[..read]);
-			if result.is_err() {
-				return Err(Status::InternalServerError);
+			let mut file = file.unwrap();
+			let mut buffer = [0u8; 1024];
+			loop {
+				let read = file.read(&mut buffer);
+				if read.is_err() {
+					return yield Event::data("Cannot read file");
+				}
+				let read = read.unwrap();
+				if read == 0 {
+					break;
+				}
+				let result = merged_file.write_all(&buffer[..read]);
+				if result.is_err() {
+					return yield Event::data("Cannot write to file");
+				}
 			}
 		}
+		let _result = std::fs::remove_dir_all(format!("storage/{}/posts/{}_chunks", user.id, name));
+		yield Event::data(format!(
+			"{}/storage/{}/posts/{}",
+			*BASE_URL, user.id, name
+		))
 	}
-	let _result = std::fs::remove_dir_all(format!("storage/{}/posts/{}_chunks", user.id, name));
-	Ok(Json(format!(
-		"{}/storage/{}/posts/{}",
-		*BASE_URL, user.id, name
-	)))
 }
 
 #[post("/upload?<update_id>", data = "<post>")]

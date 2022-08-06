@@ -168,7 +168,11 @@
 						var chunkCount = Math.ceil(file.size / chunkSize);
 						var chunkStart = 0;
 						var chunksCompleted = 0;
+						var runningChunks = 0;
 						for (var i = 0; i < chunkCount; i++) {
+							while (runningChunks >= 10) {
+								await new Promise(resolve => setTimeout(resolve, 1000));
+							}
 							var chunkEnd = chunkStart + chunkSize;
 							chunkEnd = Math.min(chunkEnd, file.size);
 							if (chunkEnd == file.size) {
@@ -184,8 +188,10 @@
 								},
 								body: chunk
 							}
+							runningChunks++;
 							fetch_retry("/api/v1/posts/upload_archive_chunk?name=" + file.name + "&chunk=" + i, options, 5)
 								.then(response => {
+									runningChunks--;
 									if (response.status != 200) {
 										console.log(response);
 										alert("Archive chunk upload failed");
@@ -202,8 +208,9 @@
 											},
 										},
 										fetch_retry("/api/v1/posts/finish_upload_archive_chunk?name=" + file.name, options, 5)
-												.then(response => response.json())
-												.then(archive_url => {
+												.then(response => response.text())
+												.then(data => {
+													let archive_url = data.replace("data:", '');
 													let post_data = {
 														'name': name,
 														'text': text,

@@ -285,7 +285,6 @@ pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
 #[get("/posts?<post_id>")]
 pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> (Status, Json<Vec<DetailedPost>>) {
 	let connection = &mut get_connection(connection);
-	let count = post_id.len();
 	let result = post_id
 		.iter()
 		.map(|id| get_post(connection, *id))
@@ -293,7 +292,7 @@ pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> (Status, Json<V
 		.collect::<Vec<_>>();
 	if result.is_empty() {
 		(Status::NotFound, Json(result))
-	} else if result.len() != count {
+	} else if result.len() != post_id.len() {
 		(Status::PartialContent, Json(result))
 	} else {
 		(Status::Ok, Json(result))

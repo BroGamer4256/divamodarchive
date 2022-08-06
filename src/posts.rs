@@ -821,3 +821,34 @@ pub fn get_post_ids(conn: &mut PgConnection) -> Vec<i32> {
 		.load::<i32>(conn)
 		.unwrap_or_else(|_| vec![])
 }
+
+pub fn get_posts_detailed(
+	connection: &mut PgConnection,
+	ids: Vec<i32>,
+) -> Vec<DetailedPostNoDepends> {
+	posts::table
+		.filter(posts::post_id.eq_any(ids))
+		.inner_join(users::table)
+		.left_join(users_liked_posts::table)
+		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+		.group_by((posts::post_id, users::user_id))
+		.select((
+			posts::post_id,
+			posts::post_name,
+			posts::post_text,
+			posts::post_text_short,
+			posts::post_image,
+			posts::post_images_extra,
+			posts::post_link,
+			posts::post_date,
+			posts::post_game_tag,
+			posts::post_type_tag,
+			count_distinct(users_liked_posts::user_id.nullable()),
+			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
+			(users::user_id, users::user_name, users::user_avatar),
+		))
+		.load::<DetailedPostNoDepends>(connection)
+		.unwrap_or(vec![])
+}

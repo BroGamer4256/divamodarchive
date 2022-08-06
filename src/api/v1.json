@@ -506,7 +506,7 @@
 								"schema": {
 									"type": "array",
 									"items": {
-										"$ref": "#/components/schemas/DetailedPost"
+										"$ref": "#/components/schemas/DetailedPostNoDepends"
 									}
 								}
 							}
@@ -519,7 +519,7 @@
 								"schema": {
 									"type": "array",
 									"items": {
-										"$ref": "#/components/schemas/DetailedPost"
+										"$ref": "#/components/schemas/DetailedPostNoDepends"
 									}
 								}
 							}

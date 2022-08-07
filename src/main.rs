@@ -15,7 +15,7 @@ pub mod web;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use dotenv::dotenv;
-use rocket::http::{ContentType, Status};
+use rocket::http::ContentType;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::*;
 use rocket_dyn_templates::Template;
@@ -211,11 +211,11 @@ pub fn get_from_storage(
 	user_id: i64,
 	file_type: &str,
 	file_name: &str,
-) -> Option<(Status, (ContentType, std::fs::File))> {
+) -> Option<(ContentType, std::fs::File)> {
 	let file = format!("storage/{}/{}/{}", user_id, file_type, file_name);
 	if file_type == "posts" {
 		let path = format!("{}/{}", *models::BASE_URL, file);
-		let _ = posts::update_download_count(&mut models::get_connection(connection), path);
+		let _result = posts::update_download_count(&mut models::get_connection(connection), path);
 	}
 	let file = std::fs::File::open(file);
 	if file.is_err() {
@@ -228,7 +228,7 @@ pub fn get_from_storage(
 			"images" => ContentType::PNG,
 			_ => return None,
 		};
-		Some((Status::Ok, (content_type, file)))
+		Some((content_type, file))
 	} else {
 		None
 	}

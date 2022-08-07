@@ -210,7 +210,7 @@
 										fetch_retry("/api/v1/posts/finish_upload_archive_chunk?name=" + file.name, options, 5)
 												.then(response => response.text())
 												.then(data => {
-													let archive_url = data.replace("data:", '');
+													let archive_url = data.replace("data:", '').replaceAll('\n', '');
 													let post_data = {
 														'name': name,
 														'text': text,

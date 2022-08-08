@@ -37,13 +37,13 @@ game_tag="MM+", type_tag="Other") %}
 				<h5 class="text">{{ name | striptags | truncate(length=20) }}</h5>
 				<div class="row">
 					{% if likes != -1 %}
-					<h7 class="col-md-6 text">{{ likes }}👍{{ dislikes }}👎<br>DLs: {{ downloads }}</h7>
+					<div class="col-md-6 text">{{ likes }}👍{{ dislikes }}👎<br>DLs: {{ downloads }}</div>
 					{% elif downloads != -1 %}
-					<h7 class="col-md-6 text">DLs: {{ downloads }}</h7>
+					<div class="col-md-6 text">DLs: {{ downloads }}</div>
 					{% endif %}
-					<h7 class="col-md-6 text text-align-right-md">
+					<div class="col-md-6 text text-align-right-md">
 						{{ type_tag }}
-					</h7>
+					</div>
 				</div>
 			</div>
 		</a>

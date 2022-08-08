@@ -203,15 +203,15 @@ impl<'r> FromRequest<'r> for Verified {
 impl User {
 	pub fn verify(token: &str, connection: &ConnectionPool) -> Outcome<Self, GenericErorr> {
 		let token_data = decode::<Token>(token, &DECODE_KEY, &Validation::default());
-		if let Ok(token_data) = token_data {
-			let result =
-				crate::users::get_user(&mut connection.get().unwrap(), token_data.claims.user_id);
-			match result {
-				Ok(user) => Outcome::Success(user),
-				Err(status) => Outcome::Failure((status, GenericErorr::Invalid)),
-			}
-		} else {
-			Outcome::Failure((Status::Unauthorized, GenericErorr::Invalid))
+		let token_data = match token_data {
+			Ok(token_data) => token_data,
+			Err(_) => return Outcome::Failure((Status::Unauthorized, GenericErorr::Invalid)),
+		};
+		let result =
+			crate::users::get_user(&mut connection.get().unwrap(), token_data.claims.user_id);
+		match result {
+			Ok(user) => Outcome::Success(user),
+			Err(status) => Outcome::Failure((status, GenericErorr::Invalid)),
 		}
 	}
 }

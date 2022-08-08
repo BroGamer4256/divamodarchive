@@ -68,45 +68,50 @@ pub async fn login(
 		.form(&params)
 		.send()
 		.await;
-	if let Ok(response) = response {
-		if !response.status().is_success() {
-			return Err(Status::BadRequest);
-		};
-		let response: DiscordTokenResponse = response.json().await.unwrap_or_default();
-		let response = reqwest::Client::new()
-			.get("https://discord.com/api/users/@me")
-			.header(
-				"authorization",
-				format!("{} {}", response.token_type, response.access_token),
-			)
-			.send()
-			.await;
-		if let Ok(response) = response {
-			if !response.status().is_success() {
-				return Err(Status::BadRequest);
-			}
-			let response: DiscordUser = response.json().await.unwrap_or_default();
-			let id: i64 = response.id.parse().unwrap_or_default();
-			let avatar = if let Some(avatar) = response.avatar {
-				format!("https://cdn.discordapp.com/avatars/{}/{}.png", id, avatar)
-			} else {
-				let discriminator: i32 = response.discriminator.parse().unwrap_or_default();
-				format!(
-					"https://cdn.discordapp.com/embed/avatars/{}.png",
-					discriminator % 5
-				)
-			};
-			create_user(
-				&mut get_connection(connection),
-				id,
-				&response.username,
-				&avatar,
-			)?;
+	let response = match response {
+		Ok(response) => response,
+		Err(_) => return Err(Status::BadRequest),
+	};
+	if !response.status().is_success() {
+		return Err(Status::BadRequest);
+	};
+	let response: DiscordTokenResponse = response.json().await.unwrap_or_default();
+	let response = reqwest::Client::new()
+		.get("https://discord.com/api/users/@me")
+		.header(
+			"authorization",
+			format!("{} {}", response.token_type, response.access_token),
+		)
+		.send()
+		.await;
 
-			return Ok(create_jwt(id));
-		}
+	let response = match response {
+		Ok(response) => response,
+		Err(_) => return Err(Status::BadRequest),
+	};
+	if !response.status().is_success() {
+		return Err(Status::BadRequest);
 	}
-	Err(Status::BadRequest)
+
+	let response: DiscordUser = response.json().await.unwrap_or_default();
+	let id: i64 = response.id.parse().unwrap_or_default();
+	let avatar = if let Some(avatar) = response.avatar {
+		format!("https://cdn.discordapp.com/avatars/{}/{}.png", id, avatar)
+	} else {
+		let discriminator: i32 = response.discriminator.parse().unwrap_or_default();
+		format!(
+			"https://cdn.discordapp.com/embed/avatars/{}.png",
+			discriminator % 5
+		)
+	};
+	create_user(
+		&mut get_connection(connection),
+		id,
+		&response.username,
+		&avatar,
+	)?;
+
+	return Ok(create_jwt(id));
 }
 
 #[get("/<id>")]

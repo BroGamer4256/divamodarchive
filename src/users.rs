@@ -19,10 +19,9 @@ pub fn create_user<'a>(
 		let result = diesel::update(users::table.filter(users::user_id.eq(id)))
 			.set((users::user_name.eq(name), users::user_avatar.eq(avatar)))
 			.get_result(conn);
-		if let Ok(result) = result {
-			Ok(result)
-		} else {
-			Err(Status::InternalServerError)
+		match result {
+			Ok(user) => Ok(user),
+			Err(_) => Err(Status::InternalServerError),
 		}
 	} else {
 		let new_user = NewUser {
@@ -33,10 +32,9 @@ pub fn create_user<'a>(
 		let result = diesel::insert_into(users::table)
 			.values(&new_user)
 			.get_result(conn);
-		if let Ok(result) = result {
-			Ok(result)
-		} else {
-			Err(Status::InternalServerError)
+		match result {
+			Ok(user) => Ok(user),
+			Err(_) => Err(Status::InternalServerError),
 		}
 	}
 }
@@ -55,10 +53,9 @@ pub fn delete_user(conn: &mut PgConnection, id: i64) -> Status {
 pub fn get_user(conn: &mut PgConnection, id: i64) -> Result<User, Status> {
 	let result = users::table.filter(users::user_id.eq(id)).get_result(conn);
 
-	if let Ok(result) = result {
-		Ok(result)
-	} else {
-		Err(Status::NotFound)
+	match result {
+		Ok(user) => Ok(user),
+		Err(_) => Err(Status::InternalServerError),
 	}
 }
 

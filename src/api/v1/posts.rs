@@ -35,17 +35,24 @@ pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
 		.multipart(params)
 		.send()
 		.await;
-	if let Ok(response) = response {
-		if response.status().is_success() {
-			let response: Result<CloudflareDirectUpload, _> = response.json().await;
-			if let Ok(response) = response {
-				if response.success {
-					return Ok(Json(response.result.uploadURL));
-				}
-			}
-		}
+
+	let response = match response {
+		Ok(response) => response,
+		Err(_) => return Err(Status::InternalServerError),
+	};
+	if !response.status().is_success() {
+		return Err(Status::InternalServerError);
 	}
-	Err(Status::InternalServerError)
+	let response: Result<CloudflareDirectUpload, _> = response.json().await;
+	let response = match response {
+		Ok(response) => response,
+		Err(_) => return Err(Status::InternalServerError),
+	};
+	if !response.success {
+		Err(Status::InternalServerError)
+	} else {
+		Ok(Json(response.result.uploadURL))
+	}
 }
 
 // Return signed URL that allows javascript frontend to upload file to S3 bucket
@@ -219,7 +226,8 @@ pub fn posts(
 	if result.is_empty() {
 		(Status::NotFound, Json(result))
 	} else if result.len() != count {
-		(Status::PartialContent, Json(result))
+		// (Status::PartialContent, Json(result))
+		(Status::Ok, Json(result))
 	} else {
 		(Status::Ok, Json(result))
 	}

@@ -211,6 +211,9 @@ pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 	(ContentType::XML, xml)
 }
 
+// Change to not use file_type? This is just used for archives now so its a bit redundant
+// To change this you need to run through the database and templates/upload.html.tera
+// A big advantage of this would be being able to reuse the first formatted file in the S3 call
 #[get("/storage/<user_id>/<file_type>/<file_name>")]
 pub async fn get_from_storage(
 	connection: &models::ConnectionState,
@@ -219,11 +222,9 @@ pub async fn get_from_storage(
 	file_name: &str,
 	s3: &State<aws_sdk_s3::Client>,
 ) -> Option<response::Redirect> {
-	let file = format!("storage/{}/{}/{}", user_id, file_type, file_name);
-	if file_type == "posts" {
-		let path = format!("{}/{}", *models::BASE_URL, file);
-		let _result = posts::update_download_count(&mut models::get_connection(connection), path);
-	}
+	let file = format!("{}/{}/{}", user_id, file_type, file_name);
+	let path = format!("{}/storage/{}", *models::BASE_URL, file);
+	let _result = posts::update_download_count(&mut models::get_connection(connection), path);
 	let file = s3
 		.get_object()
 		.bucket("divamodarchive")
@@ -238,10 +239,7 @@ pub async fn get_from_storage(
 
 	let file = match file {
 		Ok(file) => file,
-		Err(e) => {
-			println!("{}", e);
-			return None;
-		}
+		Err(_) => return None,
 	};
 
 	Some(response::Redirect::to(file.uri().to_string()))

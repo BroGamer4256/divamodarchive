@@ -32,10 +32,10 @@ pub fn create_post(
 			))
 			.get_result::<Post>(conn);
 
-		if let Ok(result) = result {
-			return Ok(result);
-		}
-		return Err(Status::InternalServerError);
+		match result {
+			Ok(post) => return Ok(post),
+			Err(_) => return Err(Status::InternalServerError),
+		};
 	}
 
 	let new_post = NewPost {
@@ -54,10 +54,9 @@ pub fn create_post(
 		.values(&new_post)
 		.get_result(conn);
 
-	if let Ok(result) = result {
-		Ok(result)
-	} else {
-		Err(Status::InternalServerError)
+	match result {
+		Ok(post) => Ok(post),
+		Err(_) => Err(Status::InternalServerError),
 	}
 }
 
@@ -76,10 +75,9 @@ pub fn update_post(
 		))
 		.get_result::<Post>(conn);
 
-	if let Ok(result) = result {
-		Ok(result)
-	} else {
-		Err(Status::InternalServerError)
+	match result {
+		Ok(post) => Ok(post),
+		Err(_) => Err(Status::InternalServerError),
 	}
 }
 
@@ -107,10 +105,10 @@ pub fn like_post_from_ids(
 				.filter(users_liked_posts::post_id.eq(post_id)),
 		)
 		.get_result::<LikedPost>(conn);
-		if let Ok(result) = result {
-			return Ok(result);
+		match result {
+			Ok(liked_post) => return Ok(liked_post),
+			Err(_) => return Err(Status::InternalServerError),
 		}
-		return Err(Status::InternalServerError);
 	}
 
 	let has_disliked = users_disliked_posts::table
@@ -130,10 +128,9 @@ pub fn like_post_from_ids(
 		.values(&new_like)
 		.get_result::<LikedPost>(conn);
 
-	if let Ok(result) = result {
-		Ok(result)
-	} else {
-		Err(Status::InternalServerError)
+	match result {
+		Ok(liked_post) => Ok(liked_post),
+		Err(_) => Err(Status::InternalServerError),
 	}
 }
 
@@ -161,10 +158,10 @@ pub fn dislike_post_from_ids(
 				.filter(users_disliked_posts::post_id.eq(post_id)),
 		)
 		.get_result::<DislikedPost>(conn);
-		if let Ok(result) = result {
-			return Ok(result);
+		match result {
+			Ok(disliked_post) => return Ok(disliked_post),
+			Err(_) => return Err(Status::InternalServerError),
 		}
-		return Err(Status::InternalServerError);
 	}
 
 	let has_liked = users_liked_posts::table
@@ -184,10 +181,9 @@ pub fn dislike_post_from_ids(
 		.values(&new_like)
 		.get_result::<DislikedPost>(conn);
 
-	if let Ok(result) = result {
-		Ok(result)
-	} else {
-		Err(Status::InternalServerError)
+	match result {
+		Ok(disliked_post) => Ok(disliked_post),
+		Err(_) => Err(Status::InternalServerError),
 	}
 }
 
@@ -595,63 +591,62 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 		))
 		.first::<DetailedPostNoDepends>(connection);
 
-	if let Ok(result) = result {
-		let dependencies = post_dependencies::table
-			.filter(post_dependencies::post_id.eq(result.id))
-			.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
-			.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
-			.left_join(
-				users_liked_posts::table
-					.on(users_liked_posts::post_id.eq(post_dependencies::dependency_id)),
-			)
-			.left_join(
-				users_disliked_posts::table
-					.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
-			)
-			.left_join(
-				download_stats::table
-					.on(download_stats::post_id.eq(post_dependencies::dependency_id)),
-			)
-			.group_by((posts::post_id, users::user_id))
-			.select((
-				posts::post_id,
-				posts::post_name,
-				posts::post_text,
-				posts::post_text_short,
-				posts::post_image,
-				posts::post_images_extra,
-				posts::post_link,
-				posts::post_date,
-				posts::post_game_tag,
-				posts::post_type_tag,
-				count_distinct(users_liked_posts::user_id.nullable()),
-				count_distinct(users_disliked_posts::user_id.nullable()),
-				count_distinct(download_stats::timestamp.nullable()),
-				(users::user_id, users::user_name, users::user_avatar),
-			))
-			.load::<DetailedPostNoDepends>(connection)
-			.unwrap_or_else(|_| vec![]);
+	let result = match result {
+		Ok(result) => result,
+		Err(_) => return Err(Status::NotFound),
+	};
+	let dependencies = post_dependencies::table
+		.filter(post_dependencies::post_id.eq(result.id))
+		.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
+		.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
+		.left_join(
+			users_liked_posts::table
+				.on(users_liked_posts::post_id.eq(post_dependencies::dependency_id)),
+		)
+		.left_join(
+			users_disliked_posts::table
+				.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
+		)
+		.left_join(
+			download_stats::table.on(download_stats::post_id.eq(post_dependencies::dependency_id)),
+		)
+		.group_by((posts::post_id, users::user_id))
+		.select((
+			posts::post_id,
+			posts::post_name,
+			posts::post_text,
+			posts::post_text_short,
+			posts::post_image,
+			posts::post_images_extra,
+			posts::post_link,
+			posts::post_date,
+			posts::post_game_tag,
+			posts::post_type_tag,
+			count_distinct(users_liked_posts::user_id.nullable()),
+			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
+			(users::user_id, users::user_name, users::user_avatar),
+		))
+		.load::<DetailedPostNoDepends>(connection)
+		.unwrap_or_else(|_| vec![]);
 
-		Ok(DetailedPost {
-			id: result.id,
-			name: result.name,
-			text: result.text,
-			text_short: result.text_short,
-			dependencies,
-			image: result.image,
-			images_extra: result.images_extra,
-			link: result.link,
-			date: result.date,
-			game_tag: result.game_tag,
-			type_tag: result.type_tag,
-			likes: result.likes,
-			dislikes: result.dislikes,
-			downloads: result.downloads,
-			user: result.user,
-		})
-	} else {
-		Err(Status::NotFound)
-	}
+	Ok(DetailedPost {
+		id: result.id,
+		name: result.name,
+		text: result.text,
+		text_short: result.text_short,
+		dependencies,
+		image: result.image,
+		images_extra: result.images_extra,
+		link: result.link,
+		date: result.date,
+		game_tag: result.game_tag,
+		type_tag: result.type_tag,
+		likes: result.likes,
+		dislikes: result.dislikes,
+		downloads: result.downloads,
+		user: result.user,
+	})
 }
 
 pub fn get_short_post(conn: &mut PgConnection, id: i32) -> Option<ShortPost> {
@@ -692,18 +687,18 @@ pub fn update_download_count(conn: &mut PgConnection, path: String) -> Status {
 		.select(posts::post_id)
 		.first::<i32>(conn);
 
-	if let Ok(result) = result {
-		let post_id = result;
-		let result = diesel::insert_into(download_stats::table)
-			.values(download_stats::post_id.eq(post_id))
-			.execute(conn);
-		if result.is_ok() {
-			Status::Ok
-		} else {
-			Status::InternalServerError
-		}
+	let result = match result {
+		Ok(result) => result,
+		Err(_) => return Status::NotFound,
+	};
+	let post_id = result;
+	let result = diesel::insert_into(download_stats::table)
+		.values(download_stats::post_id.eq(post_id))
+		.execute(conn);
+	if result.is_ok() {
+		Status::Ok
 	} else {
-		Status::NotFound
+		Status::InternalServerError
 	}
 }
 

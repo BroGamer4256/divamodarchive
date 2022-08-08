@@ -220,9 +220,8 @@ pub fn posts(
 	connection: &ConnectionState,
 	post_id: Vec<i32>,
 ) -> (Status, Json<Vec<DetailedPostNoDepends>>) {
-	let connection = &mut get_connection(connection);
 	let count = post_id.len();
-	let result = get_posts_detailed(connection, post_id);
+	let result = get_posts_detailed(&mut get_connection(connection), post_id);
 	if result.is_empty() {
 		(Status::NotFound, Json(result))
 	} else if result.len() != count {
@@ -239,9 +238,8 @@ pub fn post_count(
 	name: Option<String>,
 	game_tag: Option<i32>,
 ) -> Json<i64> {
-	let connection = &mut get_connection(connection);
 	Json(get_post_count(
-		connection,
+		&mut get_connection(connection),
 		name.unwrap_or_default(),
 		game_tag.unwrap_or(0),
 	))

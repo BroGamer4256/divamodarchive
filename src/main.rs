@@ -21,7 +21,6 @@ use rocket::*;
 use rocket_dyn_templates::Template;
 use std::env;
 
-// Rockets macros give clippy an aneurysm here, disable no_effect_underscore_binding
 #[launch]
 pub async fn rocket() -> _ {
 	dotenv().ok();
@@ -211,24 +210,20 @@ pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 	(ContentType::XML, xml)
 }
 
-// Change to not use file_type? This is just used for archives now so its a bit redundant
-// To change this you need to run through the database and templates/upload.html.tera
-// A big advantage of this would be being able to reuse the first formatted file in the S3 call
-#[get("/storage/<user_id>/<file_type>/<file_name>")]
+#[get("/storage/<user_id>/<file_name>")]
 pub async fn get_from_storage(
 	connection: &models::ConnectionState,
 	user_id: i64,
-	file_type: &str,
 	file_name: &str,
 	s3: &State<aws_sdk_s3::Client>,
 ) -> Option<response::Redirect> {
-	let file = format!("{}/{}/{}", user_id, file_type, file_name);
+	let file = format!("{}/{}", user_id, file_name);
 	let path = format!("{}/storage/{}", *models::BASE_URL, file);
 	let _result = posts::update_download_count(&mut models::get_connection(connection), path);
 	let file = s3
 		.get_object()
 		.bucket("divamodarchive")
-		.key(format!("{}/{}", user_id, file_name))
+		.key(file)
 		.presigned(
 			aws_sdk_s3::presigning::config::PresigningConfig::expires_in(
 				std::time::Duration::from_secs(60 * 60 * 24),

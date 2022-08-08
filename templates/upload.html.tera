@@ -183,7 +183,7 @@
 								},
 								fetch_retry(upload_url, options, 3)
 									.then(response => {
-										let archive_url = '{{ base_url | safe }}/storage/{{ user.id }}/posts/' + file.name;
+										let archive_url = '{{ base_url | safe }}/storage/{{ user.id }}/' + file.name;
 										let post_data = {
 											'name': name,
 											'text': text,

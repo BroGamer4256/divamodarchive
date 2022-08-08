@@ -111,7 +111,7 @@ pub async fn login(
 		&avatar,
 	)?;
 
-	return Ok(create_jwt(id));
+	Ok(create_jwt(id))
 }
 
 #[get("/<id>")]

@@ -1,5 +1,4 @@
 /target
-/storage
 /configs
 .env
 run_full.sh

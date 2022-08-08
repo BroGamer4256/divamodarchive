@@ -23,7 +23,7 @@ use std::env;
 
 // Rockets macros give clippy an aneurysm here, disable no_effect_underscore_binding
 #[launch]
-pub fn rocket() -> _ {
+pub async fn rocket() -> _ {
 	dotenv().ok();
 	let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| String::new());
 	assert!(!database_url.is_empty(), "DATABASE_URL must not be empty");
@@ -33,6 +33,12 @@ pub fn rocket() -> _ {
 		Ok(pool) => pool,
 		Err(err) => panic!("Failed to create database pool: {}", err),
 	};
+
+	let region_provider =
+		aws_config::meta::region::RegionProviderChain::default_provider().or_else("us-west-1");
+	let config = aws_config::from_env().region(region_provider).load().await;
+	let s3 = aws_sdk_s3::Client::new(&config);
+
 	rocket::build()
 		.mount(
 			"/",
@@ -66,8 +72,7 @@ pub fn rocket() -> _ {
 			"/api/v1/posts",
 			routes![
 				api::v1::posts::upload_image,
-				api::v1::posts::upload_archive_chunk,
-				api::v1::posts::finish_upload_archive_chunk,
+				api::v1::posts::upload_archive,
 				api::v1::posts::upload,
 				api::v1::posts::edit,
 				api::v1::posts::details,
@@ -93,6 +98,7 @@ pub fn rocket() -> _ {
 		)
 		.mount("/api/v1", routes![api::v1::get_spec])
 		.manage(pool)
+		.manage(s3)
 		.attach(Template::fairing())
 }
 
@@ -206,32 +212,39 @@ pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 }
 
 #[get("/storage/<user_id>/<file_type>/<file_name>")]
-pub fn get_from_storage(
+pub async fn get_from_storage(
 	connection: &models::ConnectionState,
 	user_id: i64,
 	file_type: &str,
 	file_name: &str,
-) -> Option<(ContentType, std::fs::File)> {
+	s3: &State<aws_sdk_s3::Client>,
+) -> Option<response::Redirect> {
 	let file = format!("storage/{}/{}/{}", user_id, file_type, file_name);
 	if file_type == "posts" {
 		let path = format!("{}/{}", *models::BASE_URL, file);
 		let _result = posts::update_download_count(&mut models::get_connection(connection), path);
 	}
-	let file = std::fs::File::open(file);
-	if file.is_err() {
-		return None;
-	}
-	let file = file;
-	if let Ok(file) = file {
-		let content_type = match file_type {
-			"posts" => ContentType::ZIP,
-			"images" => ContentType::PNG,
-			_ => return None,
-		};
-		Some((content_type, file))
-	} else {
-		None
-	}
+	let file = s3
+		.get_object()
+		.bucket("divamodarchive")
+		.key(format!("{}/{}", user_id, file_name))
+		.presigned(
+			aws_sdk_s3::presigning::config::PresigningConfig::expires_in(
+				std::time::Duration::from_secs(60 * 60 * 24),
+			)
+			.unwrap(),
+		)
+		.await;
+
+	let file = match file {
+		Ok(file) => file,
+		Err(e) => {
+			println!("{}", e);
+			return None;
+		}
+	};
+
+	Some(response::Redirect::to(file.uri().to_string()))
 }
 
 allow_columns_to_appear_in_same_group_by_clause!(

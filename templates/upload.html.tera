@@ -164,88 +164,59 @@
 						}
 
 						var file = archive.files[0];
-						var chunkSize = 1024 * 1024 * 8;
-						var chunkCount = Math.ceil(file.size / chunkSize);
-						var chunkStart = 0;
-						var chunksCompleted = 0;
-						var runningChunks = 0;
-						for (var i = 0; i < chunkCount; i++) {
-							while (runningChunks >= 10) {
-								await new Promise(resolve => setTimeout(resolve, 1000));
+						options = {
+							method: 'GET',
+							headers: {
+								'Content-Type': 'text/plain',
+								'Authorization': 'Bearer {{ jwt }}'
 							}
-							var chunkEnd = chunkStart + chunkSize;
-							chunkEnd = Math.min(chunkEnd, file.size);
-							if (chunkEnd == file.size) {
-								chunkCount = i + 1;
-							}
-							var chunk = file.slice(chunkStart, chunkEnd);
-							chunkStart = chunkEnd;
-							options = {
-								method: 'POST',
-								headers: {
-									'Content-Type': 'text/plain',
-									'Authorization': 'Bearer {{ jwt }}'
+						}
+						fetch_retry('/api/v1/posts/upload_archive?name=' + file.name, options, 3)
+							.then(response => response.json())
+							.then(upload_url => {
+								options = {
+									method: 'PUT',
+									headers: {
+										'Content-Type': 'text/plain',
+									},
+									body: file
 								},
-								body: chunk
-							}
-							runningChunks++;
-							fetch_retry("/api/v1/posts/upload_archive_chunk?name=" + file.name + "&chunk=" + i, options, 5)
-								.then(response => {
-									runningChunks--;
-									if (response.status != 200) {
-										console.log(response);
-										alert("Archive chunk upload failed");
-										return;
-									}
-									chunksCompleted++;
-									document.getElementById("progress").style.width = chunksCompleted / chunkCount * 100 + "%";
-									if (chunksCompleted == chunkCount) {
+								fetch_retry(upload_url, options, 3)
+									.then(response => {
+										let archive_url = '{{ base_url | safe }}/storage/{{ user.id }}/posts/' + file.name;
+										let post_data = {
+											'name': name,
+											'text': text,
+											'text_short': text_short,
+											'image': image_url,
+											'images_extra': images_extra_urls,
+											'link': archive_url,
+											'game_tag': Number(game_tag),
+											'type_tag': Number(type_tag),
+										}
+
 										options = {
 											method: 'POST',
 											headers: {
 												'Content-Type': 'text/plain',
 												'Authorization': 'Bearer {{ jwt }}'
 											},
-										},
-										fetch_retry("/api/v1/posts/finish_upload_archive_chunk?name=" + file.name, options, 5)
-												.then(response => response.text())
-												.then(data => {
-													let archive_url = data.replace("data:", '').replaceAll('\n', '');
-													let post_data = {
-														'name': name,
-														'text': text,
-														'text_short': text_short,
-														'image': image_url,
-														'images_extra': images_extra_urls,
-														'link': archive_url,
-														'game_tag': Number(game_tag),
-														'type_tag': Number(type_tag),
-													}
-
-													options = {
-														method: 'POST',
-														headers: {
-															'Content-Type': 'text/plain',
-															'Authorization': 'Bearer {{ jwt }}'
-														},
-														body: JSON.stringify(post_data)
-													}
-													{% if update_id %}
-													fetch_retry('/api/v1/posts/upload?update_id={{update_id}}', options, 5)
-													{% else %}
-													fetch_retry('/api/v1/posts/upload', options, 5)
-													{% endif %}
-														.then(response => response.json())
-														.then(data => {
-															window.location.href = "/posts/" + data['id']
-														})
-														.catch(error => crash_and_burn("Unknown error when uploading"))
-												})
-												.catch(error => crash_and_burn("Unknown error when uploading"))
-									}
-								})
-								.catch(error => crash_and_burn("Unknown error when uploading"))
-						}
+											body: JSON.stringify(post_data)
+										}
+										{% if update_id %}
+										fetch_retry('/api/v1/posts/upload?update_id={{update_id}}', options, 5)
+										{% else %}
+										fetch_retry('/api/v1/posts/upload', options, 5)
+										{% endif %}
+											.then(response => response.json())
+											.then(data => {
+												window.location.href = "/posts/" + data['id']
+											})
+											.catch(error => crash_and_burn("Unknown error when uploading"))
+									})
+									.catch(error => crash_and_burn("Unknown error when uploading"))
+							})
+							.catch(error => crash_and_burn("Unknown error when uploading"))
 					}(result))
 					// Errors but just fucking continues?????
 					.catch()
@@ -297,10 +268,6 @@
 				class="{{ posts::btn_inner() }}">Update metadata</button>
 		</div>
 		{% endif %}
-		<div class="progress">
-			<div class="progress-bar bg-success" role="progressbar" style="width: 0;" aria-valuenow="25"
-				aria-valuemin="0" aria-valuemax="100" id="progress"></div>
-		</div>
 		<label for="filePicker" class="form-label mt-4">Archive File</label>
 		<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker">
 	</div>

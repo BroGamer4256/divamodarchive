@@ -1,12 +1,6 @@
-use std::fs::File;
-use std::io::Read;
-use std::io::Write;
-
 use crate::models::*;
 use crate::posts::*;
-use rocket::fs::TempFile;
 use rocket::http::Status;
-use rocket::response::stream::{Event, EventStream};
 use rocket::serde::json::Json;
 use serde::Deserialize;
 use serde::Serialize;
@@ -54,98 +48,28 @@ pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
 	Err(Status::InternalServerError)
 }
 
-#[post("/upload_archive_chunk?<name>&<chunk>", data = "<archive_chunk>")]
-pub async fn upload_archive_chunk(
-	mut archive_chunk: TempFile<'_>,
-	name: String,
-	chunk: u32,
+// Return signed URL that allows javascript frontend to upload file to S3 bucket
+#[get("/upload_archive?<name>")]
+pub async fn upload_archive(
 	user: User,
-) -> Status {
-	let result = std::fs::create_dir_all(format!("storage/{}/posts/{}_chunks", user.id, name));
-	if result.is_err() {
-		return Status::InternalServerError;
-	}
-	let result = archive_chunk
-		.persist_to(format!(
-			"storage/{}/posts/{}_chunks/{}",
-			user.id, name, chunk
-		))
+	s3: &rocket::State<aws_sdk_s3::Client>,
+	name: String,
+) -> Result<Json<String>, Status> {
+	let url = s3
+		.put_object()
+		.bucket("divamodarchive")
+		.key(format!("{}/{}", user.id, name))
+		.presigned(
+			aws_sdk_s3::presigning::config::PresigningConfig::expires_in(
+				std::time::Duration::from_secs(60 * 60 * 24),
+			)
+			.unwrap(),
+		)
 		.await;
-	if result.is_err() {
-		Status::InternalServerError
-	} else {
-		Status::Ok
-	}
-}
 
-// For this function, fuck rewriting it to remove unwraps
-#[post("/finish_upload_archive_chunk?<name>")]
-pub fn finish_upload_archive_chunk(name: String, user: User) -> EventStream![] {
-	EventStream! {
-		let merged_file = File::create(format!("storage/{}/posts/{}", user.id, name));
-		if merged_file.is_err() {
-			return yield Event::data("Cannot create file");
-		}
-		let mut merged_file = merged_file.unwrap();
-		let files = std::fs::read_dir(format!("storage/{}/posts/{}_chunks", user.id, name));
-		if files.is_err() {
-			return yield Event::data("Cannot read directory");
-		}
-		let files = files
-			.unwrap()
-			.map(|res| res.map(|e| e.path()))
-			.collect::<Result<Vec<_>, std::io::Error>>();
-		if files.is_err() {
-			return yield Event::data("Cannot collect files");
-		}
-		let mut files = files.unwrap();
-
-		// Sort files numerically
-		files.sort_by(|a, b| {
-			let a: &u32 = &a
-				.file_name()
-				.unwrap_or_default()
-				.to_str()
-				.unwrap_or_default()
-				.parse()
-				.unwrap_or_default();
-			let b: &u32 = &b
-				.file_name()
-				.unwrap_or_default()
-				.to_str()
-				.unwrap_or_default()
-				.parse()
-				.unwrap_or_default();
-			a.cmp(b)
-		});
-
-		for entry in files {
-			let file = File::open(entry);
-			if file.is_err() {
-				return yield Event::data("Cannot open file");
-			}
-			let mut file = file.unwrap();
-			let mut buffer = [0u8; 1024];
-			loop {
-				let read = file.read(&mut buffer);
-				if read.is_err() {
-					return yield Event::data("Cannot read file");
-				}
-				let read = read.unwrap();
-				if read == 0 {
-					break;
-				}
-				let result = merged_file.write_all(&buffer[..read]);
-				if result.is_err() {
-					return yield Event::data("Cannot write to file");
-				}
-			}
-		}
-		let _result = std::fs::remove_dir_all(format!("storage/{}/posts/{}_chunks", user.id, name));
-		yield Event::data(format!(
-			"{}/storage/{}/posts/{}",
-			*BASE_URL, user.id, name
-		))
+	match url {
+		Ok(url) => Ok(Json(url.uri().to_string())),
+		Err(_) => Err(Status::InternalServerError),
 	}
 }
 
@@ -164,7 +88,6 @@ pub async fn upload(
 			.link
 			.starts_with(&format!("{}/storage/{}/posts/", *BASE_URL, user.id))
 		|| reqwest::get(post.image.clone()).await.is_err()
-		|| reqwest::get(post.link.clone()).await.is_err()
 	{
 		return Err(Status::BadRequest);
 	}

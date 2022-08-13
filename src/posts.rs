@@ -828,6 +828,7 @@ pub fn get_posts_detailed(
 		.left_join(users_disliked_posts::table)
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
+		.order_by(posts::post_id.asc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -845,5 +846,5 @@ pub fn get_posts_detailed(
 			(users::user_id, users::user_name, users::user_avatar),
 		))
 		.load::<DetailedPostNoDepends>(connection)
-		.unwrap_or(vec![])
+		.unwrap_or_default()
 }

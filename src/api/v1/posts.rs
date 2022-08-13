@@ -93,7 +93,7 @@ pub async fn upload(
 		.starts_with(&format!("{}/cdn-cgi/imagedelivery", *BASE_URL))
 		|| !post
 			.link
-			.starts_with(&format!("{}/storage/{}/posts/", *BASE_URL, user.id))
+			.starts_with(&format!("{}/storage/{}/", *BASE_URL, user.id))
 		|| reqwest::get(post.image.clone()).await.is_err()
 	{
 		return Err(Status::BadRequest);
@@ -215,6 +215,7 @@ pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
 // Usage of this is a bit weird
 // /api/v1/posts/posts?post_id=1&post_id=2
 // Gets the details of posts with id 1 and 2
+// Returns in order of post id ascending
 #[get("/posts?<post_id>")]
 pub fn posts(
 	connection: &ConnectionState,
@@ -225,8 +226,7 @@ pub fn posts(
 	if result.is_empty() {
 		(Status::NotFound, Json(result))
 	} else if result.len() != count {
-		// (Status::PartialContent, Json(result))
-		(Status::Ok, Json(result))
+		(Status::PartialContent, Json(result))
 	} else {
 		(Status::Ok, Json(result))
 	}

@@ -65,7 +65,6 @@
 		{% if update_id %}
 		document.getElementById('upload_metadata_btn_div').classList.remove("disabled");
 		{% endif %}
-		document.getElementById("progress").style.width = 0 + "%";
 		throw error;
 	}
 
@@ -321,4 +320,36 @@
 		</h5>
 	</div>
 </form>
+<style>
+	.drop-target {
+		border: 1px dashed #ccc;
+	}
+</style>
+<script>
+	function addDropHandler(element) {
+		element.addEventListener('dragenter', function(e) {
+			e.preventDefault();
+			e.stopPropagation();
+			element.classList.add('drop-target');
+		});
+		element.addEventListener('dragleave', function(e) {
+			e.preventDefault();
+			e.stopPropagation();
+			element.classList.remove('drop-target');
+		});
+		element.addEventListener('drop', async(e) => {
+			e.preventDefault();
+			e.preventDefault();
+			element.files = e.dataTransfer.files;
+		});
+	};
+
+	const form = document.getElementById("form");
+	const filePicker = form['filePicker'];
+	const imagePicker = form['imagePicker'];
+	const imagesExtra = form['imagesExtra'];
+	addDropHandler(filePicker);
+	addDropHandler(imagePicker);
+	addDropHandler(imagesExtra);
+</script>
 {% endblock content %}

@@ -1,4 +1,5 @@
 /target
 /configs
+/backup
 .env
 run_full.sh

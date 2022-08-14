@@ -57,7 +57,7 @@
 				align-items: center;
 				width: 2px;
 				height: 100%;
-				background-color: var(--bs-dark) !important;
+				background-color: var(--bs-card-cap-bg) !important;
 			}
 		}
 		@media (min-width: 800px) {
@@ -65,7 +65,7 @@
 				align-items: center;
 				width: 33%;
 				height: 100%;
-				background-color: var(--bs-dark) !important;
+				background-color: var(--bs-card-cap-bg) !important;
 			}
 		}
 		.col-small {
@@ -101,5 +101,4 @@
 		{% endif %}
 	</nav>
 </body>
-
 </html>

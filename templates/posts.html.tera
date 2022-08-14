@@ -29,12 +29,12 @@
 game_tag="MM+", type_tag="Other") %}
 <div class="col">
 	<div class="card shadow-sm">
-		<a title="{{ text_short | striptags }}" style="text-decoration: none;" href="/posts/{{ id }}">
+		<a title="{{ text_short }}" style="text-decoration: none;" href="/posts/{{ id }}">
 			<div class="card-img-top ratio ratio-16x9 bg-clear" loading="lazy">
-				<img src="{{ image }}" class="rounded-image" width="100%" alt="{{ text_short | striptags }}" loading="lazy">
+				<img src="{{ image }}" class="rounded-image" width="100%" alt="{{ text_short }}" loading="lazy">
 			</div>
 			<div class="card-body">
-				<h5 class="text">{{ name | striptags | truncate(length=20) }}</h5>
+				<h5 class="text">{{ name | truncate(length=20) }}</h5>
 				<div class="row">
 					{% if likes != -1 %}
 					<div class="col-md-6 text">{{ likes }}👍{{ dislikes }}👎<br>DLs: {{ downloads }}</div>
@@ -248,11 +248,11 @@ extra_images, comments) %}
 </script>
 <div class="row align-items-md-stretch gap-3">
 	<div class="col-md-7 card card-body">
-		<h2 class="text card-title" style="text-align: center">{{ name | striptags }} </h2>
+		<h2 class="text card-title" style="text-align: center">{{ name }} </h2>
 		<div class="row d-flex align-items-center">
 			<div class="col-md">
 				<h5>
-					<a href=" /user/{{ uploader_id }}" class="card-subtitle text">{{uploader_name | striptags }}</a>
+					<a href=" /user/{{ uploader_id }}" class="card-subtitle text">{{ uploader_name }}</a>
 				</h5>
 			</div>
 			<div class="col-md">
@@ -395,7 +395,7 @@ extra_images, comments) %}
 		{{ comment.text }}
 	</div>
 	<div class="card-footer text-muted p-2">
-		<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{comment.user.name | striptags }}</a>
+		<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{comment.user.name }}</a>
 		{{ comment.date | date }}
 		{% if who_is_logged_in == comment.user.id %}
 			<a href="/posts/{{ id }}/comments/{{ comment.id }}/remove" class="text-muted">Delete</a>

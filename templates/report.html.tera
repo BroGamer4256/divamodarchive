@@ -8,11 +8,11 @@
 {% block content %}
 <div class="row align-items-md-stretch gap-3">
 	<div class="col-md-7 card card-body">
-		<h2 class="text card-title" style="text-align: center">{{ post.name | striptags }} </h2>
+		<h2 class="text card-title" style="text-align: center">{{ post.name }} </h2>
 		<div class="row d-flex align-items-center">
 			<div class="col-md">
 				<h5>
-					<a href=" /user/{{ post.user.id }}" class="card-subtitle text">{{ post.user.name | striptags }}</a>
+					<a href=" /user/{{ post.user.id }}" class="card-subtitle text">{{ post.user.name }}</a>
 				</h5>
 			</div>
 			<div class="col-md">

@@ -245,7 +245,7 @@
 				autocomplete="off"></h2>
 		{% endif %}
 		<h5>
-			<a href="/user/{{ user.id }}" class="card-subtitle text">{{ user.name | striptags }}</a>
+			<a href="/user/{{ user.id }}" class="card-subtitle text">{{ user.name }}</a>
 		</h5>
 
 		<label for="imagePicker" class="form-label mt-4">Image</label>

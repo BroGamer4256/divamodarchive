@@ -155,7 +155,7 @@ pub fn create_jwt(user_id: i64) -> String {
 	let time = chrono::offset::Utc::now().timestamp();
 	let token_data = Token {
 		iat: time,
-		exp: time + 604_800,
+		exp: time + 30 * 24 * 60 * 60,
 		user_id,
 	};
 	encode(&Header::default(), &token_data, &ENCODE_KEY).unwrap_or_default()
@@ -255,6 +255,7 @@ pub struct PostUnidentified {
 	pub link: String,
 	pub game_tag: i32,
 	pub type_tag: i32,
+	pub change: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -264,6 +265,7 @@ pub struct PostMetadata {
 	pub text_short: String,
 	pub game_tag: i32,
 	pub type_tag: i32,
+	pub change: Option<String>,
 }
 
 #[derive(Queryable, Serialize, Deserialize, Default)]
@@ -325,6 +327,7 @@ pub struct DetailedPost {
 	pub dislikes: i64,
 	pub downloads: i64,
 	pub user: User,
+	pub changelogs: Vec<Changelog>,
 }
 
 #[derive(Queryable, Serialize, Deserialize, Default)]
@@ -413,11 +416,8 @@ pub struct Report {
 	pub description: String,
 }
 
-#[derive(Insertable)]
-#[diesel(table_name = reports)]
-pub struct NewReport {
-	pub report_id: i32,
-	pub user_id: i64,
-	pub post_id: i32,
+#[derive(Queryable, Serialize, Deserialize)]
+pub struct Changelog {
 	pub description: String,
+	pub time: chrono::NaiveDateTime,
 }

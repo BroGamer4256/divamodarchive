@@ -98,13 +98,13 @@ pub async fn upload(
 	{
 		return Err(Status::BadRequest);
 	}
-	let post = create_post(
-		&mut get_connection(connection),
-		post,
-		user,
-		update_id.unwrap_or(-1),
-	)?;
-	Ok(Json(post))
+	let connection = &mut get_connection(connection);
+	let change = post.change.clone();
+	let new_post = create_post(connection, post, user, update_id.unwrap_or(-1))?;
+	if let Some(change) = change {
+		add_changelog(connection, new_post.id, change);
+	}
+	Ok(Json(new_post))
 }
 
 #[post("/edit?<update_id>", data = "<post>")]
@@ -120,7 +120,11 @@ pub fn edit(
 		return Err(Status::Unauthorized);
 	}
 
+	let change = post.change.clone();
 	let result = update_post(connection, post, update_id)?;
+	if let Some(change) = change {
+		add_changelog(connection, update_id, change);
+	}
 	Ok(Json(result))
 }
 

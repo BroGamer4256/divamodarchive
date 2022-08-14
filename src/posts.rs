@@ -296,6 +296,12 @@ pub fn get_latest_posts_detailed(
 			))
 			.load::<DetailedPostNoDepends>(connection)
 			.unwrap_or_else(|_| vec![]);
+		let changelogs = post_changelogs::table
+			.filter(post_changelogs::post_id.eq(post.id))
+			.order_by(post_changelogs::time.desc())
+			.select((post_changelogs::description, post_changelogs::time))
+			.load::<Changelog>(connection)
+			.unwrap_or_else(|_| vec![]);
 
 		posts.push(DetailedPost {
 			id: post.id,
@@ -313,6 +319,7 @@ pub fn get_latest_posts_detailed(
 			dislikes: post.dislikes,
 			downloads: post.downloads,
 			user: post.user,
+			changelogs,
 		});
 	}
 	Ok(posts)
@@ -499,6 +506,12 @@ pub fn get_popular_posts_detailed(
 			))
 			.load::<DetailedPostNoDepends>(connection)
 			.unwrap_or_else(|_| vec![]);
+		let changelogs = post_changelogs::table
+			.filter(post_changelogs::post_id.eq(post.id))
+			.order_by(post_changelogs::time.desc())
+			.select((post_changelogs::description, post_changelogs::time))
+			.load::<Changelog>(connection)
+			.unwrap_or_else(|_| vec![]);
 
 		posts.push(DetailedPost {
 			id: post.id,
@@ -516,6 +529,7 @@ pub fn get_popular_posts_detailed(
 			dislikes: post.dislikes,
 			downloads: post.downloads,
 			user: post.user,
+			changelogs,
 		});
 	}
 	Ok(posts)
@@ -629,6 +643,12 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 		))
 		.load::<DetailedPostNoDepends>(connection)
 		.unwrap_or_else(|_| vec![]);
+	let changelogs = post_changelogs::table
+		.filter(post_changelogs::post_id.eq(result.id))
+		.order_by(post_changelogs::time.desc())
+		.select((post_changelogs::description, post_changelogs::time))
+		.load::<Changelog>(connection)
+		.unwrap_or_else(|_| vec![]);
 
 	Ok(DetailedPost {
 		id: result.id,
@@ -646,6 +666,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 		dislikes: result.dislikes,
 		downloads: result.downloads,
 		user: result.user,
+		changelogs,
 	})
 }
 
@@ -847,4 +868,23 @@ pub fn get_posts_detailed(
 		))
 		.load::<DetailedPostNoDepends>(connection)
 		.unwrap_or_default()
+}
+
+pub fn add_changelog(connection: &mut PgConnection, id: i32, change: String) -> Status {
+	let result = diesel::insert_into(post_changelogs::table)
+		.values((
+			post_changelogs::post_id.eq(id),
+			post_changelogs::description.eq(change),
+			post_changelogs::time.eq(chrono::NaiveDateTime::from_timestamp(
+				chrono::Utc::now().timestamp(),
+				0,
+			)),
+		))
+		.execute(connection);
+
+	if result.is_ok() {
+		Status::Ok
+	} else {
+		Status::InternalServerError
+	}
 }

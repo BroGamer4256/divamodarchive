@@ -129,7 +129,7 @@ btn text-light
 {% endmacro %}
 
 {% macro draw_post_full(id, name, text, image, link, last_updated, uploader_id, uploader_name, likes, dislikes,
-downloads, dependencies, is_logged_in=false, has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0,
+downloads, dependencies, changelogs, is_logged_in=false, has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0,
 extra_images) %}
 <script>
 	var had_disliked = {{ has_disliked }};
@@ -305,6 +305,14 @@ extra_images) %}
 			{% endfor %}
 		</div>
 	</div>
+	{% endif %}
+	{% if changelogs | length > 0 %}
+		{% for changelog in changelogs %}
+			<div class="card card-body text">
+				<h5 class="text">{{ changelog.time | date }}</h5>
+				{{ changelog.description }}
+			</div>
+		{% endfor %}
 	{% endif %}
 </div>
 {% endmacro draw_post_full %}

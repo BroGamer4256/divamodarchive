@@ -9,18 +9,19 @@
 <script>
 	{% if update_id %}
 	function upload_metadata() {
-		var form = document.getElementById("form")
-		var name = form['title'].value
-		var text = form['text'].value
-		var text_short = form['text_short'].value
-		var game_tag = form['game_tag'].value
-		var type_tag = form['type_tag'].value
+		var form = document.getElementById("form");
+		var name = form['title'].value;
+		var text = form['text'].value;
+		var text_short = form['text_short'].value;
+		var game_tag = form['game_tag'].value;
+		var type_tag = form['type_tag'].value;
+		var change = form['change-text'].value;
 		if (title == "" || text == "" || text_short == "") {
 			alert("Upload failed\nMissing text fields");
 			return
 		}
-		document.getElementById('upload_btn_div').classList.add("disabled")
-		document.getElementById('upload_metadata_btn_div').classList.add("disabled")
+		document.getElementById('upload_btn_div').classList.add("disabled");
+		document.getElementById('upload_metadata_btn_div').classList.add("disabled");
 
 		let post_data = {
 			'name': name,
@@ -28,6 +29,9 @@
 			'text_short': text_short,
 			'game_tag': Number(game_tag),
 			'type_tag': Number(type_tag),
+		}
+		if (change != '') {
+			post_data.change = change;
 		}
 
 		options = {
@@ -83,6 +87,9 @@
 		var text_short = form['text_short'].value;
 		var game_tag = form['game_tag'].value;
 		var type_tag = form['type_tag'].value;
+		{% if update_id %}
+		var change = form['change-text'].value;
+		{% endif %}
 		if (title == "" || text == "" || text_short == "") {
 			alert("Upload failed\nMissing text fields");
 			return
@@ -193,6 +200,11 @@
 											'game_tag': Number(game_tag),
 											'type_tag': Number(type_tag),
 										}
+										{% if update_id %}
+										if (change != '') {
+											post_data.change = change;
+										}
+										{% endif %}
 
 										options = {
 											method: 'POST',
@@ -316,6 +328,10 @@
 				<option value="{{ type_tag.id }}">{{ type_tag.name }}</option>
 				{% endfor %}
 			</select>
+			{% endif %}
+			{% if update_id %}
+			<label for="change-text">Changes made</label>
+			<textarea class="form-control" id="change-text" rows="5"></textarea>
 			{% endif %}
 		</h5>
 	</div>

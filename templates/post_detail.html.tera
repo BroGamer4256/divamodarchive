@@ -8,7 +8,7 @@
 {% block content %}
 {{ posts::draw_post_full(id=post.id, name=post.name, text=post.text, image=post.image, link=post.link,
 last_updated=post.date, uploader_id=post.user.id, uploader_name=post.user.name, likes=post.likes,
-dislikes=post.dislikes, downloads=post.downloads, dependencies=post.dependencies,
+dislikes=post.dislikes, downloads=post.downloads, dependencies=post.dependencies, changelogs=post.changelogs,
 is_logged_in=is_logged_in, has_liked=has_liked, has_disliked=has_disliked, jwt=jwt, who_is_logged_in=who_is_logged_in,
 extra_images=post.images_extra)
 }}

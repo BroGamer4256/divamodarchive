@@ -328,6 +328,7 @@ pub struct DetailedPost {
 	pub downloads: i64,
 	pub user: User,
 	pub changelogs: Vec<Changelog>,
+	pub comments: Vec<Comment>,
 }
 
 #[derive(Queryable, Serialize, Deserialize, Default)]
@@ -420,4 +421,13 @@ pub struct Report {
 pub struct Changelog {
 	pub description: String,
 	pub time: chrono::NaiveDateTime,
+}
+
+#[derive(Queryable, Serialize, Deserialize)]
+pub struct Comment {
+	pub id: i32,
+	pub user: User,
+	pub text: String,
+	pub parent: Option<i32>,
+	pub date: chrono::NaiveDateTime,
 }

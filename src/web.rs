@@ -551,3 +551,35 @@ pub fn report_send(
 	let _ = add_report(connection, id, user.id, reason);
 	Redirect::to("/")
 }
+
+#[get("/posts/<id>/comments/new?<text>")]
+pub fn create_comment(connection: &ConnectionState, user: User, id: i32, text: String) -> Redirect {
+	let connection = &mut get_connection(connection);
+	let _ = add_comment(connection, user.id, id, text, None);
+	Redirect::to(format!("/posts/{}", id))
+}
+
+#[get("/posts/<id>/comments/<comment_id>/reply?<text>")]
+pub fn reply_comment(
+	connection: &ConnectionState,
+	user: User,
+	id: i32,
+	comment_id: i32,
+	text: String,
+) -> Redirect {
+	let connection = &mut get_connection(connection);
+	let _ = add_comment(connection, user.id, id, text, Some(comment_id));
+	Redirect::to(format!("/posts/{}", id))
+}
+
+#[get("/posts/<id>/comments/<comment_id>/remove")]
+pub fn remove_comment(
+	connection: &ConnectionState,
+	user: User,
+	id: i32,
+	comment_id: i32,
+) -> Redirect {
+	let connection = &mut get_connection(connection);
+	let _ = delete_comment(connection, comment_id, user.id);
+	Redirect::to(format!("/posts/{}", id))
+}

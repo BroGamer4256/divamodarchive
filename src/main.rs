@@ -60,6 +60,9 @@ pub async fn rocket() -> _ {
 				web::remove_report,
 				web::report,
 				web::report_send,
+				web::create_comment,
+				web::reply_comment,
+				web::remove_comment,
 				get_from_storage,
 				robots,
 				favicon,
@@ -259,4 +262,8 @@ allow_columns_to_appear_in_same_group_by_clause!(
 	schema::reports::post_id,
 	schema::reports::description,
 	schema::reports::time,
+	schema::post_comments::comment_id,
+	schema::post_comments::comment_text,
+	schema::post_comments::comment_parent,
+	schema::post_comments::comment_date,
 );

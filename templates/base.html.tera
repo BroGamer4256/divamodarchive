@@ -48,6 +48,30 @@
 		::placeholder {
 			color: var(--bs-dark) !important;
 		}
+		.fit {
+			width: fit-content;
+			block-size: fit-content;
+		}
+		@media (max-width: 800px) {
+			.line {
+				align-items: center;
+				width: 2px;
+				height: 100%;
+				background-color: var(--bs-dark) !important;
+			}
+		}
+		@media (min-width: 800px) {
+			.line {
+				align-items: center;
+				width: 33%;
+				height: 100%;
+				background-color: var(--bs-dark) !important;
+			}
+		}
+		.col-small {
+			flex: 0 0 auto;
+			width: 1.5%;
+		}
 	</style>
 </head>
 

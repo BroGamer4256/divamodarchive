@@ -302,6 +302,19 @@ pub fn get_latest_posts_detailed(
 			.select((post_changelogs::description, post_changelogs::time))
 			.load::<Changelog>(connection)
 			.unwrap_or_else(|_| vec![]);
+		let comments = post_comments::table
+			.filter(post_comments::post_id.eq(post.id))
+			.order_by(post_comments::comment_date.desc())
+			.inner_join(users::table.on(users::user_id.eq(post_comments::user_id)))
+			.select((
+				post_comments::comment_id,
+				(users::user_id, users::user_name, users::user_avatar),
+				post_comments::comment_text,
+				post_comments::comment_parent,
+				post_comments::comment_date,
+			))
+			.load::<Comment>(connection)
+			.unwrap_or_else(|_| vec![]);
 
 		posts.push(DetailedPost {
 			id: post.id,
@@ -320,6 +333,7 @@ pub fn get_latest_posts_detailed(
 			downloads: post.downloads,
 			user: post.user,
 			changelogs,
+			comments,
 		});
 	}
 	Ok(posts)
@@ -512,6 +526,19 @@ pub fn get_popular_posts_detailed(
 			.select((post_changelogs::description, post_changelogs::time))
 			.load::<Changelog>(connection)
 			.unwrap_or_else(|_| vec![]);
+		let comments = post_comments::table
+			.filter(post_comments::post_id.eq(post.id))
+			.order_by(post_comments::comment_date.desc())
+			.inner_join(users::table.on(users::user_id.eq(post_comments::user_id)))
+			.select((
+				post_comments::comment_id,
+				(users::user_id, users::user_name, users::user_avatar),
+				post_comments::comment_text,
+				post_comments::comment_parent,
+				post_comments::comment_date,
+			))
+			.load::<Comment>(connection)
+			.unwrap_or_else(|_| vec![]);
 
 		posts.push(DetailedPost {
 			id: post.id,
@@ -530,6 +557,7 @@ pub fn get_popular_posts_detailed(
 			downloads: post.downloads,
 			user: post.user,
 			changelogs,
+			comments,
 		});
 	}
 	Ok(posts)
@@ -649,6 +677,19 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 		.select((post_changelogs::description, post_changelogs::time))
 		.load::<Changelog>(connection)
 		.unwrap_or_else(|_| vec![]);
+	let comments = post_comments::table
+		.filter(post_comments::post_id.eq(result.id))
+		.order_by(post_comments::comment_date.desc())
+		.inner_join(users::table.on(users::user_id.eq(post_comments::user_id)))
+		.select((
+			post_comments::comment_id,
+			(users::user_id, users::user_name, users::user_avatar),
+			post_comments::comment_text,
+			post_comments::comment_parent,
+			post_comments::comment_date,
+		))
+		.load::<Comment>(connection)
+		.unwrap_or_else(|_| vec![]);
 
 	Ok(DetailedPost {
 		id: result.id,
@@ -667,6 +708,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 		downloads: result.downloads,
 		user: result.user,
 		changelogs,
+		comments,
 	})
 }
 
@@ -881,6 +923,48 @@ pub fn add_changelog(connection: &mut PgConnection, id: i32, change: String) -> 
 			)),
 		))
 		.execute(connection);
+
+	if result.is_ok() {
+		Status::Ok
+	} else {
+		Status::InternalServerError
+	}
+}
+
+pub fn add_comment(
+	connection: &mut PgConnection,
+	user: i64,
+	post: i32,
+	comment: String,
+	parent: Option<i32>,
+) -> Status {
+	let result = diesel::insert_into(post_comments::table)
+		.values((
+			post_comments::user_id.eq(user),
+			post_comments::post_id.eq(post),
+			post_comments::comment_text.eq(comment),
+			post_comments::comment_date.eq(chrono::NaiveDateTime::from_timestamp(
+				chrono::Utc::now().timestamp(),
+				0,
+			)),
+			post_comments::comment_parent.eq(parent),
+		))
+		.execute(connection);
+
+	if result.is_ok() {
+		Status::Ok
+	} else {
+		Status::InternalServerError
+	}
+}
+
+pub fn delete_comment(connection: &mut PgConnection, id: i32, user: i64) -> Status {
+	let result = diesel::delete(
+		post_comments::table
+			.filter(post_comments::comment_id.eq(id))
+			.filter(post_comments::user_id.eq(user)),
+	)
+	.execute(connection);
 
 	if result.is_ok() {
 		Status::Ok

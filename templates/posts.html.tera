@@ -130,7 +130,7 @@ btn text-light
 
 {% macro draw_post_full(id, name, text, image, link, last_updated, uploader_id, uploader_name, likes, dislikes,
 downloads, dependencies, changelogs, is_logged_in=false, has_liked=false, has_disliked=false, jwt="", who_is_logged_in=0,
-extra_images) %}
+extra_images, comments) %}
 <script>
 	var had_disliked = {{ has_disliked }};
 	var had_liked = {{ has_liked }};
@@ -206,6 +206,44 @@ extra_images) %}
 				window.location.href = "/"
 			})
 			.catch(error => console.error(error))
+	}
+
+	function createCommentReply(postId, commentId) {
+		let comment = document.getElementById(commentId);
+		let newReply = `<div class="row g-1 m-0">
+			<div class="col-small">
+					<div class="line"></div>
+			</div>
+			<div class="col row g-1">
+				<div class="row-cols-1 card p-0" id="newReply">
+					<div class="card-body card-text text p-2">
+						<textarea class="form-control" id="reply_text" rows="5"></textarea>
+					</div>
+					<div class="card-footer text-muted p-2">
+						<a class="text-muted" onclick="replyToComment(${postId}, ${commentId})">Reply</a>
+					</div>
+				</div>
+			</div>
+		</div>`;
+		comment.insertAdjacentHTML('afterend', newReply);
+	}
+
+	function replyToComment(postId, commentId) {
+		let replyText = document.getElementById('reply_text').value;
+		if (replyText == "") {
+			alert("Please enter a reply");
+			return;
+		}
+		window.location = `/posts/${postId}/comments/${commentId}/reply?text=${replyText}`;
+	}
+
+	function commentOnPost(postId) {
+		let commentText = document.getElementById('comment_text').value;
+		if (commentText == "") {
+			alert("Please enter a comment");
+			return;
+		}
+		window.location = `/posts/${postId}/comments/new?text=${commentText}`;
 	}
 </script>
 <div class="row align-items-md-stretch gap-3">
@@ -314,5 +352,57 @@ extra_images) %}
 			</div>
 		{% endfor %}
 	{% endif %}
+</div><br>
+{% if is_logged_in %}
+<div class="row g-1 m-0">
+	<div class="col-small">
+			<div class="line"></div>
+	</div>
+	<div class="col row g-1">
+		<div class="row-cols-1 card p-0" id="newComment">
+			<div class="card-body card-text text p-2">
+				<textarea class="form-control" id="comment_text" rows="5"></textarea>
+			</div>
+			<div class="card-footer text-muted p-2">
+				<a class="text-muted" onclick="commentOnPost({{ id }})">Comment</a>
+			</div>
+		</div>
+	</div>
 </div>
+{% endif %}
+{{ posts::draw_post_comments(id=id, comments=comments) }}
 {% endmacro draw_post_full %}
+
+{% macro draw_post_comments(id, comments, parent=0) %}
+{% for comment in comments %}
+	{% if comment.parent == parent or parent == 0 and not comment.parent %}
+		<div class="row g-1 m-0">
+			<div class="col-small">
+				<div class="line"></div>
+			</div>
+			<div class="col row g-1">
+				{{ posts::draw_post_comment(id=id, comment=comment) }}
+				{{ posts::draw_post_comments(id=id,comments=comments, parent=comment.id) }}
+			</div>
+		</div>
+	{% endif %}
+{% endfor %}
+{% endmacro draw_post_comments %}
+
+{% macro draw_post_comment(id, comment) %}
+<div class="row-cols-1 card p-0 fit" id="{{ comment.id }}">
+	<div class="card-body card-text text p-2">
+		{{ comment.text }}
+	</div>
+	<div class="card-footer text-muted p-2">
+		<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{comment.user.name | striptags }}</a>
+		{{ comment.date | date }}
+		{% if who_is_logged_in == comment.user.id %}
+			<a href="/posts/{{ id }}/comments/{{ comment.id }}/remove" class="text-muted">Delete</a>
+		{% endif %}
+		{% if is_logged_in == true and who_is_logged_in != comment.user.id %}
+			<a onclick="createCommentReply({{ id }}, {{ comment.id }})" class="text-muted">Reply</a>
+		{% endif %}
+	</div>
+</div>
+{% endmacro draw_post_comment %}

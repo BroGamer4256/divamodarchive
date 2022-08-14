@@ -1,0 +1,8 @@
+CREATE TABLE post_comments (
+	comment_id SERIAL PRIMARY KEY,
+	post_id INT NOT NULL REFERENCES posts ON DELETE CASCADE,
+	user_id BIGINT NOT NULL REFERENCES users ON DELETE CASCADE,
+	comment_text TEXT NOT NULL,
+	comment_parent INT REFERENCES post_comments ON DELETE CASCADE,
+	comment_date TIMESTAMP NOT NULL DEFAULT NOW()
+);

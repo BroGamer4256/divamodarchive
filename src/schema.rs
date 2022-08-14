@@ -16,6 +16,17 @@ table! {
 }
 
 table! {
+	post_comments (comment_id) {
+		comment_id -> Int4,
+		post_id -> Int4,
+		user_id -> Int8,
+		comment_text -> Text,
+		comment_parent -> Nullable<Int4>,
+		comment_date -> Timestamp,
+	}
+}
+
+table! {
 	post_dependencies (post_id, dependency_id) {
 		post_id -> Int4,
 		dependency_id -> Int4,
@@ -73,6 +84,8 @@ table! {
 }
 
 joinable!(post_changelogs -> posts (post_id));
+joinable!(post_comments -> posts (post_id));
+joinable!(post_comments -> users (user_id));
 joinable!(posts -> users (post_uploader));
 joinable!(reports -> posts (post_id));
 joinable!(reports -> users (user_id));
@@ -84,6 +97,7 @@ joinable!(users_liked_posts -> users (user_id));
 allow_tables_to_appear_in_same_query!(
 	download_stats,
 	post_changelogs,
+	post_comments,
 	post_dependencies,
 	posts,
 	reports,

@@ -355,7 +355,7 @@ extra_images, comments) %}
 </div><br>
 {% if is_logged_in %}
 <div class="row g-1 m-0">
-	<div class="col-small">
+	<div class="col-small me-1">
 			<div class="card line"></div>
 	</div>
 	<div class="col row g-1">
@@ -377,7 +377,7 @@ extra_images, comments) %}
 {% for comment in comments %}
 	{% if comment.parent == parent or parent == 0 and not comment.parent %}
 		<div class="row g-1 m-0">
-			<div class="col-small">
+			<div class="col-small me-1">
 				<div class="card line"></div>
 			</div>
 			<div class="col row g-1">

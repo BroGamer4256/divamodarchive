@@ -31,7 +31,7 @@ game_tag="MM+", type_tag="Other") %}
 	<div class="card shadow-sm">
 		<a title="{{ text_short }}" style="text-decoration: none;" href="/posts/{{ id }}">
 			<div class="card-img-top ratio ratio-16x9 bg-clear" loading="lazy">
-				<img src="{{ image }}" class="rounded-image" width="100%" alt="{{ text_short }}" loading="lazy">
+				<img src="{{ image }}" class="rounded-image" width="100%" alt="{{ text_short }}" loading="lazy" data-cold="">
 			</div>
 			<div class="card-body">
 				<h5 class="text">{{ name | truncate(length=20) }}</h5>
@@ -48,7 +48,7 @@ game_tag="MM+", type_tag="Other") %}
 			</div>
 		</a>
 		{% if draw_remove != false %}
-		<a href="{{ draw_remove }}" class="{{ self::btn_danger_outer() }}">
+		<a href="{{ draw_remove }}" class="{{ self::btn_danger_outer() }}" data-cold="">
 			<button type="button" class="{{ self::btn_inner() }}">Remove</button>
 		</a>
 		{% endif %}
@@ -220,7 +220,7 @@ extra_images, comments) %}
 						<textarea class="form-control" id="reply_text" rows="3"></textarea>
 					</div>
 					<div class="card-footer text-muted p-2">
-						<a class="text-muted" onclick="replyToComment(${postId}, ${commentId})">Reply</a>
+						<a class="text-muted" onclick="replyToComment(${postId}, ${commentId})" data-cold="">Reply</a>
 					</div>
 				</div>
 			</div>
@@ -260,7 +260,7 @@ extra_images, comments) %}
 			</div>
 			<h5 class="card-subtitle text">Last updated: {{ last_updated | date }}</h5>
 		</div>
-		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9 bg-clear">
+		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9 bg-clear" data-cold="">
 			<img src="{{ image }}" class="card-img-top flat-image" loading="lazy" alt="Preview of {{ name }}">
 		</a>
 	</div>
@@ -286,22 +286,22 @@ extra_images, comments) %}
 				<label class="btn btn-outline-primary disabled" for="dislikedradiobtn" id="dislikes">{{ dislikes }}👎</label>
 			{% endif %}
 		</div>
-		<a href="{{ link }}" class="{{ self::btn_success_outer() }}" download>
+		<a href="{{ link }}" class="{{ self::btn_success_outer() }}" download data-cold="">
 			<button type="button" class="{{ self::btn_inner() }}">Download</button>
 		</a>
 		{% if who_is_logged_in == uploader_id %}
-		<a href="/posts/{{ id }}/edit" class="{{ self::btn_info_outer() }}">
+		<a href="/posts/{{ id }}/edit" class="{{ self::btn_info_outer() }}" data-cold="">
 			<button type="button" class="{{ self::btn_inner() }}">Edit</button>
 		</a>
-		<a href="/posts/{{ id }}/dependency" class="{{ self::btn_info_outer() }}">
+		<a href="/posts/{{ id }}/dependency" class="{{ self::btn_info_outer() }}" data-cold="">
 			<button type="button" class="{{ self::btn_inner() }}">Add dependency</button>
 		</a>
-		<div class="{{ self::btn_danger_outer() }}" onclick="deletePost()">
+		<div class="{{ self::btn_danger_outer() }}" onclick="deletePost()" data-cold="">
 			<button type="button" class="{{ self::btn_inner() }}">Delete</button>
 		</div>
 		{% endif %}
 		{% if is_logged_in == true and who_is_logged_in != uploader_id %}
-		<a href="/posts/{{ id }}/report" class="{{ self::btn_info_outer() }}">
+		<a href="/posts/{{ id }}/report" class="{{ self::btn_info_outer() }}" data-cold="">
 			<button type="button" class="{{ self::btn_inner() }}">Report</button>
 		</a>
 		{% endif %}
@@ -335,7 +335,7 @@ extra_images, comments) %}
 			{% for image in extra_images %}
 			<div class="col">
 				<div class="card shadow-sm">
-					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9 bg-clear">
+					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9 bg-clear" data-cold="">
 						<img src="{{ image }}" class="flat-image" width="100%" loading="lazy" alt="Preview of {{ name }}">
 					</a>
 				</div>
@@ -364,7 +364,7 @@ extra_images, comments) %}
 				<textarea class="form-control" id="comment_text" rows="3"></textarea>
 			</div>
 			<div class="card-footer text-muted p-2">
-				<a class="text-muted" onclick="commentOnPost({{ id }})">Comment</a>
+				<a class="text-muted" onclick="commentOnPost({{ id }})" data-cold="">Comment</a>
 			</div>
 		</div>
 	</div>
@@ -395,13 +395,13 @@ extra_images, comments) %}
 		{{ comment.text }}
 	</div>
 	<div class="card-footer text-muted p-2">
-		<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{comment.user.name }}</a>
+		<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted" data-cold="">{{comment.user.name }}</a>
 		{{ comment.date | date }}
 		{% if who_is_logged_in == comment.user.id %}
-			<a href="/posts/{{ id }}/comments/{{ comment.id }}/remove" class="text-muted">Delete</a>
+			<a href="/posts/{{ id }}/comments/{{ comment.id }}/remove" class="text-muted" data-cold="">Delete</a>
 		{% endif %}
 		{% if is_logged_in == true and who_is_logged_in != comment.user.id %}
-			<a onclick="createCommentReply({{ id }}, {{ comment.id }})" class="text-muted">Reply</a>
+			<a onclick="createCommentReply({{ id }}, {{ comment.id }})" class="text-muted" data-cold="">Reply</a>
 		{% endif %}
 	</div>
 </div>

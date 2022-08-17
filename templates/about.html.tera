@@ -22,7 +22,9 @@
 			</p>
 			<p class="text">
 				This web-interface is powered by <a href="https://getbootstrap.com" class="text">Bootstrap</a> v5, with
-				the <a href="https://bootswatch.com/darkly/" class="text">Bootswatch.com Darkly Theme</a>.
+				the <a href="https://bootswatch.com/darkly/" class="text">Bootswatch.com Darkly Theme</a>.<br>
+				The server is built on rocket with tera templating and a diesel database.<br>
+				The web interface also uses <a href="https://github.com/fireship-io/flamethrower" class="text">flamethrower</a>.
 			</p>
 			<p class="text">
 				The following people have made this project possible, in no particular order<br>

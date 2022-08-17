@@ -41,7 +41,7 @@
 							{{ report.description | striptags | linebreaksbr | safe }}
 						</p>
 					</div>
-					<a href="/report/{{ report.id }}/remove" class="{{ posts::btn_danger_outer() }}">
+					<a href="/report/{{ report.id }}/remove" class="{{ posts::btn_danger_outer() }}" data-cold="">
 						<button type="button" style="box-shadow: none" class="{{ posts::btn_inner() }}">Remove</button>
 					</a>
 				</div>

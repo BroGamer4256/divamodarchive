@@ -20,7 +20,7 @@
 			</div>
 			<h5 class="card-subtitle text">Last updated: {{ post.date | date }}</h5>
 		</div>
-		<a href="{{ post.image }}" target="_blank" class="ratio ratio-16x9" style="background: black">
+		<a href="{{ post.image }}" target="_blank" class="ratio ratio-16x9" style="background: black" data-cold="">
 			<img src="{{ post.image }}" style="object-fit: contain;" class="card-img-top" loading="lazy" alt="Preview of {{ post.name }}">
 		</a>
 	</div>

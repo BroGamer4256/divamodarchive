@@ -68,6 +68,7 @@ pub async fn rocket() -> _ {
 				favicon,
 				large_icon,
 				sitemap,
+				flamethrower,
 			],
 		)
 		.mount(
@@ -102,6 +103,14 @@ pub async fn rocket() -> _ {
 		.manage(pool)
 		.manage(s3)
 		.attach(Template::fairing())
+}
+
+#[get("/flamethrower.min.js")]
+pub const fn flamethrower() -> (ContentType, &'static str) {
+	(
+		ContentType::JavaScript,
+		include_str!("../static/flamethrower.min.js"),
+	)
 }
 
 #[get("/robots.txt")]

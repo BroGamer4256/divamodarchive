@@ -16,9 +16,6 @@
 
 	<!-- Flamethrower from https://github.com/fireship-io/flamethrower -->
 	<script src="{{ base_url }}/flamethrower.min.js"></script>
-	<script>
-		const router = flamethrower({ prefetch: true });
-	</script>
 
 	{% block head %}{% endblock head %}
 	<link href="{{ theme.url }}" rel="stylesheet" crossorigin="anonymous">
@@ -94,5 +91,8 @@
 		<a class="nav-link p-0 nav-text" data-cold="" href="/admin">Admin</a>
 		{% endif %}
 	</nav>
+	<script>
+		const router = flamethrower({ prefetch: true });
+	</script>
 </body>
 </html>

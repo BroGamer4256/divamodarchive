@@ -6,7 +6,6 @@
 {% endblock head %}
 
 {% block content %}
-<script src="https://www.paypal.com/sdk/js?client-id=AXv6EaSAyTDWnYbRQXb_QLsNhPLfonHU7oH4YibZ2mLN1zJyyNkGcYbA7o5u791RhRstsvUWfx0QBVyV&currency=USD"></script>
 <div class="card card-body">
 	<div class="row row-lg-cols-2">
 		<div class="col-lg-6 col-xl-4">

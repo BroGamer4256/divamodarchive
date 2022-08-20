@@ -97,10 +97,8 @@
 		<a class="nav-link p-0 nav-text" data-cold="" href="/admin">Admin</a>
 		{% endif %}
 	</nav>
-	{% if no_prefetch | undefined %}
 	<script>
 		flamethrower({});
 	</script>
-	{% endif %}
 </body>
 </html>

@@ -414,6 +414,7 @@ pub fn about(
 			base_url: BASE_URL.to_string(),
 			gtag: GTAG.to_string(),
 			game_name: GAME_NAME.to_string(),
+			no_prefetch: true,
 		],
 	)
 }

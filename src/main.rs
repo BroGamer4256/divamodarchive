@@ -114,8 +114,11 @@ pub const fn flamethrower() -> (ContentType, &'static str) {
 }
 
 #[get("/robots.txt")]
-pub const fn robots() -> &'static str {
-	"User-agent: *\nDisallow: /api/\nSitemap: /sitemap.xml"
+pub fn robots() -> String {
+	format!(
+		"User-agent: *\nDisallow: /api/\nSitemap: {}/sitemap.xml",
+		*models::BASE_URL
+	)
 }
 
 #[get("/favicon.ico")]

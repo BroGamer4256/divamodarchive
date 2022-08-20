@@ -69,7 +69,14 @@
 
 <body>
 	<br>
-	<div id="content" class="container">{% block content %}{% endblock content %}</div>
+	<div id="content" class="container">
+		<div class="alert alert-info text">
+			Recently download speeds have been significantly improved.<br>
+			However this comes at a significant cost to me. I can't afford to keep these speeds for more than a month.
+			<a href="/about" class="nav-link p-0 nav-text" data-cold="">Please donate</a>
+		</div>
+		{% block content %}{% endblock content %}
+	</div>
 	<br><br><br><br><br>
 	<nav class="navbar navbar-dark bg-dark fixed-bottom d-flex justify-content-around shadow">
 		<a class="nav-link p-0 nav-text" href="/">Mods</a>
@@ -86,13 +93,15 @@
 		<a class="nav-link p-0 nav-text" data-cold="" href="/theme">
 			Switch theme
 		</a>
-		<a class="nav-link p-0 nav-text" href="/about">About</a>
+		<a class="nav-link p-0 nav-text" data-cold="" href="/about">About</a>
 		{% if is_admin == true %}
 		<a class="nav-link p-0 nav-text" data-cold="" href="/admin">Admin</a>
 		{% endif %}
 	</nav>
+	{% if no_prefetch | undefined %}
 	<script>
 		flamethrower({});
 	</script>
+	{% endif %}
 </body>
 </html>

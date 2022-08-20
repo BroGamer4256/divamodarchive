@@ -71,9 +71,8 @@
 	<br>
 	<div id="content" class="container">
 		<div class="alert alert-info text">
-			Recently download speeds have been significantly improved.<br>
-			However this comes at a significant cost to me. I can't afford to keep these speeds for more than a month.
-			<a href="/about" class="nav-link p-0 nav-text" data-cold="">Please donate</a>
+			Recently I have switched the file host to AWS S3 which has lead to fast download speeds.<br>
+			<a href="https://ko-fi.com/brogamer" class="nav-link p-0 nav-text">However this is expensive, if you want the speeds to stay fast please donate</a>
 		</div>
 		{% block content %}{% endblock content %}
 	</div>
@@ -93,7 +92,7 @@
 		<a class="nav-link p-0 nav-text" data-cold="" href="/theme">
 			Switch theme
 		</a>
-		<a class="nav-link p-0 nav-text" data-cold="" href="/about">About</a>
+		<a class="nav-link p-0 nav-text" href="/about">About</a>
 		{% if is_admin == true %}
 		<a class="nav-link p-0 nav-text" data-cold="" href="/admin">Admin</a>
 		{% endif %}

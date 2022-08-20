@@ -34,35 +34,9 @@
 				feedback and motivation<br>
 				It was a fun time indeed.
 			</p>
-			<p class="text">
+			<a class="text" href="https://ko-fi.com/brogamer">
 				Want to support the site?
-					<div class="form-group">
-						<label for="amount">Amount(USD)</label>
-						<input type="number" class="form-control" id="amount" value="5">
-					</div>
-				<br>
-				<div id="paypal-button-container"></div>
 			</p>
-			
-			<script>
-				paypal.Buttons({
-					createOrder: (data, actions) => {
-						return actions.order.create({
-							purchase_units: [{
-								amount: {
-									value: document.getElementById('amount').value
-								}
-							}]
-						});
-					},
-					onApprove: (data, actions) => {
-						return actions.order.capture().then(function(orderData) {
-							const element = document.getElementById('paypal-button-container');
-							element.innerHTML = '<h3>Thank you for your payment!</h3>';
-						});
-					}
-				}).render('#paypal-button-container');
-			</script>
 		</div>
 	</div>
 </div>

@@ -1020,7 +1020,7 @@ pub async fn update_download_limit(connection: &mut PgConnection, ip: IpAddr, si
 		.select(download_limit::downloaded)
 		.get_result::<i64>(connection);
 	if let Ok(used_limit) = limit_exists {
-		if used_limit + size >= 3 * 1024 * 1024 * 1024 {
+		if used_limit >= 3 * 1024 * 1024 * 1024 {
 			return Status::TooManyRequests;
 		}
 		let _ = diesel::update(

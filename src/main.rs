@@ -260,7 +260,7 @@ pub async fn get_from_storage(
 		.key(file)
 		.presigned(
 			aws_sdk_s3::presigning::config::PresigningConfig::expires_in(
-				std::time::Duration::from_secs(60 * 60 * 24),
+				std::time::Duration::from_secs(60 * 10),
 			)
 			.unwrap(),
 		)

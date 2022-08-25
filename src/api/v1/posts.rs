@@ -100,9 +100,10 @@ pub async fn upload(
 	}
 	let connection = &mut get_connection(connection);
 	let change = post.change.clone();
+	let change_download = post.change_download.clone();
 	let new_post = create_post(connection, post, user, update_id.unwrap_or(-1))?;
 	if let Some(change) = change {
-		add_changelog(connection, new_post.id, change);
+		add_changelog(connection, new_post.id, change, change_download);
 	}
 	Ok(Json(new_post))
 }
@@ -123,7 +124,7 @@ pub fn edit(
 	let change = post.change.clone();
 	let result = update_post(connection, post, update_id)?;
 	if let Some(change) = change {
-		add_changelog(connection, update_id, change);
+		add_changelog(connection, update_id, change, None);
 	}
 	Ok(Json(result))
 }

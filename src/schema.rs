@@ -1,4 +1,13 @@
 table! {
+	download_limit (limit_id) {
+		limit_id -> Int4,
+		ip -> Text,
+		downloaded -> Int8,
+		date -> Timestamp,
+	}
+}
+
+table! {
 	download_stats (download_id) {
 		download_id -> Int4,
 		post_id -> Int4,
@@ -12,6 +21,7 @@ table! {
 		post_id -> Int4,
 		description -> Text,
 		time -> Timestamp,
+		download -> Nullable<Text>,
 	}
 }
 
@@ -95,6 +105,7 @@ joinable!(users_liked_posts -> posts (post_id));
 joinable!(users_liked_posts -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
+	download_limit,
 	download_stats,
 	post_changelogs,
 	post_comments,

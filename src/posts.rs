@@ -4,6 +4,7 @@ use diesel::dsl::*;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use rocket::http::Status;
+use std::net::IpAddr;
 
 pub fn create_post(
 	conn: &mut PgConnection,
@@ -299,7 +300,11 @@ pub fn get_latest_posts_detailed(
 		let changelogs = post_changelogs::table
 			.filter(post_changelogs::post_id.eq(post.id))
 			.order_by(post_changelogs::time.desc())
-			.select((post_changelogs::description, post_changelogs::time))
+			.select((
+				post_changelogs::description,
+				post_changelogs::time,
+				post_changelogs::download,
+			))
 			.load::<Changelog>(connection)
 			.unwrap_or_else(|_| vec![]);
 		let comments = post_comments::table
@@ -415,12 +420,7 @@ pub fn get_popular_posts(
 		.left_join(users_disliked_posts::table)
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by(posts::post_id)
-		.order_by(
-			(count_distinct(users_liked_posts::user_id.nullable())
-				- count_distinct(users_disliked_posts::user_id.nullable()))
-			.desc(),
-		)
-		.then_order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -453,12 +453,7 @@ pub fn get_popular_posts_detailed(
 		.left_join(users_disliked_posts::table)
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
-		.order_by(
-			(count_distinct(users_liked_posts::user_id.nullable())
-				- count_distinct(users_disliked_posts::user_id.nullable()))
-			.desc(),
-		)
-		.then_order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -523,7 +518,11 @@ pub fn get_popular_posts_detailed(
 		let changelogs = post_changelogs::table
 			.filter(post_changelogs::post_id.eq(post.id))
 			.order_by(post_changelogs::time.desc())
-			.select((post_changelogs::description, post_changelogs::time))
+			.select((
+				post_changelogs::description,
+				post_changelogs::time,
+				post_changelogs::download,
+			))
 			.load::<Changelog>(connection)
 			.unwrap_or_else(|_| vec![]);
 		let comments = post_comments::table
@@ -579,12 +578,7 @@ pub fn get_popular_posts_disallowed(
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_id.ne_all(disallowed))
 		.filter(posts::post_game_tag.eq(game_tag))
-		.order_by(
-			(count_distinct(users_liked_posts::user_id.nullable())
-				- count_distinct(users_disliked_posts::user_id.nullable()))
-			.desc(),
-		)
-		.then_order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
 		.select((
 			posts::post_id,
 			posts::post_name,
@@ -674,7 +668,11 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 	let changelogs = post_changelogs::table
 		.filter(post_changelogs::post_id.eq(result.id))
 		.order_by(post_changelogs::time.desc())
-		.select((post_changelogs::description, post_changelogs::time))
+		.select((
+			post_changelogs::description,
+			post_changelogs::time,
+			post_changelogs::download,
+		))
 		.load::<Changelog>(connection)
 		.unwrap_or_else(|_| vec![]);
 	let comments = post_comments::table
@@ -912,7 +910,12 @@ pub fn get_posts_detailed(
 		.unwrap_or_default()
 }
 
-pub fn add_changelog(connection: &mut PgConnection, id: i32, change: String) -> Status {
+pub fn add_changelog(
+	connection: &mut PgConnection,
+	id: i32,
+	change: String,
+	change_download: Option<String>,
+) -> Status {
 	let result = diesel::insert_into(post_changelogs::table)
 		.values((
 			post_changelogs::post_id.eq(id),
@@ -921,6 +924,7 @@ pub fn add_changelog(connection: &mut PgConnection, id: i32, change: String) -> 
 				chrono::Utc::now().timestamp(),
 				0,
 			)),
+			post_changelogs::download.eq(change_download),
 		))
 		.execute(connection);
 
@@ -971,4 +975,39 @@ pub fn delete_comment(connection: &mut PgConnection, id: i32, user: i64) -> Stat
 	} else {
 		Status::InternalServerError
 	}
+}
+
+pub fn update_download_limit(connection: &mut PgConnection, ip: IpAddr, size: i64) -> Status {
+	let current_time = chrono::Utc::now().date_naive().and_hms(0, 0, 0);
+	let limit_exists = download_limit::table
+		.filter(download_limit::ip.eq(ip.to_string()))
+		.filter(download_limit::date.eq(current_time))
+		.select(download_limit::downloaded)
+		.get_result::<i64>(connection);
+	if let Ok(used_limit) = limit_exists {
+		if used_limit + size >= 3 * 1024 * 1024 * 1024 {
+			return Status::TooManyRequests;
+		}
+		let _ = diesel::update(
+			download_limit::table
+				.filter(download_limit::ip.eq(ip.to_string()))
+				.filter(download_limit::date.eq(current_time)),
+		)
+		.set((
+			download_limit::date.eq(current_time),
+			download_limit::ip.eq(ip.to_string()),
+			download_limit::downloaded.eq(used_limit + size),
+		))
+		.execute(connection);
+	} else {
+		let _ = diesel::insert_into(download_limit::table)
+			.values((
+				download_limit::date.eq(current_time),
+				download_limit::ip.eq(ip.to_string()),
+				download_limit::downloaded.eq(size),
+			))
+			.execute(connection);
+	}
+
+	Status::Ok
 }

@@ -110,12 +110,7 @@ pub fn get_user_posts_popular(
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
-		.order_by(
-			(count_distinct(users_liked_posts::user_id.nullable())
-				- count_distinct(users_disliked_posts::user_id.nullable()))
-			.desc(),
-		)
-		.then_order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
 		.select((
 			(
 				posts::post_id,

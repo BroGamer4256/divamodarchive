@@ -15,7 +15,7 @@ pub mod web;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use dotenv::dotenv;
-use rocket::http::ContentType;
+use rocket::http::{ContentType, Status};
 use rocket::serde::{Deserialize, Serialize};
 use rocket::*;
 use rocket_dyn_templates::Template;
@@ -231,10 +231,29 @@ pub async fn get_from_storage(
 	user_id: i64,
 	file_name: &str,
 	s3: &State<aws_sdk_s3::Client>,
-) -> Option<response::Redirect> {
+	ip: models::HttpIp,
+) -> Result<response::Redirect, Status> {
+	let connection = &mut models::get_connection(connection);
 	let file = format!("{}/{}", user_id, file_name);
 	let path = format!("{}/storage/{}", *models::BASE_URL, file);
-	let _result = posts::update_download_count(&mut models::get_connection(connection), path);
+	let file_size = s3
+		.head_object()
+		.bucket("divamodarchive")
+		.key(file.clone())
+		.send()
+		.await;
+
+	let file_size = match file_size {
+		Ok(file_size) => file_size.content_length(),
+		Err(_) => return Err(Status::NotFound),
+	};
+
+	let result = posts::update_download_limit(connection, ip.ip, file_size);
+	if result != Status::Ok {
+		return Err(result);
+	}
+	let _result = posts::update_download_count(connection, path);
+
 	let file = s3
 		.get_object()
 		.bucket("divamodarchive")
@@ -249,10 +268,10 @@ pub async fn get_from_storage(
 
 	let file = match file {
 		Ok(file) => file,
-		Err(_) => return None,
+		Err(_) => return Err(Status::NotFound),
 	};
 
-	Some(response::Redirect::to(file.uri().to_string()))
+	Ok(response::Redirect::to(file.uri().to_string()))
 }
 
 allow_columns_to_appear_in_same_group_by_clause!(

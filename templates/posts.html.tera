@@ -124,6 +124,10 @@ btn btn-sm btn-outline-info btn-info
 btn btn-sm btn-outline-danger btn-danger
 {% endmacro %}
 
+{% macro btn_warning_outer() %}
+btn btn-sm btn-outline-warning btn-warning
+{% endmacro %}
+
 {% macro btn_inner() %}
 btn text-light
 {% endmacro %}
@@ -289,11 +293,14 @@ extra_images, comments) %}
 		<a href="{{ link }}" class="{{ self::btn_success_outer() }}" download data-cold="">
 			<button type="button" class="{{ self::btn_inner() }}">Download</button>
 		</a>
+		<a href="divamodmanager:dma/{{ id }}" class="{{ self::btn_info_outer() }}" download data-cold="">
+			<button type="button" class="{{ self::btn_inner() }}">DMM One Click Install</button>
+		</a>
 		{% if who_is_logged_in == uploader_id %}
-		<a href="/posts/{{ id }}/edit" class="{{ self::btn_info_outer() }}" data-cold="">
+		<a href="/posts/{{ id }}/edit" class="{{ self::btn_warning_outer() }}" data-cold="">
 			<button type="button" class="{{ self::btn_inner() }}">Edit</button>
 		</a>
-		<a href="/posts/{{ id }}/dependency" class="{{ self::btn_info_outer() }}" data-cold="">
+		<a href="/posts/{{ id }}/dependency" class="{{ self::btn_warning_outer() }}" data-cold="">
 			<button type="button" class="{{ self::btn_inner() }}">Add dependency</button>
 		</a>
 		<div class="{{ self::btn_danger_outer() }}" onclick="deletePost()" data-cold="">
@@ -301,7 +308,7 @@ extra_images, comments) %}
 		</div>
 		{% endif %}
 		{% if is_logged_in == true and who_is_logged_in != uploader_id %}
-		<a href="/posts/{{ id }}/report" class="{{ self::btn_info_outer() }}" data-cold="">
+		<a href="/posts/{{ id }}/report" class="{{ self::btn_danger_outer() }}" data-cold="">
 			<button type="button" class="{{ self::btn_inner() }}">Report</button>
 		</a>
 		{% endif %}
@@ -309,6 +316,19 @@ extra_images, comments) %}
 	<div class="card card-body text">
 		{{ text | striptags | linebreaksbr | safe }}
 	</div>
+	{% if changelogs | length > 0 %}
+		{% for changelog in changelogs %}
+			<div class="card card-body text">
+				<h5 class="text">{{ changelog.time | date }}</h5>
+				{{ changelog.description }}
+				{% if changelog.download %}
+				<a href="{{ changelog.download }}" class="{{ self::btn_success_outer() }}" download data-cold="">
+					<button type="button" class="{{ self::btn_inner() }}">Download</button>
+				</a>
+				{% endif %}
+			</div>
+		{% endfor %}
+	{% endif %}
 	{% if dependencies | length > 0 %}
 	<div class="card card-body">
 		<h4>This mod requires: </h4>
@@ -343,14 +363,6 @@ extra_images, comments) %}
 			{% endfor %}
 		</div>
 	</div>
-	{% endif %}
-	{% if changelogs | length > 0 %}
-		{% for changelog in changelogs %}
-			<div class="card card-body text">
-				<h5 class="text">{{ changelog.time | date }}</h5>
-				{{ changelog.description }}
-			</div>
-		{% endfor %}
 	{% endif %}
 </div><br>
 {% if is_logged_in %}

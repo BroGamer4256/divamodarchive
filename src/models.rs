@@ -238,6 +238,24 @@ impl<'r> FromRequest<'r> for User {
 	}
 }
 
+#[derive(Debug)]
+pub struct HttpIp {
+	pub ip: std::net::IpAddr,
+}
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for HttpIp {
+	type Error = GenericErorr;
+	async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
+		match request.headers().get_one("x-forwarded-for") {
+			None => Outcome::Failure((Status::Unauthorized, GenericErorr::Missing)),
+			Some(header) => Outcome::Success(Self {
+				ip: header.parse().unwrap(),
+			}),
+		}
+	}
+}
+
 #[derive(Queryable, Serialize, Deserialize, Default)]
 pub struct UserStats {
 	pub likes: i64,
@@ -256,6 +274,7 @@ pub struct PostUnidentified {
 	pub game_tag: i32,
 	pub type_tag: i32,
 	pub change: Option<String>,
+	pub change_download: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -337,7 +356,7 @@ pub struct ShortUserPosts {
 	pub user: User,
 }
 
-#[derive(Queryable, Serialize, Deserialize, Default)]
+#[derive(Queryable, Serialize, Deserialize, Default, Debug)]
 pub struct User {
 	pub id: i64,
 	pub name: String,
@@ -421,6 +440,7 @@ pub struct Report {
 pub struct Changelog {
 	pub description: String,
 	pub time: chrono::NaiveDateTime,
+	pub download: Option<String>,
 }
 
 #[derive(Queryable, Serialize, Deserialize)]

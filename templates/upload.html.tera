@@ -89,6 +89,7 @@
 		var type_tag = form['type_tag'].value;
 		{% if update_id %}
 		var change = form['change-text'].value;
+		var change_download = form['change-download-text'];
 		{% endif %}
 		if (title == "" || text == "" || text_short == "") {
 			alert("Upload failed\nMissing text fields");
@@ -203,6 +204,9 @@
 										{% if update_id %}
 										if (change != '') {
 											post_data.change = change;
+											if (change_download != '') {
+												post_data.change_download = change_download;
+											}
 										}
 										{% endif %}
 

@@ -16,13 +16,28 @@ pub fn create_post(
 		if !owns_post(conn, update_id, user.id) {
 			return Err(Status::Unauthorized);
 		}
+
+		let original_post = get_post(conn, update_id);
+		let original_post = match original_post {
+			Ok(post) => post,
+			Err(_) => return Err(Status::BadRequest),
+		};
+		let image = match post.image {
+			Some(image) => image,
+			None => original_post.image,
+		};
+		let images_extra = match post.images_extra {
+			Some(images) => images,
+			None => original_post.images_extra,
+		};
+
 		let result = diesel::update(posts::table.filter(posts::post_id.eq(update_id)))
 			.set((
 				posts::post_name.eq(&post.name),
 				posts::post_text.eq(&post.text),
 				posts::post_text_short.eq(&post.text_short),
-				posts::post_image.eq(&post.image),
-				posts::post_images_extra.eq(&post.images_extra),
+				posts::post_image.eq(image),
+				posts::post_images_extra.eq(images_extra),
 				posts::post_link.eq(&post.link),
 				posts::post_date.eq(chrono::NaiveDateTime::from_timestamp(
 					chrono::Utc::now().timestamp(),
@@ -39,12 +54,20 @@ pub fn create_post(
 		};
 	}
 
+	let image = match post.image {
+		Some(image) => image,
+		None => return Err(Status::BadRequest),
+	};
+	let images_extra = match post.images_extra {
+		Some(image) => image,
+		None => return Err(Status::BadRequest),
+	};
 	let new_post = NewPost {
 		post_name: &post.name,
 		post_text: &post.text,
 		post_text_short: &post.text_short,
-		post_image: &post.image,
-		post_images_extra: &post.images_extra,
+		post_image: &image,
+		post_images_extra: &images_extra,
 		post_uploader: user.id,
 		post_link: &post.link,
 		post_game_tag: post.game_tag,

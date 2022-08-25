@@ -22,7 +22,6 @@
 		text-align: right;
 	}
 </style>
-
 {% endmacro draw_embed %}
 
 {% macro draw_post_short(id, name, text_short, image, likes=-1, dislikes=-1, downloads=-1, draw_remove=false,

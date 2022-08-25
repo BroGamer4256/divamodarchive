@@ -72,12 +72,22 @@
 		throw error;
 	}
 
-	function upload() {
+	async function upload() {
 		var form = document.getElementById("form");
 
 		var image = form['imagePicker'];
 		var archive = form['filePicker'];
-		if (image.files.length != 1 || archive.files.length != 1) {
+
+		{% if update_id %}
+		var skipImage = form["skip-image"].checked;
+		var skipImagesExtra = form["skip-images-extra"].checked;
+		{% endif %}
+
+		{% if update_id %}
+		if ((image.files.length != 1 && !skipImage) || archive.files.length != 1)
+		{% else %}
+		if (image.files.length != 1 || archive.files.length != 1)
+		{% endif %}{
 			alert("Upload failed\nMissing image/archive");
 			return;
 		}
@@ -108,135 +118,146 @@
 				'Authorization': 'Bearer {{ jwt }}'
 			},
 		}
-		fetch_retry('/api/v1/posts/upload_image', options, 3)
+
+		{% if update_id %}
+		if (!skipImage) {
+		{% endif %}
+		var image_upload_url = await fetch_retry('/api/v1/posts/upload_image', options, 3)
 			.then(response => response.json())
-			.then(image_upload_url => async function (image_upload_url) {
-				if (image_upload_url == null) {
-					alert("Image upload failed");
-					return;
+			.catch(error => crash_and_burn(error, "Failed to upload image"));
+		if (image_upload_url == null) {
+			alert("Image upload failed");
+			return;
+		}
+		var image_form = new FormData();
+		image_form.append('file', image.files[0]);
+		options = {
+			method: 'POST',
+			headers: {
+				'Accept': '*/*'
+			},
+			body: image_form
+		}
+		var result = await fetch_retry(image_upload_url, options, 3)
+			.then(response => response.json())
+			.catch(error => crash_and_burn(error, "Failed to upload image"));
+		var image_url = result.result.variants[0]
+		if (image_url == null) {
+			alert("Image upload failed\nMaximum size for images is 10MiB");
+			return
+		}
+		var image_url = image_url.replace("https://imagedelivery.net/", "{{ base_url | safe }}/cdn-cgi/imagedelivery/")
+		{% if update_id %}
+		}
+		{% endif %}
+		
+		{% if update_id %}
+		if (!skipImagesExtra) {
+		{% endif %}
+		var images_extra = form['imagesExtra'];
+		var images_extra_urls = [];
+		for (let i = 0; i < images_extra.files.length; i++) {
+			options = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'text/plain',
+					'Authorization': 'Bearer {{ jwt }}'
 				}
-				var image_form = new FormData();
-				image_form.append('file', image.files[0]);
-				options = {
-					method: 'POST',
-					headers: {
-						'Accept': '*/*',
-					},
-					body: image_form
-				}
-				fetch_retry(image_upload_url, options, 3)
-					.then(response => response.json())
-					.then(result => async function (result) {
-						var image_url = result.result.variants[0]
-						if (image_url == null) {
-							alert("Image upload failed\nMaximum size for images is 10MiB");
-							return
-						}
-						var image_url = image_url.replace("https://imagedelivery.net/", "{{ base_url | safe }}/cdn-cgi/imagedelivery/")
+			}
+			var extra_image_upload_url = await fetch_retry('/api/v1/posts/upload_image', options, 3)
+				.then(response => response.json())
+				.catch(error => crash_and_burn(error, "Failed to upload image"));
+			if (extra_image_upload_url == null) {
+				alert("Image upload failed\nMaximum size for images is 10MiB");
+				return
+			}
+			var extra_image_form = new FormData();
+			extra_image_form.append('file', images_extra.files[i]);
+			options = {
+				method: 'POST',
+				headers: {
+					'Accept': '*/*'
+				},
+				body: extra_image_form
+			}
+			var result = await fetch_retry(extra_image_upload_url, options, 3)
+				.then(response => response.json())
+				.catch(error => crash_and_burn(error, "Failed to upload image"));
+			if (result == null) {
+				alert("Image upload failed\nMaximum size for images is 10MiB");
+				return
+			}
+			var extra_image_url = result.result.variants[0]
+			var extra_image_url = extra_image_url.replace("https://imagedelivery.net/", "{{ base_url | safe }}/cdn-cgi/imagedelivery/")
+			images_extra_urls.push(extra_image_url);
+		}
+		{% if update_id %}
+		}
+		{% endif %}
+		
+		var file = archive.files[0];
+		options = {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'text/plain',
+				'Authorization': 'Bearer {{ jwt }}'
+			}
+		}
+		var upload_url = await fetch_retry('/api/v1/posts/upload_archive?name=' + file.name, options, 3)
+			.then(response => response.json())
+			.catch(error => crash_and_burn("Unknown error when uploading"));
+		options = {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'text/plain'
+			},
+			body: file
+		},
+		await fetch_retry(upload_url, options, 3).catch(error => crash_and_burn("Unknown error when uploading"));
+		let archive_url = '{{ base_url | safe }}/storage/{{ user.id }}/' + file.name;
+		let post_data = {
+			'name': name,
+			'text': text,
+			'text_short': text_short,
+			'link': archive_url,
+			'game_tag': Number(game_tag),
+			'type_tag': Number(type_tag)
+		}
+		{% if update_id %}
+		if (!skipImage) {
+			post_data.image = image_url;
+		}
+		if (!skipImagesExtra) {
+			post_data.images_extra = images_extra_urls;
+		}
+		if (change != '') {
+			post_data.change = change;
+			if (change_download != '') {
+				post_data.change_download = change_download;
+			}
+		}
+		{% else %}
+		post_data.image = image_url;
+		post_data.images_extra = images_extra_urls;
+		{% endif %}
 
-						var images_extra = form['imagesExtra'];
-						var images_extra_urls = [];
-						for (let i = 0; i < images_extra.files.length; i++) {
-							options = {
-								method: 'GET',
-								headers: {
-									'Content-Type': 'text/plain',
-									'Authorization': 'Bearer {{ jwt }}'
-								}
-							}
-							var response = await fetch_retry('/api/v1/posts/upload_image', options, 3);
-							var extra_image_upload_url = await response.json();
-							if (extra_image_upload_url == null) {
-								alert("Image upload failed\nMaximum size for images is 10MiB");
-								return
-							}
-							var extra_image_form = new FormData();
-							extra_image_form.append('file', images_extra.files[i]);
-							options = {
-								method: 'POST',
-								headers: {
-									'Accept': '*/*',
-								},
-								body: extra_image_form
-							}
-							var response = await fetch_retry(extra_image_upload_url, options, 3);
-							var result = await response.json();
-							if (result == null) {
-								alert("Image upload failed\nMaximum size for images is 10MiB");
-								return
-							}
-							var extra_image_url = result.result.variants[0]
-							var extra_image_url = extra_image_url.replace("https://imagedelivery.net/", "{{ base_url | safe }}/cdn-cgi/imagedelivery/")
-							images_extra_urls.push(extra_image_url);
-						}
-
-						var file = archive.files[0];
-						options = {
-							method: 'GET',
-							headers: {
-								'Content-Type': 'text/plain',
-								'Authorization': 'Bearer {{ jwt }}'
-							}
-						}
-						fetch_retry('/api/v1/posts/upload_archive?name=' + file.name, options, 3)
-							.then(response => response.json())
-							.then(upload_url => {
-								options = {
-									method: 'PUT',
-									headers: {
-										'Content-Type': 'text/plain',
-									},
-									body: file
-								},
-								fetch_retry(upload_url, options, 3)
-									.then(response => {
-										let archive_url = '{{ base_url | safe }}/storage/{{ user.id }}/' + file.name;
-										let post_data = {
-											'name': name,
-											'text': text,
-											'text_short': text_short,
-											'image': image_url,
-											'images_extra': images_extra_urls,
-											'link': archive_url,
-											'game_tag': Number(game_tag),
-											'type_tag': Number(type_tag),
-										}
-										{% if update_id %}
-										if (change != '') {
-											post_data.change = change;
-											if (change_download != '') {
-												post_data.change_download = change_download;
-											}
-										}
-										{% endif %}
-
-										options = {
-											method: 'POST',
-											headers: {
-												'Content-Type': 'text/plain',
-												'Authorization': 'Bearer {{ jwt }}'
-											},
-											body: JSON.stringify(post_data)
-										}
-										{% if update_id %}
-										fetch_retry('/api/v1/posts/upload?update_id={{update_id}}', options, 5)
-										{% else %}
-										fetch_retry('/api/v1/posts/upload', options, 5)
-										{% endif %}
-											.then(response => response.json())
-											.then(data => {
-												window.location.href = "/posts/" + data['id']
-											})
-											.catch(error => crash_and_burn("Unknown error when uploading"))
-									})
-									.catch(error => crash_and_burn("Unknown error when uploading"))
-							})
-							.catch(error => crash_and_burn("Unknown error when uploading"))
-					}(result))
-					// Errors but just fucking continues?????
-					.catch()
-			}(image_upload_url))
-			.catch(error => crash_and_burn("Failed to upload image"))
+		options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'text/plain',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify(post_data)
+		}
+		let data = await
+		{% if update_id %}
+			fetch_retry('/api/v1/posts/upload?update_id={{update_id}}', options, 5)
+		{% else %}
+			fetch_retry('/api/v1/posts/upload', options, 5)
+		{% endif %}
+			.then(response => response.json())
+			.catch(error => crash_and_burn("Unknown error when uploading"));
+		window.location.href = "/posts/" + data['id'];
 	}
 </script>
 <form id="form" class="row align-items-md-stretch gap-3" enctype="application/x-www-form-urlencoded">
@@ -251,11 +272,21 @@
 		<h5>
 			<a href="/user/{{ user.id }}" class="card-subtitle text">{{ user.name }}</a>
 		</h5>
-
+		
 		<label for="imagePicker" class="form-label mt-4">Image</label>
 		<input class="form-control" accept="image/*" type="file" id="imagePicker">
 		<label for="imagesExtra" class="form-label mt-4">Optional: Extra images</label>
 		<input class="form-control" accept="image/*" type="file" id="imagesExtra" multiple>
+
+		{% if update_id %}
+		<br>
+		<div class="btn-group">
+			<input class="btn-check" type="checkbox" id="skip-image" name="skip-image">
+			<label for="skip-image" class="btn btn-primary">Use previously uploaded image</label>
+			<input class="btn-check" type="checkbox" id="skip-images-extra" name="skip-images-extra">
+			<label for="skip-images-extra" class="btn btn-primary">Use previously uploaded images extra</label>
+		</div>
+		{% endif %}
 	</div>
 	<div class="col-md-3 card card-body gap-3">
 		<div class="btn-group">

@@ -18,7 +18,7 @@
 	<script src="{{ base_url }}/flamethrower.min.js"></script>
 
 	<script>
-		const router = flamethrower({});
+		const router = flamethrower();
 	</script>
 
 	{% block head %}{% endblock head %}

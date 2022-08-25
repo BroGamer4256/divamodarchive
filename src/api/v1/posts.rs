@@ -88,13 +88,15 @@ pub async fn upload(
 	update_id: Option<i32>,
 ) -> Result<Json<Post>, Status> {
 	let post = post.into_inner();
+	if update_id.is_none() && post.image.is_none() {
+		return Err(Status::BadRequest);
+	}
+	if let Some(image) = post.image.clone() && (!image.starts_with(&format!("{}/cdn-cgi/imagedelivery", *BASE_URL)) || reqwest::get(image).await.is_err()){
+		return Err(Status::BadRequest);
+	}
 	if !post
-		.image
-		.starts_with(&format!("{}/cdn-cgi/imagedelivery", *BASE_URL))
-		|| !post
-			.link
-			.starts_with(&format!("{}/storage/{}/", *BASE_URL, user.id))
-		|| reqwest::get(post.image.clone()).await.is_err()
+		.link
+		.starts_with(&format!("{}/storage/{}/", *BASE_URL, user.id))
 	{
 		return Err(Status::BadRequest);
 	}

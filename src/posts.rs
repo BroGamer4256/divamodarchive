@@ -6,18 +6,18 @@ use diesel::prelude::*;
 use rocket::http::Status;
 use std::net::IpAddr;
 
-pub fn create_post(
+pub async fn create_post(
 	conn: &mut PgConnection,
 	post: PostUnidentified,
 	user: User,
 	update_id: i32,
 ) -> Result<Post, Status> {
 	if update_id != -1 {
-		if !owns_post(conn, update_id, user.id) {
+		if !owns_post(conn, update_id, user.id).await {
 			return Err(Status::Unauthorized);
 		}
 
-		let original_post = get_post(conn, update_id);
+		let original_post = get_post(conn, update_id).await;
 		let original_post = match original_post {
 			Ok(post) => post,
 			Err(_) => return Err(Status::BadRequest),
@@ -84,7 +84,7 @@ pub fn create_post(
 	}
 }
 
-pub fn update_post(
+pub async fn update_post(
 	conn: &mut PgConnection,
 	post: PostMetadata,
 	update_id: i32,
@@ -105,7 +105,7 @@ pub fn update_post(
 	}
 }
 
-pub fn has_liked_post(conn: &mut PgConnection, user_id: i64, post_id: i32) -> bool {
+pub async fn has_liked_post(conn: &mut PgConnection, user_id: i64, post_id: i32) -> bool {
 	users_liked_posts::table
 		.filter(users_liked_posts::user_id.eq(user_id))
 		.filter(users_liked_posts::post_id.eq(post_id))
@@ -113,14 +113,14 @@ pub fn has_liked_post(conn: &mut PgConnection, user_id: i64, post_id: i32) -> bo
 		.is_ok()
 }
 
-pub fn like_post_from_ids(
+pub async fn like_post_from_ids(
 	conn: &mut PgConnection,
 	user_id: i64,
 	post_id: i32,
 ) -> Result<LikedPost, Status> {
 	let new_like = NewLikedPost { post_id, user_id };
 
-	let has_liked = has_liked_post(conn, user_id, post_id);
+	let has_liked = has_liked_post(conn, user_id, post_id).await;
 
 	if has_liked {
 		let result = diesel::delete(
@@ -158,7 +158,7 @@ pub fn like_post_from_ids(
 	}
 }
 
-pub fn has_disliked_post(conn: &mut PgConnection, user_id: i64, post_id: i32) -> bool {
+pub async fn has_disliked_post(conn: &mut PgConnection, user_id: i64, post_id: i32) -> bool {
 	users_disliked_posts::table
 		.filter(users_disliked_posts::user_id.eq(user_id))
 		.filter(users_disliked_posts::post_id.eq(post_id))
@@ -166,14 +166,14 @@ pub fn has_disliked_post(conn: &mut PgConnection, user_id: i64, post_id: i32) ->
 		.is_ok()
 }
 
-pub fn dislike_post_from_ids(
+pub async fn dislike_post_from_ids(
 	conn: &mut PgConnection,
 	user_id: i64,
 	post_id: i32,
 ) -> Result<DislikedPost, Status> {
 	let new_like = NewDislikedPost { post_id, user_id };
 
-	let has_disliked = has_disliked_post(conn, user_id, post_id);
+	let has_disliked = has_disliked_post(conn, user_id, post_id).await;
 
 	if has_disliked {
 		let result = diesel::delete(
@@ -211,7 +211,7 @@ pub fn dislike_post_from_ids(
 	}
 }
 
-pub fn get_latest_posts(
+pub async fn get_latest_posts(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
@@ -243,7 +243,7 @@ pub fn get_latest_posts(
 		.unwrap_or_else(|_| vec![])
 }
 
-pub fn get_latest_posts_detailed(
+pub async fn get_latest_posts_detailed(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
@@ -367,7 +367,7 @@ pub fn get_latest_posts_detailed(
 	Ok(posts)
 }
 
-pub fn get_latest_posts_disallowed(
+pub async fn get_latest_posts_disallowed(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
@@ -406,7 +406,10 @@ pub fn get_latest_posts_disallowed(
 	Ok(results)
 }
 
-pub fn get_latest_posts_unfiltered(connection: &mut PgConnection, limit: i64) -> Vec<ShortPost> {
+pub async fn get_latest_posts_unfiltered(
+	connection: &mut PgConnection,
+	limit: i64,
+) -> Vec<ShortPost> {
 	posts::table
 		.left_join(users_liked_posts::table)
 		.left_join(users_disliked_posts::table)
@@ -429,7 +432,7 @@ pub fn get_latest_posts_unfiltered(connection: &mut PgConnection, limit: i64) ->
 		.unwrap_or_else(|_| vec![])
 }
 
-pub fn get_popular_posts(
+pub async fn get_popular_posts(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
@@ -461,7 +464,7 @@ pub fn get_popular_posts(
 		.unwrap_or_else(|_| vec![])
 }
 
-pub fn get_popular_posts_detailed(
+pub async fn get_popular_posts_detailed(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
@@ -585,7 +588,7 @@ pub fn get_popular_posts_detailed(
 	Ok(posts)
 }
 
-pub fn get_popular_posts_disallowed(
+pub async fn get_popular_posts_disallowed(
 	connection: &mut PgConnection,
 	name: String,
 	offset: i64,
@@ -624,7 +627,7 @@ pub fn get_popular_posts_disallowed(
 	Ok(results)
 }
 
-pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, Status> {
+pub async fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, Status> {
 	let result = posts::table
 		.filter(posts::post_id.eq(id))
 		.inner_join(users::table)
@@ -733,7 +736,7 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, 
 	})
 }
 
-pub fn get_short_post(conn: &mut PgConnection, id: i32) -> Option<ShortPost> {
+pub async fn get_short_post(conn: &mut PgConnection, id: i32) -> Option<ShortPost> {
 	posts::table
 		.filter(posts::post_id.eq(id))
 		.inner_join(users::table)
@@ -756,7 +759,7 @@ pub fn get_short_post(conn: &mut PgConnection, id: i32) -> Option<ShortPost> {
 		.ok()
 }
 
-pub fn delete_post(conn: &mut PgConnection, id: i32) -> Status {
+pub async fn delete_post(conn: &mut PgConnection, id: i32) -> Status {
 	let result = diesel::delete(posts::table.filter(posts::post_id.eq(id))).execute(conn);
 	if result.is_ok() {
 		Status::Ok
@@ -765,7 +768,7 @@ pub fn delete_post(conn: &mut PgConnection, id: i32) -> Status {
 	}
 }
 
-pub fn update_download_count(conn: &mut PgConnection, path: String) -> Status {
+pub async fn update_download_count(conn: &mut PgConnection, path: String) -> Status {
 	let result = posts::table
 		.filter(posts::post_link.eq(path))
 		.select(posts::post_id)
@@ -786,7 +789,7 @@ pub fn update_download_count(conn: &mut PgConnection, path: String) -> Status {
 	}
 }
 
-pub fn owns_post(conn: &mut PgConnection, id: i32, user_id: i64) -> bool {
+pub async fn owns_post(conn: &mut PgConnection, id: i32, user_id: i64) -> bool {
 	let result = posts::table
 		.filter(posts::post_uploader.eq(user_id))
 		.filter(posts::post_id.eq(id))
@@ -795,7 +798,7 @@ pub fn owns_post(conn: &mut PgConnection, id: i32, user_id: i64) -> bool {
 	result.is_ok()
 }
 
-pub fn add_dependency(conn: &mut PgConnection, post_id: i32, dependency_id: i32) -> Status {
+pub async fn add_dependency(conn: &mut PgConnection, post_id: i32, dependency_id: i32) -> Status {
 	let result = diesel::insert_into(post_dependencies::table)
 		.values((
 			post_dependencies::post_id.eq(post_id),
@@ -810,7 +813,11 @@ pub fn add_dependency(conn: &mut PgConnection, post_id: i32, dependency_id: i32)
 	}
 }
 
-pub fn remove_dependency(conn: &mut PgConnection, post_id: i32, dependency_id: i32) -> Status {
+pub async fn remove_dependency(
+	conn: &mut PgConnection,
+	post_id: i32,
+	dependency_id: i32,
+) -> Status {
 	let result = diesel::delete(
 		post_dependencies::table
 			.filter(post_dependencies::post_id.eq(post_id))
@@ -825,7 +832,7 @@ pub fn remove_dependency(conn: &mut PgConnection, post_id: i32, dependency_id: i
 	}
 }
 
-pub fn get_reports(conn: &mut PgConnection) -> Vec<Report> {
+pub async fn get_reports(conn: &mut PgConnection) -> Vec<Report> {
 	reports::table
 		.inner_join(posts::table.on(posts::post_id.eq(reports::post_id)))
 		.inner_join(users::table.on(users::user_id.eq(reports::user_id)))
@@ -856,7 +863,7 @@ pub fn get_reports(conn: &mut PgConnection) -> Vec<Report> {
 		.unwrap_or_else(|_| vec![])
 }
 
-pub fn delete_report(conn: &mut PgConnection, id: i32) -> Status {
+pub async fn delete_report(conn: &mut PgConnection, id: i32) -> Status {
 	let result = diesel::delete(reports::table.filter(reports::report_id.eq(id))).execute(conn);
 	if result.is_ok() {
 		Status::Ok
@@ -865,7 +872,12 @@ pub fn delete_report(conn: &mut PgConnection, id: i32) -> Status {
 	}
 }
 
-pub fn add_report(conn: &mut PgConnection, post_id: i32, user_id: i64, reason: String) -> Status {
+pub async fn add_report(
+	conn: &mut PgConnection,
+	post_id: i32,
+	user_id: i64,
+	reason: String,
+) -> Status {
 	let result = diesel::insert_into(reports::table)
 		.values((
 			reports::post_id.eq(post_id),
@@ -885,7 +897,7 @@ pub fn add_report(conn: &mut PgConnection, post_id: i32, user_id: i64, reason: S
 	}
 }
 
-pub fn get_post_count(conn: &mut PgConnection, name: String, game_tag: i32) -> i64 {
+pub async fn get_post_count(conn: &mut PgConnection, name: String, game_tag: i32) -> i64 {
 	posts::table
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_game_tag.eq(game_tag))
@@ -894,14 +906,14 @@ pub fn get_post_count(conn: &mut PgConnection, name: String, game_tag: i32) -> i
 		.unwrap_or(0)
 }
 
-pub fn get_post_ids(conn: &mut PgConnection) -> Vec<i32> {
+pub async fn get_post_ids(conn: &mut PgConnection) -> Vec<i32> {
 	posts::table
 		.select(posts::post_id)
 		.load::<i32>(conn)
 		.unwrap_or_else(|_| vec![])
 }
 
-pub fn get_posts_detailed(
+pub async fn get_posts_detailed(
 	connection: &mut PgConnection,
 	ids: Vec<i32>,
 ) -> Vec<DetailedPostNoDepends> {
@@ -933,7 +945,7 @@ pub fn get_posts_detailed(
 		.unwrap_or_default()
 }
 
-pub fn add_changelog(
+pub async fn add_changelog(
 	connection: &mut PgConnection,
 	id: i32,
 	change: String,
@@ -958,7 +970,7 @@ pub fn add_changelog(
 	}
 }
 
-pub fn add_comment(
+pub async fn add_comment(
 	connection: &mut PgConnection,
 	user: i64,
 	post: i32,
@@ -985,7 +997,7 @@ pub fn add_comment(
 	}
 }
 
-pub fn delete_comment(connection: &mut PgConnection, id: i32, user: i64) -> Status {
+pub async fn delete_comment(connection: &mut PgConnection, id: i32, user: i64) -> Status {
 	let result = diesel::delete(
 		post_comments::table
 			.filter(post_comments::comment_id.eq(id))
@@ -1000,7 +1012,7 @@ pub fn delete_comment(connection: &mut PgConnection, id: i32, user: i64) -> Stat
 	}
 }
 
-pub fn update_download_limit(connection: &mut PgConnection, ip: IpAddr, size: i64) -> Status {
+pub async fn update_download_limit(connection: &mut PgConnection, ip: IpAddr, size: i64) -> Status {
 	let current_time = chrono::Utc::now().date_naive().and_hms(0, 0, 0);
 	let limit_exists = download_limit::table
 		.filter(download_limit::ip.eq(ip.to_string()))

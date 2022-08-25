@@ -170,7 +170,7 @@ pub enum GenericErorr {
 pub struct Verified {}
 
 impl Verified {
-	pub fn verify(token: &str) -> Outcome<Self, GenericErorr> {
+	pub async fn verify(token: &str) -> Outcome<Self, GenericErorr> {
 		let token = decode::<Token>(token, &DECODE_KEY, &Validation::default());
 		if token.is_err() {
 			Outcome::Failure((Status::Unauthorized, GenericErorr::Invalid))
@@ -189,26 +189,26 @@ impl<'r> FromRequest<'r> for Verified {
 				None => Outcome::Failure((Status::Unauthorized, GenericErorr::Missing)),
 				Some(cookie) => {
 					let token = cookie.value();
-					Self::verify(token)
+					Self::verify(token).await
 				}
 			},
 			Some(token) => {
 				let token = token.replace("Bearer ", "");
-				Self::verify(&token)
+				Self::verify(&token).await
 			}
 		}
 	}
 }
 
 impl User {
-	pub fn verify(token: &str, connection: &ConnectionPool) -> Outcome<Self, GenericErorr> {
+	pub async fn verify(token: &str, connection: &ConnectionPool) -> Outcome<Self, GenericErorr> {
 		let token_data = decode::<Token>(token, &DECODE_KEY, &Validation::default());
 		let token_data = match token_data {
 			Ok(token_data) => token_data,
 			Err(_) => return Outcome::Failure((Status::Unauthorized, GenericErorr::Invalid)),
 		};
 		let result =
-			crate::users::get_user(&mut connection.get().unwrap(), token_data.claims.user_id);
+			crate::users::get_user(&mut connection.get().unwrap(), token_data.claims.user_id).await;
 		match result {
 			Ok(user) => Outcome::Success(user),
 			Err(status) => Outcome::Failure((status, GenericErorr::Invalid)),
@@ -226,13 +226,13 @@ impl<'r> FromRequest<'r> for User {
 				Some(cookie) => {
 					let token = cookie.value();
 					let connection = request.rocket().state::<ConnectionPool>().unwrap();
-					Self::verify(token, connection)
+					Self::verify(token, connection).await
 				}
 			},
 			Some(token) => {
 				let token = token.replace("Bearer ", "");
 				let connection = request.rocket().state::<ConnectionPool>().unwrap();
-				Self::verify(&token, connection)
+				Self::verify(&token, connection).await
 			}
 		}
 	}

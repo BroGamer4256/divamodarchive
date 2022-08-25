@@ -114,7 +114,7 @@ pub const fn flamethrower() -> (ContentType, &'static str) {
 }
 
 #[get("/robots.txt")]
-pub fn robots() -> String {
+pub async fn robots() -> String {
 	format!(
 		"User-agent: *\nDisallow: /api/\nSitemap: {}/sitemap.xml",
 		*models::BASE_URL
@@ -176,8 +176,7 @@ pub struct Urlset {
 }
 
 #[get("/sitemap.xml")]
-pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
-	let ids = posts::get_post_ids(&mut models::get_connection(connection));
+pub async fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 	let mut urls = Vec::new();
 	let base_url = Url {
 		loc: Loc {
@@ -202,6 +201,7 @@ pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 			priority: String::from("0.5"),
 		},
 	};
+	let ids = posts::get_post_ids(&mut models::get_connection(connection)).await;
 	urls.push(about_url);
 	for id in ids {
 		let url = Url {
@@ -248,11 +248,11 @@ pub async fn get_from_storage(
 		Err(_) => return Err(Status::NotFound),
 	};
 
-	let result = posts::update_download_limit(connection, ip.ip, file_size);
+	let result = posts::update_download_limit(connection, ip.ip, file_size).await;
 	if result != Status::Ok {
 		return Err(result);
 	}
-	let _result = posts::update_download_count(connection, path);
+	let _result = posts::update_download_count(connection, path).await;
 
 	let file = s3
 		.get_object()

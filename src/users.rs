@@ -5,7 +5,7 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use rocket::http::Status;
 
-pub fn create_user<'a>(
+pub async fn create_user<'a>(
 	conn: &mut PgConnection,
 	id: i64,
 	name: &'a str,
@@ -40,7 +40,7 @@ pub fn create_user<'a>(
 }
 
 // Ensure the user is verified before calling this
-pub fn delete_user(conn: &mut PgConnection, id: i64) -> Status {
+pub async fn delete_user(conn: &mut PgConnection, id: i64) -> Status {
 	let result = diesel::delete(users::table.filter(users::user_id.eq(id))).execute(conn);
 
 	if result.is_ok() {
@@ -50,7 +50,7 @@ pub fn delete_user(conn: &mut PgConnection, id: i64) -> Status {
 	}
 }
 
-pub fn get_user(conn: &mut PgConnection, id: i64) -> Result<User, Status> {
+pub async fn get_user(conn: &mut PgConnection, id: i64) -> Result<User, Status> {
 	let result = users::table.filter(users::user_id.eq(id)).get_result(conn);
 
 	match result {
@@ -59,7 +59,7 @@ pub fn get_user(conn: &mut PgConnection, id: i64) -> Result<User, Status> {
 	}
 }
 
-pub fn get_user_posts_latest(
+pub async fn get_user_posts_latest(
 	conn: &mut PgConnection,
 	id: i64,
 	offset: i64,
@@ -95,7 +95,7 @@ pub fn get_user_posts_latest(
 		.unwrap_or_else(|_| vec![])
 }
 
-pub fn get_user_posts_popular(
+pub async fn get_user_posts_popular(
 	conn: &mut PgConnection,
 	id: i64,
 	offset: i64,
@@ -131,7 +131,7 @@ pub fn get_user_posts_popular(
 		.unwrap_or_else(|_| vec![])
 }
 
-pub fn get_user_stats(conn: &mut PgConnection, id: i64) -> UserStats {
+pub async fn get_user_stats(conn: &mut PgConnection, id: i64) -> UserStats {
 	users::table
 		.filter(users::user_id.eq(id))
 		.inner_join(posts::table)
@@ -148,7 +148,7 @@ pub fn get_user_stats(conn: &mut PgConnection, id: i64) -> UserStats {
 		.unwrap_or_default()
 }
 
-pub fn get_user_liked_posts(
+pub async fn get_user_liked_posts(
 	conn: &mut PgConnection,
 	id: i64,
 	offset: i64,

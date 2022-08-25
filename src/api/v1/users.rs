@@ -109,19 +109,20 @@ pub async fn login(
 		id,
 		&response.username,
 		&avatar,
-	)?;
+	)
+	.await?;
 
 	Ok(create_jwt(id))
 }
 
 #[get("/<id>")]
-pub fn details(connection: &ConnectionState, id: i64) -> Result<Json<User>, Status> {
-	let result = get_user(&mut get_connection(connection), id)?;
+pub async fn details(connection: &ConnectionState, id: i64) -> Result<Json<User>, Status> {
+	let result = get_user(&mut get_connection(connection), id).await?;
 	Ok(Json(result))
 }
 
 #[get("/<id>/latest?<offset>&<game_tag>&<limit>")]
-pub fn latest(
+pub async fn latest(
 	connection: &ConnectionState,
 	id: i64,
 	offset: Option<i64>,
@@ -134,12 +135,13 @@ pub fn latest(
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	);
+	)
+	.await;
 	Ok(Json(result))
 }
 
 #[get("/<id>/popular?<offset>&<game_tag>&<limit>")]
-pub fn popular(
+pub async fn popular(
 	connection: &ConnectionState,
 	id: i64,
 	offset: Option<i64>,
@@ -152,11 +154,12 @@ pub fn popular(
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	);
+	)
+	.await;
 	Ok(Json(result))
 }
 
 #[delete("/delete")]
-pub fn delete(connection: &ConnectionState, user: User) -> Status {
-	delete_user(&mut get_connection(connection), user.id)
+pub async fn delete(connection: &ConnectionState, user: User) -> Status {
+	delete_user(&mut get_connection(connection), user.id).await
 }

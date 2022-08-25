@@ -103,7 +103,7 @@
 		{% endif %}
 	</nav>
 	<script>
-		if (!router.hasPrefetched) {
+		if (router.prefetched.size == 0) {
 			router.prefetch();
 		}
 	</script>

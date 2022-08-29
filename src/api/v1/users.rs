@@ -104,20 +104,16 @@ pub async fn login(
 			discriminator % 5
 		)
 	};
-	create_user(
-		&mut get_connection(connection),
-		id,
-		&response.username,
-		&avatar,
-	)
-	.await?;
+	let connection = &mut get_connection(connection).await;
+	create_user(connection, id, &response.username, &avatar).await?;
 
-	Ok(create_jwt(id))
+	Ok(create_jwt(id).await)
 }
 
 #[get("/<id>")]
 pub async fn details(connection: &ConnectionState, id: i64) -> Result<Json<User>, Status> {
-	let result = get_user(&mut get_connection(connection), id).await?;
+	let connection = &mut get_connection(connection).await;
+	let result = get_user(connection, id).await?;
 	Ok(Json(result))
 }
 
@@ -129,8 +125,9 @@ pub async fn latest(
 	game_tag: Option<i32>,
 	limit: Option<i64>,
 ) -> Result<Json<Vec<ShortUserPosts>>, Status> {
+	let connection = &mut get_connection(connection).await;
 	let result = get_user_posts_latest(
-		&mut get_connection(connection),
+		connection,
 		id,
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
@@ -148,8 +145,9 @@ pub async fn popular(
 	game_tag: Option<i32>,
 	limit: Option<i64>,
 ) -> Result<Json<Vec<ShortUserPosts>>, Status> {
+	let connection = &mut get_connection(connection).await;
 	let result = get_user_posts_popular(
-		&mut get_connection(connection),
+		connection,
 		id,
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
@@ -161,5 +159,6 @@ pub async fn popular(
 
 #[delete("/delete")]
 pub async fn delete(connection: &ConnectionState, user: User) -> Status {
-	delete_user(&mut get_connection(connection), user.id).await
+	let connection = &mut get_connection(connection).await;
+	delete_user(connection, user.id).await
 }

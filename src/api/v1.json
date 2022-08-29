@@ -2,10 +2,7 @@
 	"openapi": "3.0.0",
 	"servers": [
 		{
-			"url": "http://localhost:8000/api/v1"
-		},
-		{
-			"url": "https://divamodarchive.xyz/api/v1"
+			"url": "https://divamodarchive.com/api/v1"
 		}
 	],
 	"tags": [

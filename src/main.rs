@@ -22,7 +22,7 @@ use rocket_dyn_templates::Template;
 use std::env;
 
 #[launch]
-pub async fn rocket() -> _ {
+pub async fn rocket() -> Rocket<Build> {
 	dotenv().ok();
 	let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| String::new());
 	assert!(!database_url.is_empty(), "DATABASE_URL must not be empty");
@@ -201,7 +201,8 @@ pub async fn sitemap(connection: &models::ConnectionState) -> (ContentType, Stri
 			priority: String::from("0.5"),
 		},
 	};
-	let ids = posts::get_post_ids(&mut models::get_connection(connection)).await;
+	let connection = &mut models::get_connection(connection).await;
+	let ids = posts::get_post_ids(connection).await;
 	urls.push(about_url);
 	for id in ids {
 		let url = Url {
@@ -233,7 +234,7 @@ pub async fn get_from_storage(
 	s3: &State<aws_sdk_s3::Client>,
 	ip: models::HttpIp,
 ) -> Result<response::Redirect, Status> {
-	let connection = &mut models::get_connection(connection);
+	let connection = &mut models::get_connection(connection).await;
 	let file = format!("{}/{}", user_id, file_name);
 	let path = format!("{}/storage/{}", *models::BASE_URL, file);
 	let file_size = s3

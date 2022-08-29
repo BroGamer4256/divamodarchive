@@ -93,7 +93,7 @@ pub async fn find_posts(
 		},
 		None => Order::Latest,
 	};
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let offset = offset.unwrap_or(0);
 	let name = name.unwrap_or_default();
 	let title = match sort_order {
@@ -154,7 +154,7 @@ pub async fn details(
 	id: i32,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Status> {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let post = get_post(connection, id).await?;
 	let who_is_logged_in = who_is_logged_in(connection, cookies).await;
 	if let Ok(who_is_logged_in) = who_is_logged_in {
@@ -202,7 +202,7 @@ pub async fn upload(
 	user: User,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Status> {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	Ok(Template::render(
 		"upload",
 		context![user: &user, is_logged_in: is_logged_in(connection, cookies).await, jwt: cookies.get_pending("jwt").unwrap().value(), theme: get_theme(cookies).await,base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
@@ -219,7 +219,7 @@ pub async fn user(
 	cookies: &CookieJar<'_>,
 	current_user: Option<User>,
 ) -> Result<Template, Status> {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let user = get_user(connection, id).await?;
 	let sort_order = match order.clone() {
 		Some(order) => match order.as_str() {
@@ -294,7 +294,7 @@ pub async fn edit(
 	user: User,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let post = match get_post(connection, id).await {
 		Ok(post) => post,
 		Err(_) => return Err(Redirect::to(format!("/posts/{}", id))),
@@ -325,7 +325,7 @@ pub async fn dependency(
 	user: User,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let post = match get_post(connection, id).await {
 		Ok(post) => post,
 		Err(_) => return Err(Redirect::to(format!("/posts/{}", id))),
@@ -396,7 +396,7 @@ pub async fn dependency_add(
 	dependency_id: i32,
 	user: User,
 ) -> Redirect {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	if owns_post(connection, id, user.id).await {
 		add_dependency(connection, id, dependency_id).await;
 	}
@@ -410,7 +410,7 @@ pub async fn dependency_remove(
 	dependency_id: i32,
 	user: User,
 ) -> Redirect {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	if owns_post(connection, id, user.id).await {
 		remove_dependency(connection, id, dependency_id).await;
 	}
@@ -423,10 +423,11 @@ pub async fn about(
 	cookies: &CookieJar<'_>,
 	user: Option<User>,
 ) -> Template {
+	let connection = &mut get_connection(connection).await;
 	Template::render(
 		"about",
 		context![
-			is_logged_in: is_logged_in(&mut get_connection(connection), cookies).await,
+			is_logged_in: is_logged_in(connection, cookies).await,
 			theme: get_theme(cookies).await,
 			is_admin: ADMINS.contains(&user.unwrap_or_default().id),
 			base_url: BASE_URL.to_string(),
@@ -443,7 +444,7 @@ pub async fn liked(
 	offset: Option<i64>,
 	cookies: &CookieJar<'_>,
 ) -> Template {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let posts = get_user_liked_posts(connection, user.id, offset.unwrap_or(0), *WEBUI_LIMIT).await;
 	Template::render(
 		"liked",
@@ -484,7 +485,7 @@ pub async fn admin(
 	if !ADMINS.contains(&user.id) {
 		return Err(Redirect::to("/"));
 	}
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	Ok(Template::render(
 		"admin",
 		context![
@@ -507,7 +508,8 @@ pub async fn remove_post_admin(connection: &ConnectionState, user: User, id: i32
 	if !ADMINS.contains(&user.id) {
 		return Redirect::to("/");
 	}
-	delete_post(&mut get_connection(connection), id).await;
+	let connection = &mut get_connection(connection).await;
+	delete_post(connection, id).await;
 	Redirect::to("/admin")
 }
 
@@ -516,7 +518,8 @@ pub async fn remove_report(connection: &ConnectionState, user: User, id: i32) ->
 	if !ADMINS.contains(&user.id) {
 		return Redirect::to("/");
 	}
-	delete_report(&mut get_connection(connection), id).await;
+	let connection = &mut get_connection(connection).await;
+	delete_report(connection, id).await;
 	Redirect::to("/admin")
 }
 
@@ -530,7 +533,7 @@ pub async fn report(
 	id: i32,
 	cookies: &CookieJar<'_>,
 ) -> Result<Template, Redirect> {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let post = match get_post(connection, id).await {
 		Ok(post) => post,
 		Err(_) => return Err(Redirect::to("/")),
@@ -564,7 +567,7 @@ pub async fn report_send(
 	cookies: &CookieJar<'_>,
 ) -> Redirect {
 	let reason = reason.replace("reason=", "");
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let _ = add_report(connection, id, user.id, reason).await;
 	Redirect::to("/")
 }
@@ -576,7 +579,7 @@ pub async fn create_comment(
 	id: i32,
 	text: String,
 ) -> Redirect {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let _ = add_comment(connection, user.id, id, text, None).await;
 	Redirect::to(format!("/posts/{}", id))
 }
@@ -589,7 +592,7 @@ pub async fn reply_comment(
 	comment_id: i32,
 	text: String,
 ) -> Redirect {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let _ = add_comment(connection, user.id, id, text, Some(comment_id)).await;
 	Redirect::to(format!("/posts/{}", id))
 }
@@ -601,7 +604,7 @@ pub async fn remove_comment(
 	id: i32,
 	comment_id: i32,
 ) -> Redirect {
-	let connection = &mut get_connection(connection);
+	let connection = &mut get_connection(connection).await;
 	let _ = delete_comment(connection, comment_id, user.id).await;
 	Redirect::to(format!("/posts/{}", id))
 }

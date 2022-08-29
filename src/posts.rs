@@ -906,11 +906,19 @@ pub async fn get_post_count(conn: &mut PgConnection, name: String, game_tag: i32
 		.unwrap_or(0)
 }
 
-pub async fn get_post_ids(conn: &mut PgConnection) -> Vec<i32> {
+pub async fn get_post_ids(conn: &mut PgConnection) -> Vec<SitemapInfo> {
 	posts::table
-		.select(posts::post_id)
-		.load::<i32>(conn)
+		.select((posts::post_id, posts::post_date))
+		.load::<SitemapInfo>(conn)
 		.unwrap_or_else(|_| vec![])
+}
+
+pub async fn get_post_latest_date(conn: &mut PgConnection) -> chrono::NaiveDateTime {
+	posts::table
+		.select(posts::post_date)
+		.order_by(posts::post_date.desc())
+		.first(conn)
+		.unwrap_or_default()
 }
 
 pub async fn get_posts_detailed(

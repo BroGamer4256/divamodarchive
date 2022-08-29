@@ -161,11 +161,19 @@ pub struct Priority {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename = "lastmod")]
+pub struct Lastmod {
+	#[serde(rename = "$value")]
+	pub lastmod: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename = "url")]
 pub struct Url {
 	pub loc: Loc,
 	pub changefreq: Changefreq,
 	pub priority: Priority,
+	pub lastmod: Option<Lastmod>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -178,16 +186,21 @@ pub struct Urlset {
 #[get("/sitemap.xml")]
 pub async fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 	let mut urls = Vec::new();
+	let connection = &mut models::get_connection(connection).await;
+	let latest_date = posts::get_post_latest_date(connection).await;
 	let base_url = Url {
 		loc: Loc {
 			loc: format!("{}/", *models::BASE_URL),
 		},
 		changefreq: Changefreq {
-			changefreq: String::from("hourly"),
+			changefreq: String::from("daily"),
 		},
 		priority: Priority {
 			priority: String::from("1.0"),
 		},
+		lastmod: Some(Lastmod {
+			lastmod: latest_date.date().to_string(),
+		}),
 	};
 	urls.push(base_url);
 	let about_url = Url {
@@ -200,21 +213,24 @@ pub async fn sitemap(connection: &models::ConnectionState) -> (ContentType, Stri
 		priority: Priority {
 			priority: String::from("0.5"),
 		},
+		lastmod: None,
 	};
-	let connection = &mut models::get_connection(connection).await;
-	let ids = posts::get_post_ids(connection).await;
+	let posts_info = posts::get_post_ids(connection).await;
 	urls.push(about_url);
-	for id in ids {
+	for post_info in posts_info {
 		let url = Url {
 			loc: Loc {
-				loc: format!("{}/posts/{}", *models::BASE_URL, id),
+				loc: format!("{}/posts/{}", *models::BASE_URL, post_info.id),
 			},
 			changefreq: Changefreq {
-				changefreq: String::from("weekly"),
+				changefreq: String::from("monthly"),
 			},
 			priority: Priority {
 				priority: String::from("1.0"),
 			},
+			lastmod: Some(Lastmod {
+				lastmod: post_info.date.date().to_string(),
+			}),
 		};
 		urls.push(url);
 	}

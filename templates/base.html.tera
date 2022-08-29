@@ -79,29 +79,33 @@
 			<a href="https://ko-fi.com/brogamer" class="nav-link p-0 nav-text">However this is expensive, if you want the speeds to stay fast please donate</a>
 			Because of the current situation downloads have been limited to 3GB per user per day. Sorry if this causes problems for you.
 		</div>
-		{% block content %}{% endblock content %}
+		<main>
+			{% block content %}{% endblock content %}
+		</main>
 	</div>
 	<br><br><br><br><br>
-	<nav class="navbar navbar-dark bg-dark fixed-bottom d-flex justify-content-around shadow">
-		<a class="nav-link p-0 nav-text" href="/">Mods</a>
-		{% if is_logged_in == true %}
-		<a class="nav-link p-0 nav-text" href="/liked">Liked Mods</a>
-		<a class="nav-link p-0 nav-text" data-cold="" href="/upload">Upload</a>
-		<a class="nav-link p-0 nav-text" data-cold="" href="/logout">Logout</a>
-		{% else %}
-		{% set redirect_link = base_url ~ "/login" %}
-		{% set redirect_link = redirect_link | urlencode_strict %}
-		{% set discord_link = "https://discord.com/api/oauth2/authorize?client_id=995951474959990824&redirect_uri=" ~ redirect_link ~ "&response_type=code&scope=identify" %}
-		<a class="nav-link p-0 nav-text" data-cold="" href="{{ discord_link }}">Login</a>
-		{% endif %}
-		<a class="nav-link p-0 nav-text" data-cold="" href="/theme">
-			Switch theme
-		</a>
-		<a class="nav-link p-0 nav-text" href="/about">About</a>
-		{% if is_admin == true %}
-		<a class="nav-link p-0 nav-text" data-cold="" href="/admin">Admin</a>
-		{% endif %}
-	</nav>
+	<footer>
+		<nav class="navbar navbar-dark bg-dark fixed-bottom d-flex justify-content-around shadow">
+			<a class="nav-link p-0 nav-text" href="/">Mods</a>
+			{% if is_logged_in == true %}
+			<a class="nav-link p-0 nav-text" href="/liked">Liked Mods</a>
+			<a class="nav-link p-0 nav-text" data-cold="" href="/upload">Upload</a>
+			<a class="nav-link p-0 nav-text" data-cold="" href="/logout">Logout</a>
+			{% else %}
+			{% set redirect_link = base_url ~ "/login" %}
+			{% set redirect_link = redirect_link | urlencode_strict %}
+			{% set discord_link = "https://discord.com/api/oauth2/authorize?client_id=995951474959990824&redirect_uri=" ~ redirect_link ~ "&response_type=code&scope=identify" %}
+			<a class="nav-link p-0 nav-text" data-cold="" href="{{ discord_link }}">Login</a>
+			{% endif %}
+			<a class="nav-link p-0 nav-text" data-cold="" href="/theme">
+				Switch theme
+			</a>
+			<a class="nav-link p-0 nav-text" href="/about">About</a>
+			{% if is_admin == true %}
+			<a class="nav-link p-0 nav-text" data-cold="" href="/admin">Admin</a>
+			{% endif %}
+		</nav>
+	</footer>
 	<script>
 		if (router.prefetched.size == 0) {
 			router.prefetch();

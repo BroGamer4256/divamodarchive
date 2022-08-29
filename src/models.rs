@@ -451,3 +451,9 @@ pub struct Comment {
 	pub parent: Option<i32>,
 	pub date: chrono::NaiveDateTime,
 }
+
+#[derive(Queryable, Serialize, Deserialize)]
+pub struct SitemapInfo {
+	pub id: i32,
+	pub date: chrono::NaiveDateTime,
+}

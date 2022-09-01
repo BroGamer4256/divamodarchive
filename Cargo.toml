@@ -18,5 +18,5 @@ chrono = "0.4.19"
 reqwest = { version = "0.11.11", features = ["json", "multipart", "blocking"] }
 toml = "0.5.9"
 quick-xml = { version = "0.24.0", features = ["serialize"] }
-aws-sdk-s3 = "0.17.0"
-aws-config = "0.47.0"
+aws-sdk-s3 = "0.18.0"
+aws-config = "0.48.0"

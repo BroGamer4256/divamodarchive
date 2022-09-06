@@ -4,6 +4,7 @@ use diesel::dsl::*;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use rocket::http::Status;
+use rocket::*;
 use std::net::IpAddr;
 
 pub async fn create_post(
@@ -1053,4 +1054,75 @@ pub async fn update_download_limit(connection: &mut PgConnection, ip: IpAddr, si
 	}
 
 	Status::Ok
+}
+
+pub async fn get_update_dates(
+	connection: &mut PgConnection,
+	ids: Vec<i32>,
+) -> Option<Vec<PostUpdateTime>> {
+	posts::table
+		.filter(posts::post_id.eq_any(ids))
+		.order_by(posts::post_id.asc())
+		.select((posts::post_id, posts::post_date))
+		.load::<PostUpdateTime>(connection)
+		.ok()
+}
+
+pub async fn get_changed_posts_detailed(
+	connection: &mut PgConnection,
+	since: time::PrimitiveDateTime,
+) -> Option<Vec<DetailedPostNoDepends>> {
+	posts::table
+		.filter(posts::post_date.gt(since))
+		.inner_join(users::table)
+		.left_join(users_liked_posts::table)
+		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+		.group_by((posts::post_id, users::user_id))
+		.order_by(posts::post_date.desc())
+		.select((
+			posts::post_id,
+			posts::post_name,
+			posts::post_text,
+			posts::post_text_short,
+			posts::post_image,
+			posts::post_images_extra,
+			posts::post_link,
+			posts::post_date,
+			posts::post_game_tag,
+			posts::post_type_tag,
+			count_distinct(users_liked_posts::user_id.nullable()),
+			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
+			(users::user_id, users::user_name, users::user_avatar),
+		))
+		.load::<DetailedPostNoDepends>(connection)
+		.ok()
+}
+
+pub async fn get_changed_posts_short(
+	connection: &mut PgConnection,
+	since: time::PrimitiveDateTime,
+) -> Option<Vec<ShortPost>> {
+	posts::table
+		.filter(posts::post_date.gt(since))
+		.inner_join(users::table)
+		.left_join(users_liked_posts::table)
+		.left_join(users_disliked_posts::table)
+		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+		.group_by(posts::post_id)
+		.order_by(posts::post_date.desc())
+		.select((
+			posts::post_id,
+			posts::post_name,
+			posts::post_text_short,
+			posts::post_image,
+			posts::post_game_tag,
+			posts::post_type_tag,
+			count_distinct(users_liked_posts::user_id.nullable()),
+			count_distinct(users_disliked_posts::user_id.nullable()),
+			count_distinct(download_stats::timestamp.nullable()),
+		))
+		.load::<ShortPost>(connection)
+		.ok()
 }

@@ -72,6 +72,7 @@ pub async fn rocket() -> Rocket<Build> {
 				flamethrower,
 			],
 		)
+		.mount("/api/v1", routes![api::v1::get_spec])
 		.mount(
 			"/api/v1/posts",
 			routes![
@@ -100,10 +101,32 @@ pub async fn rocket() -> Rocket<Build> {
 				api::v1::users::delete
 			],
 		)
-		.mount("/api/v1", routes![api::v1::get_spec])
+		.mount("/api/v2", routes![api::v2::get_spec])
+		.mount(
+			"/api/v2/details",
+			routes![
+				api::v2::details::posts,
+				api::v2::details::update_dates,
+				api::v2::details::detailed,
+				api::v2::details::short,
+			],
+		)
+		.mount(
+			"/api/v2/posts",
+			routes![
+				api::v2::posts::count,
+				api::v2::posts::latest_detailed,
+				api::v2::posts::latest_short,
+				api::v2::posts::popular_detailed,
+				api::v2::posts::popular_short,
+				api::v2::posts::changes_detailed,
+				api::v2::posts::changes_short,
+			],
+		)
 		.manage(pool)
 		.manage(s3)
 		.attach(Template::fairing())
+		.attach(api::v2::posts::VecErrHandler)
 }
 
 #[get("/flamethrower.min.js")]

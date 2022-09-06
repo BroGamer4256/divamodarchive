@@ -311,7 +311,7 @@ pub struct ShortPostNoLikes {
 	pub downloads: i64,
 }
 
-#[derive(Queryable, Serialize, Deserialize)]
+#[derive(Queryable, Serialize, Deserialize, Debug)]
 pub struct DetailedPostNoDepends {
 	pub id: i32,
 	pub name: String,
@@ -454,6 +454,12 @@ pub struct Comment {
 
 #[derive(Queryable, Serialize, Deserialize)]
 pub struct SitemapInfo {
+	pub id: i32,
+	pub date: chrono::NaiveDateTime,
+}
+
+#[derive(Queryable, Serialize, Deserialize)]
+pub struct PostUpdateTime {
 	pub id: i32,
 	pub date: chrono::NaiveDateTime,
 }

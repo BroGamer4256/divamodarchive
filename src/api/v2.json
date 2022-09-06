@@ -1,0 +1,41 @@
+{
+	"openapi": "3.0.0",
+	"servers": [
+		{
+			"url": "https://divamodarchive.com/api/v2"
+		}
+	],
+	"tags": [
+		{
+			"name": "posts",
+			"description": "Details for unspecific posts with optional generic filters"
+		},
+		{
+			"name": "details",
+			"description": "Details for specific posts"
+		}
+	],
+	"info": {
+		"version": "1.0.0",
+		"title": "DIVA Mod Archive",
+		"license": {
+			"name": "GPLv3"
+		},
+		"contact": {
+			"name": "BroGamer"
+		}
+	},
+	"paths": {
+		"/v2.json": {
+			"get": {
+				"summary": "Gets the openapi specification file",
+				"operationId": "api::v2::get_spec",
+				"responses": {
+					"200": {
+						"description": "The openapi specification file"
+					}
+				}
+			}
+		}
+	}
+}

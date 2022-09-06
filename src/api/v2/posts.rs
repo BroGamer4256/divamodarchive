@@ -114,20 +114,20 @@ pub async fn popular_short(
 #[get("/detailed/changes?<since>")]
 pub async fn changes_detailed(
 	connection: &ConnectionState,
-	since: time::PrimitiveDateTime,
+	since: time::Date,
 ) -> Json<Vec<DetailedPostNoDepends>> {
 	let connection = &mut get_connection(connection).await;
-	let posts = get_changed_posts_detailed(connection, since).await;
+	let posts = get_changed_posts_detailed(connection, since.midnight()).await;
 	Json(posts.unwrap_or(vec![]))
 }
 
 #[get("/short/changes?<since>")]
 pub async fn changes_short(
 	connection: &ConnectionState,
-	since: time::PrimitiveDateTime,
+	since: time::Date,
 ) -> Json<Vec<ShortPost>> {
 	let connection = &mut get_connection(connection).await;
-	let posts = get_changed_posts_short(connection, since).await;
+	let posts = get_changed_posts_short(connection, since.midnight()).await;
 	Json(posts.unwrap_or(vec![]))
 }
 

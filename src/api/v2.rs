@@ -1,4 +1,4 @@
-// In spite of convention this is not a straight upgrade to v1
+// Despite the naming convention this is not a straight upgrade to v1
 // This has several important missing features mainly related to writing data
 // V2 is designed specifically for apps which simply want to read posts
 

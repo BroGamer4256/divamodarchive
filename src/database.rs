@@ -1,5 +1,5 @@
-use super::models::*;
-use super::schema::*;
+use crate::models::*;
+use crate::schema::*;
 use diesel::dsl::*;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
@@ -253,7 +253,7 @@ pub async fn get_additional_post_data(
 
 	let changelogs = post_changelogs::table
 		.filter(post_changelogs::post_id.eq(post.id))
-		.order_by(post_changelogs::time.desc())
+		.order(post_changelogs::time.desc())
 		.select((
 			post_changelogs::description,
 			post_changelogs::time,
@@ -264,7 +264,7 @@ pub async fn get_additional_post_data(
 
 	let comments = post_comments::table
 		.filter(post_comments::post_id.eq(post.id))
-		.order_by(post_comments::comment_date.desc())
+		.order(post_comments::comment_date.desc())
 		.inner_join(users::table.on(users::user_id.eq(post_comments::user_id)))
 		.select((
 			post_comments::comment_id,
@@ -308,7 +308,7 @@ pub async fn get_additional_posts_data(
 	results
 }
 
-macro_rules! DetailedPostNoDependsBase {
+macro_rules! detailed_post_base {
 	() => {
 		posts::table
 			.inner_join(users::table)
@@ -334,11 +334,11 @@ macro_rules! DetailedPostNoDependsBase {
 			))
 	};
 	($limit:ident, $offset:ident) => {
-		DetailedPostNoDependsBase!().limit($limit).offset($offset)
+		detailed_post_base!().limit($limit).offset($offset)
 	};
 }
 
-macro_rules! ShortPostBase {
+macro_rules! short_post_base {
 	() => {
 		posts::table
 			.left_join(users_liked_posts::table)
@@ -358,11 +358,11 @@ macro_rules! ShortPostBase {
 			))
 	};
 	($limit:ident, $offset:ident) => {
-		ShortPostBase!().limit($limit).offset($offset)
+		short_post_base!().limit($limit).offset($offset)
 	};
 }
 
-macro_rules! ShortUserPostsBase {
+macro_rules! short_user_post_base {
 	() => {
 		users::table
 			.inner_join(posts::table)
@@ -388,7 +388,7 @@ macro_rules! ShortUserPostsBase {
 			))
 	};
 	($limit:ident, $offset:ident) => {
-		ShortUserPostsBase!().limit($limit).offset($offset)
+		short_user_post_base!().limit($limit).offset($offset)
 	};
 }
 
@@ -399,10 +399,10 @@ pub async fn get_latest_posts(
 	game_tag: i32,
 	limit: i64,
 ) -> Vec<ShortPost> {
-	ShortPostBase!(limit, offset)
+	short_post_base!(limit, offset)
 		.filter(posts::post_game_tag.eq(game_tag))
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.order_by(posts::post_date.desc())
+		.order(posts::post_date.desc())
 		.load::<ShortPost>(connection)
 		.unwrap_or_else(|_| vec![])
 }
@@ -414,10 +414,10 @@ pub async fn get_latest_posts_detailed(
 	game_tag: i32,
 	limit: i64,
 ) -> Result<Vec<DetailedPost>, Status> {
-	let results = DetailedPostNoDependsBase!(limit, offset)
+	let results = detailed_post_base!(limit, offset)
 		.filter(posts::post_game_tag.eq(game_tag))
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.order_by(posts::post_date.desc())
+		.order(posts::post_date.desc())
 		.load::<DetailedPostNoDepends>(connection);
 
 	match results {
@@ -434,11 +434,11 @@ pub async fn get_latest_posts_disallowed(
 	disallowed: Vec<i32>,
 	limit: i64,
 ) -> Result<Vec<ShortPost>, Status> {
-	let results = ShortPostBase!(limit, offset)
+	let results = short_post_base!(limit, offset)
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_id.ne_all(disallowed))
 		.filter(posts::post_game_tag.eq(game_tag))
-		.order_by(posts::post_date.desc())
+		.order(posts::post_date.desc())
 		.load::<ShortPost>(connection);
 
 	match results {
@@ -451,8 +451,8 @@ pub async fn get_latest_posts_unfiltered(
 	connection: &mut PgConnection,
 	limit: i64,
 ) -> Vec<ShortPost> {
-	ShortPostBase!()
-		.order_by(posts::post_date.desc())
+	short_post_base!()
+		.order(posts::post_date.desc())
 		.limit(limit)
 		.load::<ShortPost>(connection)
 		.unwrap_or_else(|_| vec![])
@@ -465,10 +465,10 @@ pub async fn get_popular_posts(
 	game_tag: i32,
 	limit: i64,
 ) -> Vec<ShortPost> {
-	ShortPostBase!(limit, offset)
+	short_post_base!(limit, offset)
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_game_tag.eq(game_tag))
-		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order(count_distinct(download_stats::timestamp.nullable()).desc())
 		.load::<ShortPost>(connection)
 		.unwrap_or_else(|_| vec![])
 }
@@ -480,10 +480,10 @@ pub async fn get_popular_posts_detailed(
 	game_tag: i32,
 	limit: i64,
 ) -> Result<Vec<DetailedPost>, Status> {
-	let results = DetailedPostNoDependsBase!(limit, offset)
+	let results = detailed_post_base!(limit, offset)
 		.filter(posts::post_game_tag.eq(game_tag))
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order(count_distinct(download_stats::timestamp.nullable()).desc())
 		.load::<DetailedPostNoDepends>(connection);
 
 	match results {
@@ -500,11 +500,11 @@ pub async fn get_popular_posts_disallowed(
 	disallowed: Vec<i32>,
 	limit: i64,
 ) -> Result<Vec<ShortPost>, Status> {
-	let results = ShortPostBase!(limit, offset)
+	let results = short_post_base!(limit, offset)
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_id.ne_all(disallowed))
 		.filter(posts::post_game_tag.eq(game_tag))
-		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order(count_distinct(download_stats::timestamp.nullable()).desc())
 		.load::<ShortPost>(connection);
 
 	match results {
@@ -514,7 +514,7 @@ pub async fn get_popular_posts_disallowed(
 }
 
 pub async fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, Status> {
-	let result = DetailedPostNoDependsBase!()
+	let result = detailed_post_base!()
 		.filter(posts::post_id.eq(id))
 		.first::<DetailedPostNoDepends>(connection);
 
@@ -527,7 +527,7 @@ pub async fn get_post(connection: &mut PgConnection, id: i32) -> Result<Detailed
 }
 
 pub async fn get_short_post(conn: &mut PgConnection, id: i32) -> Option<ShortPost> {
-	ShortPostBase!()
+	short_post_base!()
 		.filter(posts::post_id.eq(id))
 		.first::<ShortPost>(conn)
 		.ok()
@@ -537,9 +537,9 @@ pub async fn get_posts_detailed(
 	connection: &mut PgConnection,
 	ids: Vec<i32>,
 ) -> Vec<DetailedPostNoDepends> {
-	DetailedPostNoDependsBase!()
+	detailed_post_base!()
 		.filter(posts::post_id.eq_any(ids))
-		.order_by(posts::post_id.asc())
+		.order(posts::post_id.asc())
 		.load::<DetailedPostNoDepends>(connection)
 		.unwrap_or_default()
 }
@@ -548,9 +548,9 @@ pub async fn get_changed_posts_detailed(
 	connection: &mut PgConnection,
 	since: time::PrimitiveDateTime,
 ) -> Option<Vec<DetailedPostNoDepends>> {
-	DetailedPostNoDependsBase!()
+	detailed_post_base!()
 		.filter(posts::post_date.gt(since))
-		.order_by(posts::post_date.desc())
+		.order(posts::post_date.desc())
 		.load::<DetailedPostNoDepends>(connection)
 		.ok()
 }
@@ -559,9 +559,9 @@ pub async fn get_changed_posts_short(
 	connection: &mut PgConnection,
 	since: time::PrimitiveDateTime,
 ) -> Option<Vec<ShortPost>> {
-	ShortPostBase!()
+	short_post_base!()
 		.filter(posts::post_date.gt(since))
-		.order_by(posts::post_date.desc())
+		.order(posts::post_date.desc())
 		.load::<ShortPost>(connection)
 		.ok()
 }
@@ -573,10 +573,10 @@ pub async fn get_user_posts_latest(
 	game_tag: i32,
 	limit: i64,
 ) -> Vec<ShortUserPosts> {
-	ShortUserPostsBase!(limit, offset)
+	short_user_post_base!(limit, offset)
 		.filter(users::user_id.eq(id))
 		.filter(posts::post_game_tag.eq(game_tag))
-		.order_by(posts::post_date.desc())
+		.order(posts::post_date.desc())
 		.load::<ShortUserPosts>(conn)
 		.unwrap_or_else(|_| vec![])
 }
@@ -588,10 +588,10 @@ pub async fn get_user_posts_popular(
 	game_tag: i32,
 	limit: i64,
 ) -> Vec<ShortUserPosts> {
-	ShortUserPostsBase!(limit, offset)
+	short_user_post_base!(limit, offset)
 		.filter(users::user_id.eq(id))
 		.filter(posts::post_game_tag.eq(game_tag))
-		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order(count_distinct(download_stats::timestamp.nullable()).desc())
 		.load::<ShortUserPosts>(conn)
 		.unwrap_or_else(|_| vec![])
 }
@@ -678,7 +678,7 @@ pub async fn get_reports(conn: &mut PgConnection) -> Vec<Report> {
 			users_disliked_posts::table.on(users_disliked_posts::post_id.eq(reports::post_id)),
 		)
 		.left_join(download_stats::table.on(download_stats::post_id.eq(reports::post_id)))
-		.order_by(reports::time.desc())
+		.order(reports::time.desc())
 		.group_by((posts::post_id, users::user_id, reports::report_id))
 		.select((
 			reports::report_id,
@@ -753,7 +753,7 @@ pub async fn get_post_ids(conn: &mut PgConnection) -> Vec<SitemapInfo> {
 pub async fn get_post_latest_date(conn: &mut PgConnection) -> chrono::NaiveDateTime {
 	posts::table
 		.select(posts::post_date)
-		.order_by(posts::post_date.desc())
+		.order(posts::post_date.desc())
 		.first(conn)
 		.unwrap_or_default()
 }
@@ -866,7 +866,7 @@ pub async fn get_update_dates(
 ) -> Option<Vec<PostUpdateTime>> {
 	posts::table
 		.filter(posts::post_id.eq_any(ids))
-		.order_by(posts::post_id.asc())
+		.order(posts::post_id.asc())
 		.select((posts::post_id, posts::post_date))
 		.load::<PostUpdateTime>(connection)
 		.ok()
@@ -954,7 +954,7 @@ pub async fn get_user_liked_posts(
 		.inner_join(posts::table)
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by(posts::post_id)
-		.order_by(posts::post_date.desc())
+		.order(posts::post_date.desc())
 		.select((
 			posts::post_id,
 			posts::post_name,

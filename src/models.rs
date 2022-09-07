@@ -1,4 +1,4 @@
-use super::schema::*;
+use crate::schema::*;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::PgConnection;
 use dotenv::dotenv;

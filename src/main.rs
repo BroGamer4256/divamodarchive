@@ -162,7 +162,7 @@ pub const fn flamethrower() -> (ContentType, &'static str) {
 }
 
 #[get("/robots.txt")]
-pub async fn robots() -> String {
+pub fn robots() -> String {
 	format!(
 		"User-agent: *\nDisallow: /api/\nSitemap: {}/sitemap.xml",
 		*models::BASE_URL
@@ -232,10 +232,10 @@ pub struct Urlset {
 }
 
 #[get("/sitemap.xml")]
-pub async fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
+pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 	let mut urls = Vec::new();
-	let connection = &mut models::get_connection(connection).await;
-	let latest_date = database::get_post_latest_date(connection).await;
+	let connection = &mut models::get_connection(connection);
+	let latest_date = database::get_post_latest_date(connection);
 	let base_url = Url {
 		loc: Loc {
 			loc: format!("{}/", *models::BASE_URL),
@@ -263,7 +263,7 @@ pub async fn sitemap(connection: &models::ConnectionState) -> (ContentType, Stri
 		},
 		lastmod: None,
 	};
-	let posts_info = database::get_post_ids(connection).await;
+	let posts_info = database::get_post_ids(connection);
 	urls.push(about_url);
 	for post_info in posts_info {
 		let url = Url {
@@ -298,7 +298,7 @@ pub async fn get_from_storage(
 	s3: &State<aws_sdk_s3::Client>,
 	ip: models::HttpIp,
 ) -> Result<response::Redirect, Status> {
-	let connection = &mut models::get_connection(connection).await;
+	let connection = &mut models::get_connection(connection);
 	let file = format!("{}/{}", user_id, file_name);
 	let path = format!("{}/storage/{}", *models::BASE_URL, file);
 	let file_size = s3
@@ -313,11 +313,11 @@ pub async fn get_from_storage(
 		Err(_) => return Err(Status::NotFound),
 	};
 
-	let result = database::update_download_limit(connection, ip.ip, file_size).await;
+	let result = database::update_download_limit(connection, ip.ip, file_size);
 	if result != Status::Ok {
 		return Err(result);
 	}
-	let _result = database::update_download_count(connection, path).await;
+	let _result = database::update_download_count(connection, path);
 
 	let file = s3
 		.get_object()

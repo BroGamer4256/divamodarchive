@@ -104,61 +104,59 @@ pub async fn login(
 			discriminator % 5
 		)
 	};
-	let connection = &mut get_connection(connection).await;
-	create_user(connection, id, &response.username, &avatar).await?;
+	let connection = &mut get_connection(connection);
+	create_user(connection, id, &response.username, &avatar)?;
 
-	Ok(create_jwt(id).await)
+	Ok(create_jwt(id))
 }
 
 #[get("/<id>")]
-pub async fn details(connection: &ConnectionState, id: i64) -> Result<Json<User>, Status> {
-	let connection = &mut get_connection(connection).await;
-	let result = get_user(connection, id).await?;
+pub fn details(connection: &ConnectionState, id: i64) -> Result<Json<User>, Status> {
+	let connection = &mut get_connection(connection);
+	let result = get_user(connection, id)?;
 	Ok(Json(result))
 }
 
 #[get("/<id>/latest?<offset>&<game_tag>&<limit>")]
-pub async fn latest(
+pub fn latest(
 	connection: &ConnectionState,
 	id: i64,
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
 ) -> Result<Json<Vec<ShortUserPosts>>, Status> {
-	let connection = &mut get_connection(connection).await;
+	let connection = &mut get_connection(connection);
 	let result = get_user_posts_latest(
 		connection,
 		id,
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	)
-	.await;
+	);
 	Ok(Json(result))
 }
 
 #[get("/<id>/popular?<offset>&<game_tag>&<limit>")]
-pub async fn popular(
+pub fn popular(
 	connection: &ConnectionState,
 	id: i64,
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
 ) -> Result<Json<Vec<ShortUserPosts>>, Status> {
-	let connection = &mut get_connection(connection).await;
+	let connection = &mut get_connection(connection);
 	let result = get_user_posts_popular(
 		connection,
 		id,
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	)
-	.await;
+	);
 	Ok(Json(result))
 }
 
 #[delete("/delete")]
-pub async fn delete(connection: &ConnectionState, user: User) -> Status {
-	let connection = &mut get_connection(connection).await;
-	delete_user(connection, user.id).await
+pub fn delete(connection: &ConnectionState, user: User) -> Status {
+	let connection = &mut get_connection(connection);
+	delete_user(connection, user.id)
 }

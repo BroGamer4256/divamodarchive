@@ -48,10 +48,10 @@ pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
 		Ok(response) => response,
 		Err(_) => return Err(Status::InternalServerError),
 	};
-	if !response.success {
-		Err(Status::InternalServerError)
-	} else {
+	if response.success {
 		Ok(Json(response.result.uploadURL))
+	} else {
+		Err(Status::InternalServerError)
 	}
 }
 
@@ -100,100 +100,90 @@ pub async fn upload(
 	{
 		return Err(Status::BadRequest);
 	}
-	let connection = &mut get_connection(connection).await;
+	let connection = &mut get_connection(connection);
 	let change = post.change.clone();
 	let change_download = post.change_download.clone();
-	let new_post = create_post(connection, post, user, update_id.unwrap_or(-1)).await?;
+	let new_post = create_post(connection, post, user, update_id.unwrap_or(-1))?;
 	if let Some(change) = change {
-		add_changelog(connection, new_post.id, change, change_download).await;
+		add_changelog(connection, new_post.id, change, change_download);
 	}
 	Ok(Json(new_post))
 }
 
 #[post("/edit?<update_id>", data = "<post>")]
-pub async fn edit(
+pub fn edit(
 	connection: &ConnectionState,
 	user: User,
 	post: Json<PostMetadata>,
 	update_id: i32,
 ) -> Result<Json<Post>, Status> {
 	let post = post.into_inner();
-	let connection = &mut get_connection(connection).await;
-	if !owns_post(connection, update_id, user.id).await {
+	let connection = &mut get_connection(connection);
+	if !owns_post(connection, update_id, user.id) {
 		return Err(Status::Unauthorized);
 	}
 
 	let change = post.change.clone();
-	let result = update_post(connection, post, update_id).await?;
+	let result = update_post(connection, post, update_id)?;
 	if let Some(change) = change {
-		add_changelog(connection, update_id, change, None).await;
+		add_changelog(connection, update_id, change, None);
 	}
 	Ok(Json(result))
 }
 
 #[get("/<id>")]
-pub async fn details(connection: &ConnectionState, id: i32) -> Result<Json<DetailedPost>, Status> {
-	let connection = &mut get_connection(connection).await;
-	let result = get_post(connection, id).await?;
+pub fn details(connection: &ConnectionState, id: i32) -> Result<Json<DetailedPost>, Status> {
+	let connection = &mut get_connection(connection);
+	let result = get_post(connection, id)?;
 	Ok(Json(result))
 }
 
 #[post("/<id>/like")]
-pub async fn like(
-	connection: &ConnectionState,
-	id: i32,
-	user: User,
-) -> Result<Json<LikedPost>, Status> {
-	let connection = &mut get_connection(connection).await;
-	let result = like_post_from_ids(connection, user.id, id).await?;
+pub fn like(connection: &ConnectionState, id: i32, user: User) -> Result<Json<LikedPost>, Status> {
+	let connection = &mut get_connection(connection);
+	let result = like_post_from_ids(connection, user.id, id)?;
 	Ok(Json(result))
 }
 
 #[post("/<id>/dislike")]
-pub async fn dislike(
+pub fn dislike(
 	connection: &ConnectionState,
 	id: i32,
 	user: User,
 ) -> Result<Json<DislikedPost>, Status> {
-	let connection = &mut get_connection(connection).await;
-	let result = dislike_post_from_ids(connection, user.id, id).await?;
+	let connection = &mut get_connection(connection);
+	let result = dislike_post_from_ids(connection, user.id, id)?;
 	Ok(Json(result))
 }
 
 // Add a dependency to the post with id on dependency
 // Return the updated post
 #[post("/<id>/dependency/<dependency>")]
-pub async fn dependency(
-	connection: &ConnectionState,
-	id: i32,
-	dependency: i32,
-	user: User,
-) -> Status {
-	let connection = &mut get_connection(connection).await;
-	if owns_post(connection, id, user.id).await {
-		add_dependency(connection, id, dependency).await
+pub fn dependency(connection: &ConnectionState, id: i32, dependency: i32, user: User) -> Status {
+	let connection = &mut get_connection(connection);
+	if owns_post(connection, id, user.id) {
+		add_dependency(connection, id, dependency)
 	} else {
 		Status::Forbidden
 	}
 }
 
 #[get("/latest?<name>&<offset>&<game_tag>&<limit>")]
-pub async fn latest(
+pub fn latest(
 	connection: &ConnectionState,
 	name: Option<String>,
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
 ) -> (Status, Json<Vec<DetailedPost>>) {
-	let connection = &mut get_connection(connection).await;
+	let connection = &mut get_connection(connection);
 	let result = get_latest_posts_detailed(
 		connection,
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	)
-	.await;
+	);
 	if let Ok(result) = result {
 		(Status::Ok, Json(result))
 	} else {
@@ -202,22 +192,21 @@ pub async fn latest(
 }
 
 #[get("/popular?<name>&<offset>&<game_tag>&<limit>")]
-pub async fn popular(
+pub fn popular(
 	connection: &ConnectionState,
 	name: Option<String>,
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
 ) -> (Status, Json<Vec<DetailedPost>>) {
-	let connection = &mut get_connection(connection).await;
+	let connection = &mut get_connection(connection);
 	let result = get_popular_posts_detailed(
 		connection,
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	)
-	.await;
+	);
 	if let Ok(result) = result {
 		(Status::Ok, Json(result))
 	} else {
@@ -226,10 +215,10 @@ pub async fn popular(
 }
 
 #[delete("/<id>/delete")]
-pub async fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
-	let connection = &mut get_connection(connection).await;
-	if owns_post(connection, id, user.id).await {
-		delete_post(connection, id).await
+pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
+	let connection = &mut get_connection(connection);
+	if owns_post(connection, id, user.id) {
+		delete_post(connection, id)
 	} else {
 		Status::Forbidden
 	}
@@ -240,13 +229,13 @@ pub async fn delete(connection: &ConnectionState, id: i32, user: User) -> Status
 // Gets the details of posts with id 1 and 2
 // Returns in order of post id ascending
 #[get("/posts?<post_id>")]
-pub async fn posts(
+pub fn posts(
 	connection: &ConnectionState,
 	post_id: Vec<i32>,
 ) -> (Status, Json<Vec<DetailedPostNoDepends>>) {
 	let count = post_id.len();
-	let connection = &mut get_connection(connection).await;
-	let result = get_posts_detailed(connection, post_id).await;
+	let connection = &mut get_connection(connection);
+	let result = get_posts_detailed(connection, post_id);
 	if result.is_empty() {
 		(Status::NotFound, Json(result))
 	} else if result.len() != count {
@@ -257,11 +246,15 @@ pub async fn posts(
 }
 
 #[get("/post_count?<name>&<game_tag>")]
-pub async fn post_count(
+pub fn post_count(
 	connection: &ConnectionState,
 	name: Option<String>,
 	game_tag: Option<i32>,
 ) -> Json<i64> {
-	let connection = &mut get_connection(connection).await;
-	Json(get_post_count(connection, name.unwrap_or_default(), game_tag.unwrap_or(0)).await)
+	let connection = &mut get_connection(connection);
+	Json(get_post_count(
+		connection,
+		name.unwrap_or_default(),
+		game_tag.unwrap_or(0),
+	))
 }

@@ -17,32 +17,35 @@ pub const fn get_spec() -> &'static str {
 // Used to get details for unspecific posts with optional generic filters
 
 #[get("/post_count?<name>&<game_tag>")]
-pub async fn post_count(
+pub fn post_count(
 	connection: &ConnectionState,
 	name: Option<String>,
 	game_tag: Option<i32>,
 ) -> Json<i64> {
-	let connection = &mut get_connection(connection).await;
-	Json(get_post_count(connection, name.unwrap_or_default(), game_tag.unwrap_or(0)).await)
+	let connection = &mut get_connection(connection);
+	Json(get_post_count(
+		connection,
+		name.unwrap_or_default(),
+		game_tag.unwrap_or(0),
+	))
 }
 
 #[get("/detailed/latest?<name>&<offset>&<game_tag>&<limit>")]
-pub async fn latest_detailed(
+pub fn latest_detailed(
 	connection: &ConnectionState,
 	name: Option<String>,
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
 ) -> Result<Json<Vec<DetailedPost>>, Status> {
-	let connection = &mut get_connection(connection).await;
+	let connection = &mut get_connection(connection);
 	let result = get_latest_posts_detailed(
 		connection,
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	)
-	.await;
+	);
 	match result {
 		Ok(posts) => Ok(Json(posts)),
 		Err(status) => Err(status),
@@ -50,46 +53,44 @@ pub async fn latest_detailed(
 }
 
 #[get("/short/latest?<name>&<offset>&<game_tag>&<limit>")]
-pub async fn latest_short(
+pub fn latest_short(
 	connection: &ConnectionState,
 	name: Option<String>,
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
 ) -> Result<Json<Vec<ShortPost>>, Status> {
-	let connection = &mut get_connection(connection).await;
+	let connection = &mut get_connection(connection);
 	let result = get_latest_posts(
 		connection,
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	)
-	.await;
-	if !result.is_empty() {
-		Ok(Json(result))
-	} else {
+	);
+	if result.is_empty() {
 		Err(Status::NotFound)
+	} else {
+		Ok(Json(result))
 	}
 }
 
 #[get("/detailed/popular?<name>&<offset>&<game_tag>&<limit>")]
-pub async fn popular_detailed(
+pub fn popular_detailed(
 	connection: &ConnectionState,
 	name: Option<String>,
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
 ) -> Result<Json<Vec<DetailedPost>>, Status> {
-	let connection = &mut get_connection(connection).await;
+	let connection = &mut get_connection(connection);
 	let result = get_popular_posts_detailed(
 		connection,
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	)
-	.await;
+	);
 	match result {
 		Ok(posts) => Ok(Json(posts)),
 		Err(status) => Err(status),
@@ -97,46 +98,42 @@ pub async fn popular_detailed(
 }
 
 #[get("/short/popular?<name>&<offset>&<game_tag>&<limit>")]
-pub async fn popular_short(
+pub fn popular_short(
 	connection: &ConnectionState,
 	name: Option<String>,
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
 ) -> Result<Json<Vec<ShortPost>>, Status> {
-	let connection = &mut get_connection(connection).await;
+	let connection = &mut get_connection(connection);
 	let result = get_popular_posts(
 		connection,
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	)
-	.await;
-	if !result.is_empty() {
-		Ok(Json(result))
-	} else {
+	);
+	if result.is_empty() {
 		Err(Status::NotFound)
+	} else {
+		Ok(Json(result))
 	}
 }
 
 #[get("/detailed/changes?<since>")]
-pub async fn changes_detailed(
+pub fn changes_detailed(
 	connection: &ConnectionState,
 	since: time::Date,
 ) -> Json<Vec<DetailedPostNoDepends>> {
-	let connection = &mut get_connection(connection).await;
-	let posts = get_changed_posts_detailed(connection, since.midnight()).await;
+	let connection = &mut get_connection(connection);
+	let posts = get_changed_posts_detailed(connection, since.midnight());
 	Json(posts.unwrap_or_default())
 }
 
 #[get("/short/changes?<since>")]
-pub async fn changes_short(
-	connection: &ConnectionState,
-	since: time::Date,
-) -> Json<Vec<ShortPost>> {
-	let connection = &mut get_connection(connection).await;
-	let posts = get_changed_posts_short(connection, since.midnight()).await;
+pub fn changes_short(connection: &ConnectionState, since: time::Date) -> Json<Vec<ShortPost>> {
+	let connection = &mut get_connection(connection);
+	let posts = get_changed_posts_short(connection, since.midnight());
 	Json(posts.unwrap_or_default())
 }
 
@@ -147,13 +144,13 @@ pub async fn changes_short(
 // Gets the details of posts with id 1 and 2
 // Returns in order of post id ascending
 #[get("/posts?<post_ids>")]
-pub async fn posts(
+pub fn posts(
 	connection: &ConnectionState,
 	post_ids: Vec<i32>,
 ) -> (Status, Json<Vec<DetailedPostNoDepends>>) {
 	let count = post_ids.len();
-	let connection = &mut get_connection(connection).await;
-	let result = get_posts_detailed(connection, post_ids).await;
+	let connection = &mut get_connection(connection);
+	let result = get_posts_detailed(connection, post_ids);
 	if result.is_empty() {
 		(Status::NotFound, Json(result))
 	} else if result.len() != count {
@@ -165,13 +162,13 @@ pub async fn posts(
 
 // See posts function for usage details
 #[get("/update_dates?<post_ids>")]
-pub async fn update_dates(
+pub fn update_dates(
 	connection: &ConnectionState,
 	post_ids: Vec<i32>,
 ) -> (Status, Json<Vec<PostUpdateTime>>) {
 	let count = post_ids.len();
-	let connection = &mut get_connection(connection).await;
-	let result = get_update_dates(connection, post_ids).await;
+	let connection = &mut get_connection(connection);
+	let result = get_update_dates(connection, post_ids);
 	match result {
 		Some(post_update_dates) => {
 			let status = if post_update_dates.len() == count {
@@ -186,12 +183,9 @@ pub async fn update_dates(
 }
 
 #[get("/post/detailed/<id>")]
-pub async fn post_detailed(
-	connection: &ConnectionState,
-	id: i32,
-) -> Result<Json<DetailedPost>, Status> {
-	let connection = &mut get_connection(connection).await;
-	let result = get_post(connection, id).await;
+pub fn post_detailed(connection: &ConnectionState, id: i32) -> Result<Json<DetailedPost>, Status> {
+	let connection = &mut get_connection(connection);
+	let result = get_post(connection, id);
 	match result {
 		Ok(post) => Ok(Json(post)),
 		Err(status) => Err(status),
@@ -199,9 +193,9 @@ pub async fn post_detailed(
 }
 
 #[get("/post/short/<id>")]
-pub async fn post_short(connection: &ConnectionState, id: i32) -> Result<Json<ShortPost>, Status> {
-	let connection = &mut get_connection(connection).await;
-	let result = get_short_post(connection, id).await;
+pub fn post_short(connection: &ConnectionState, id: i32) -> Result<Json<ShortPost>, Status> {
+	let connection = &mut get_connection(connection);
+	let result = get_short_post(connection, id);
 	match result {
 		Some(post) => Ok(Json(post)),
 		None => Err(Status::NotFound),

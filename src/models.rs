@@ -102,7 +102,7 @@ lazy_static! {
 pub type ConnectionPool = Pool<ConnectionManager<PgConnection>>;
 pub type ConnectionState = rocket::State<ConnectionPool>;
 
-pub async fn get_connection(
+pub fn get_connection(
 	connection: &ConnectionState,
 ) -> PooledConnection<ConnectionManager<PgConnection>> {
 	connection.get().unwrap()
@@ -151,7 +151,7 @@ pub struct Token {
 	pub user_id: i64,
 }
 
-pub async fn create_jwt(user_id: i64) -> String {
+pub fn create_jwt(user_id: i64) -> String {
 	let time = chrono::offset::Utc::now().timestamp();
 	let token_data = Token {
 		iat: time,
@@ -170,7 +170,7 @@ pub enum GenericErorr {
 pub struct Verified {}
 
 impl Verified {
-	pub async fn verify(token: &str) -> Outcome<Self, GenericErorr> {
+	pub fn verify(token: &str) -> Outcome<Self, GenericErorr> {
 		let token = decode::<Token>(token, &DECODE_KEY, &Validation::default());
 		if token.is_err() {
 			Outcome::Failure((Status::Unauthorized, GenericErorr::Invalid))
@@ -189,27 +189,26 @@ impl<'r> FromRequest<'r> for Verified {
 				None => Outcome::Failure((Status::Unauthorized, GenericErorr::Missing)),
 				Some(cookie) => {
 					let token = cookie.value();
-					Self::verify(token).await
+					Self::verify(token)
 				}
 			},
 			Some(token) => {
 				let token = token.replace("Bearer ", "");
-				Self::verify(&token).await
+				Self::verify(&token)
 			}
 		}
 	}
 }
 
 impl User {
-	pub async fn verify(token: &str, connection: &ConnectionPool) -> Outcome<Self, GenericErorr> {
+	pub fn verify(token: &str, connection: &ConnectionPool) -> Outcome<Self, GenericErorr> {
 		let token_data = decode::<Token>(token, &DECODE_KEY, &Validation::default());
 		let token_data = match token_data {
 			Ok(token_data) => token_data,
 			Err(_) => return Outcome::Failure((Status::Unauthorized, GenericErorr::Invalid)),
 		};
 		let result =
-			crate::database::get_user(&mut connection.get().unwrap(), token_data.claims.user_id)
-				.await;
+			crate::database::get_user(&mut connection.get().unwrap(), token_data.claims.user_id);
 		match result {
 			Ok(user) => Outcome::Success(user),
 			Err(status) => Outcome::Failure((status, GenericErorr::Invalid)),
@@ -227,13 +226,13 @@ impl<'r> FromRequest<'r> for User {
 				Some(cookie) => {
 					let token = cookie.value();
 					let connection = request.rocket().state::<ConnectionPool>().unwrap();
-					Self::verify(token, connection).await
+					Self::verify(token, connection)
 				}
 			},
 			Some(token) => {
 				let token = token.replace("Bearer ", "");
 				let connection = request.rocket().state::<ConnectionPool>().unwrap();
-				Self::verify(&token, connection).await
+				Self::verify(&token, connection)
 			}
 		}
 	}

@@ -7,20 +7,21 @@ extern crate rocket;
 extern crate rocket_dyn_templates;
 
 pub mod api;
+pub mod database;
 pub mod models;
-pub mod posts;
 pub mod schema;
-pub mod users;
 pub mod web;
 
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use dotenv::dotenv;
-use rocket::http::{ContentType, Status};
+use rocket::fairing::*;
+use rocket::http::*;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::*;
 use rocket_dyn_templates::Template;
 use std::env;
+use std::time::SystemTime;
 
 #[launch]
 pub async fn rocket() -> Rocket<Build> {
@@ -101,32 +102,55 @@ pub async fn rocket() -> Rocket<Build> {
 				api::v1::users::delete
 			],
 		)
-		.mount("/api/v2", routes![api::v2::get_spec])
 		.mount(
-			"/api/v2/details",
+			"/api/v2",
 			routes![
-				api::v2::details::posts,
-				api::v2::details::update_dates,
-				api::v2::details::detailed,
-				api::v2::details::short,
-			],
-		)
-		.mount(
-			"/api/v2/posts",
-			routes![
-				api::v2::posts::count,
-				api::v2::posts::latest_detailed,
-				api::v2::posts::latest_short,
-				api::v2::posts::popular_detailed,
-				api::v2::posts::popular_short,
-				api::v2::posts::changes_detailed,
-				api::v2::posts::changes_short,
+				api::v2::get_spec,
+				api::v2::posts,
+				api::v2::update_dates,
+				api::v2::post_detailed,
+				api::v2::post_short,
+				api::v2::post_count,
+				api::v2::latest_detailed,
+				api::v2::latest_short,
+				api::v2::popular_detailed,
+				api::v2::popular_short,
+				api::v2::changes_detailed,
+				api::v2::changes_short,
 			],
 		)
 		.manage(pool)
 		.manage(s3)
 		.attach(Template::fairing())
-		.attach(api::v2::posts::VecErrHandler)
+		.attach(api::v2::V2VecErrHandler)
+		.attach(RequestTimer)
+}
+
+pub struct RequestTimer;
+
+#[derive(Copy, Clone)]
+struct TimerStart(Option<SystemTime>);
+
+#[rocket::async_trait]
+impl Fairing for RequestTimer {
+	fn info(&self) -> Info {
+		Info {
+			name: "Request Timer",
+			kind: Kind::Request | Kind::Response,
+		}
+	}
+
+	async fn on_request(&self, request: &mut Request<'_>, _: &mut Data<'_>) {
+		request.local_cache(|| TimerStart(Some(SystemTime::now())));
+	}
+
+	async fn on_response<'r>(&self, req: &'r Request<'_>, _: &mut Response<'r>) {
+		let start_time = req.local_cache(|| TimerStart(None));
+		if let Some(Ok(duration)) = start_time.0.map(|st| st.elapsed()) {
+			let ms = duration.as_secs() * 1000 + duration.subsec_millis() as u64;
+			rocket::log::private::info!("{} took {}ms", req.uri(), ms);
+		}
+	}
 }
 
 #[get("/flamethrower.min.js")]
@@ -211,7 +235,7 @@ pub struct Urlset {
 pub async fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 	let mut urls = Vec::new();
 	let connection = &mut models::get_connection(connection).await;
-	let latest_date = posts::get_post_latest_date(connection).await;
+	let latest_date = database::get_post_latest_date(connection).await;
 	let base_url = Url {
 		loc: Loc {
 			loc: format!("{}/", *models::BASE_URL),
@@ -239,7 +263,7 @@ pub async fn sitemap(connection: &models::ConnectionState) -> (ContentType, Stri
 		},
 		lastmod: None,
 	};
-	let posts_info = posts::get_post_ids(connection).await;
+	let posts_info = database::get_post_ids(connection).await;
 	urls.push(about_url);
 	for post_info in posts_info {
 		let url = Url {
@@ -289,11 +313,11 @@ pub async fn get_from_storage(
 		Err(_) => return Err(Status::NotFound),
 	};
 
-	let result = posts::update_download_limit(connection, ip.ip, file_size).await;
+	let result = database::update_download_limit(connection, ip.ip, file_size).await;
 	if result != Status::Ok {
 		return Err(result);
 	}
-	let _result = posts::update_download_count(connection, path).await;
+	let _result = database::update_download_count(connection, path).await;
 
 	let file = s3
 		.get_object()

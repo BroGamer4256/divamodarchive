@@ -1,5 +1,5 @@
+use crate::database::*;
 use crate::models::*;
-use crate::users::*;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use serde::Deserialize;

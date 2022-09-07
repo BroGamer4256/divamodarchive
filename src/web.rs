@@ -1,6 +1,5 @@
+use crate::database::*;
 use crate::models::*;
-use crate::posts::*;
-use crate::users::*;
 use diesel::PgConnection;
 use jsonwebtoken::*;
 use rocket::http::*;

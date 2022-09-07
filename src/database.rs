@@ -212,454 +212,12 @@ pub async fn dislike_post_from_ids(
 	}
 }
 
-pub async fn get_latest_posts(
+pub async fn get_additional_post_data(
 	connection: &mut PgConnection,
-	name: String,
-	offset: i64,
-	game_tag: i32,
-	limit: i64,
-) -> Vec<ShortPost> {
-	posts::table
-		.filter(posts::post_game_tag.eq(game_tag))
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
-		.group_by(posts::post_id)
-		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.order_by(posts::post_date.desc())
-		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_game_tag,
-			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
-		))
-		.limit(limit)
-		.offset(offset)
-		.load::<ShortPost>(connection)
-		.unwrap_or_else(|_| vec![])
-}
-
-pub async fn get_latest_posts_detailed(
-	connection: &mut PgConnection,
-	name: String,
-	offset: i64,
-	game_tag: i32,
-	limit: i64,
-) -> Result<Vec<DetailedPost>, Status> {
-	let results = posts::table
-		.filter(posts::post_game_tag.eq(game_tag))
-		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.inner_join(users::table)
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
-		.group_by((posts::post_id, users::user_id))
-		.order_by(posts::post_date.desc())
-		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_images_extra,
-			posts::post_link,
-			posts::post_date,
-			posts::post_game_tag,
-			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
-			(users::user_id, users::user_name, users::user_avatar),
-		))
-		.limit(limit)
-		.offset(offset)
-		.load::<DetailedPostNoDepends>(connection)
-		.unwrap_or_else(|_| vec![]);
-
-	if results.is_empty() {
-		return Err(Status::NotFound);
-	}
-	let mut posts = vec![];
-	for post in results {
-		let dependencies = post_dependencies::table
-			.filter(post_dependencies::post_id.eq(post.id))
-			.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
-			.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
-			.left_join(
-				users_liked_posts::table
-					.on(users_liked_posts::post_id.eq(post_dependencies::dependency_id)),
-			)
-			.left_join(
-				users_disliked_posts::table
-					.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
-			)
-			.left_join(
-				download_stats::table
-					.on(download_stats::post_id.eq(post_dependencies::dependency_id)),
-			)
-			.group_by((posts::post_id, users::user_id))
-			.select((
-				posts::post_id,
-				posts::post_name,
-				posts::post_text,
-				posts::post_text_short,
-				posts::post_image,
-				posts::post_images_extra,
-				posts::post_link,
-				posts::post_date,
-				posts::post_game_tag,
-				posts::post_type_tag,
-				count_distinct(users_liked_posts::user_id.nullable()),
-				count_distinct(users_disliked_posts::user_id.nullable()),
-				count_distinct(download_stats::timestamp.nullable()),
-				(users::user_id, users::user_name, users::user_avatar),
-			))
-			.load::<DetailedPostNoDepends>(connection)
-			.unwrap_or_else(|_| vec![]);
-		let changelogs = post_changelogs::table
-			.filter(post_changelogs::post_id.eq(post.id))
-			.order_by(post_changelogs::time.desc())
-			.select((
-				post_changelogs::description,
-				post_changelogs::time,
-				post_changelogs::download,
-			))
-			.load::<Changelog>(connection)
-			.unwrap_or_else(|_| vec![]);
-		let comments = post_comments::table
-			.filter(post_comments::post_id.eq(post.id))
-			.order_by(post_comments::comment_date.desc())
-			.inner_join(users::table.on(users::user_id.eq(post_comments::user_id)))
-			.select((
-				post_comments::comment_id,
-				(users::user_id, users::user_name, users::user_avatar),
-				post_comments::comment_text,
-				post_comments::comment_parent,
-				post_comments::comment_date,
-			))
-			.load::<Comment>(connection)
-			.unwrap_or_else(|_| vec![]);
-
-		posts.push(DetailedPost {
-			id: post.id,
-			name: post.name,
-			text: post.text,
-			text_short: post.text_short,
-			dependencies,
-			image: post.image,
-			images_extra: post.images_extra,
-			link: post.link,
-			date: post.date,
-			game_tag: post.game_tag,
-			type_tag: post.type_tag,
-			likes: post.likes,
-			dislikes: post.dislikes,
-			downloads: post.downloads,
-			user: post.user,
-			changelogs,
-			comments,
-		});
-	}
-	Ok(posts)
-}
-
-pub async fn get_latest_posts_disallowed(
-	connection: &mut PgConnection,
-	name: String,
-	offset: i64,
-	game_tag: i32,
-	disallowed: Vec<i32>,
-	limit: i64,
-) -> Result<Vec<ShortPost>, Status> {
-	let results = posts::table
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
-		.group_by(posts::post_id)
-		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.filter(posts::post_id.ne_all(disallowed))
-		.filter(posts::post_game_tag.eq(game_tag))
-		.order_by(posts::post_date.desc())
-		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_game_tag,
-			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
-		))
-		.limit(limit)
-		.offset(offset)
-		.load::<ShortPost>(connection)
-		.unwrap_or_else(|_| vec![]);
-
-	if results.is_empty() {
-		return Err(Status::NotFound);
-	}
-	Ok(results)
-}
-
-pub async fn get_latest_posts_unfiltered(
-	connection: &mut PgConnection,
-	limit: i64,
-) -> Vec<ShortPost> {
-	posts::table
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
-		.group_by(posts::post_id)
-		.order_by(posts::post_date.desc())
-		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_game_tag,
-			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
-		))
-		.limit(limit)
-		.load::<ShortPost>(connection)
-		.unwrap_or_else(|_| vec![])
-}
-
-pub async fn get_popular_posts(
-	connection: &mut PgConnection,
-	name: String,
-	offset: i64,
-	game_tag: i32,
-	limit: i64,
-) -> Vec<ShortPost> {
-	posts::table
-		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.filter(posts::post_game_tag.eq(game_tag))
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
-		.group_by(posts::post_id)
-		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
-		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_game_tag,
-			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
-		))
-		.limit(limit)
-		.offset(offset)
-		.load::<ShortPost>(connection)
-		.unwrap_or_else(|_| vec![])
-}
-
-pub async fn get_popular_posts_detailed(
-	connection: &mut PgConnection,
-	name: String,
-	offset: i64,
-	game_tag: i32,
-	limit: i64,
-) -> Result<Vec<DetailedPost>, Status> {
-	let results = posts::table
-		.filter(posts::post_game_tag.eq(game_tag))
-		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.inner_join(users::table)
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
-		.group_by((posts::post_id, users::user_id))
-		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
-		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_images_extra,
-			posts::post_link,
-			posts::post_date,
-			posts::post_game_tag,
-			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
-			(users::user_id, users::user_name, users::user_avatar),
-		))
-		.limit(limit)
-		.offset(offset)
-		.load::<DetailedPostNoDepends>(connection)
-		.unwrap_or_else(|_| vec![]);
-
-	if results.is_empty() {
-		return Err(Status::NotFound);
-	}
-	let mut posts = vec![];
-	for post in results {
-		let dependencies = post_dependencies::table
-			.filter(post_dependencies::post_id.eq(post.id))
-			.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
-			.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
-			.left_join(
-				users_liked_posts::table
-					.on(users_liked_posts::post_id.eq(post_dependencies::dependency_id)),
-			)
-			.left_join(
-				users_disliked_posts::table
-					.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
-			)
-			.left_join(
-				download_stats::table
-					.on(download_stats::post_id.eq(post_dependencies::dependency_id)),
-			)
-			.group_by((posts::post_id, users::user_id))
-			.select((
-				posts::post_id,
-				posts::post_name,
-				posts::post_text,
-				posts::post_text_short,
-				posts::post_image,
-				posts::post_images_extra,
-				posts::post_link,
-				posts::post_date,
-				posts::post_game_tag,
-				posts::post_type_tag,
-				count_distinct(users_liked_posts::user_id.nullable()),
-				count_distinct(users_disliked_posts::user_id.nullable()),
-				count_distinct(download_stats::timestamp.nullable()),
-				(users::user_id, users::user_name, users::user_avatar),
-			))
-			.load::<DetailedPostNoDepends>(connection)
-			.unwrap_or_else(|_| vec![]);
-		let changelogs = post_changelogs::table
-			.filter(post_changelogs::post_id.eq(post.id))
-			.order_by(post_changelogs::time.desc())
-			.select((
-				post_changelogs::description,
-				post_changelogs::time,
-				post_changelogs::download,
-			))
-			.load::<Changelog>(connection)
-			.unwrap_or_else(|_| vec![]);
-		let comments = post_comments::table
-			.filter(post_comments::post_id.eq(post.id))
-			.order_by(post_comments::comment_date.desc())
-			.inner_join(users::table.on(users::user_id.eq(post_comments::user_id)))
-			.select((
-				post_comments::comment_id,
-				(users::user_id, users::user_name, users::user_avatar),
-				post_comments::comment_text,
-				post_comments::comment_parent,
-				post_comments::comment_date,
-			))
-			.load::<Comment>(connection)
-			.unwrap_or_else(|_| vec![]);
-
-		posts.push(DetailedPost {
-			id: post.id,
-			name: post.name,
-			text: post.text,
-			text_short: post.text_short,
-			dependencies,
-			image: post.image,
-			images_extra: post.images_extra,
-			link: post.link,
-			date: post.date,
-			game_tag: post.game_tag,
-			type_tag: post.type_tag,
-			likes: post.likes,
-			dislikes: post.dislikes,
-			downloads: post.downloads,
-			user: post.user,
-			changelogs,
-			comments,
-		});
-	}
-	Ok(posts)
-}
-
-pub async fn get_popular_posts_disallowed(
-	connection: &mut PgConnection,
-	name: String,
-	offset: i64,
-	game_tag: i32,
-	disallowed: Vec<i32>,
-	limit: i64,
-) -> Result<Vec<ShortPost>, Status> {
-	let results = posts::table
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
-		.group_by(posts::post_id)
-		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.filter(posts::post_id.ne_all(disallowed))
-		.filter(posts::post_game_tag.eq(game_tag))
-		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
-		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_game_tag,
-			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
-		))
-		.limit(limit)
-		.offset(offset)
-		.load::<ShortPost>(connection)
-		.unwrap_or_else(|_| vec![]);
-
-	if results.is_empty() {
-		return Err(Status::NotFound);
-	}
-	Ok(results)
-}
-
-pub async fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, Status> {
-	let result = posts::table
-		.filter(posts::post_id.eq(id))
-		.inner_join(users::table)
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
-		.group_by((posts::post_id, users::user_id))
-		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_images_extra,
-			posts::post_link,
-			posts::post_date,
-			posts::post_game_tag,
-			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
-			(users::user_id, users::user_name, users::user_avatar),
-		))
-		.first::<DetailedPostNoDepends>(connection);
-
-	let result = match result {
-		Ok(result) => result,
-		Err(_) => return Err(Status::NotFound),
-	};
+	post: DetailedPostNoDepends,
+) -> DetailedPost {
 	let dependencies = post_dependencies::table
-		.filter(post_dependencies::post_id.eq(result.id))
+		.filter(post_dependencies::post_id.eq(post.id))
 		.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
 		.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
 		.left_join(
@@ -692,8 +250,9 @@ pub async fn get_post(connection: &mut PgConnection, id: i32) -> Result<Detailed
 		))
 		.load::<DetailedPostNoDepends>(connection)
 		.unwrap_or_else(|_| vec![]);
+
 	let changelogs = post_changelogs::table
-		.filter(post_changelogs::post_id.eq(result.id))
+		.filter(post_changelogs::post_id.eq(post.id))
 		.order_by(post_changelogs::time.desc())
 		.select((
 			post_changelogs::description,
@@ -702,8 +261,9 @@ pub async fn get_post(connection: &mut PgConnection, id: i32) -> Result<Detailed
 		))
 		.load::<Changelog>(connection)
 		.unwrap_or_else(|_| vec![]);
+
 	let comments = post_comments::table
-		.filter(post_comments::post_id.eq(result.id))
+		.filter(post_comments::post_id.eq(post.id))
 		.order_by(post_comments::comment_date.desc())
 		.inner_join(users::table.on(users::user_id.eq(post_comments::user_id)))
 		.select((
@@ -716,48 +276,324 @@ pub async fn get_post(connection: &mut PgConnection, id: i32) -> Result<Detailed
 		.load::<Comment>(connection)
 		.unwrap_or_else(|_| vec![]);
 
-	Ok(DetailedPost {
-		id: result.id,
-		name: result.name,
-		text: result.text,
-		text_short: result.text_short,
+	DetailedPost {
+		id: post.id,
+		name: post.name,
+		text: post.text,
+		text_short: post.text_short,
 		dependencies,
-		image: result.image,
-		images_extra: result.images_extra,
-		link: result.link,
-		date: result.date,
-		game_tag: result.game_tag,
-		type_tag: result.type_tag,
-		likes: result.likes,
-		dislikes: result.dislikes,
-		downloads: result.downloads,
-		user: result.user,
+		image: post.image,
+		images_extra: post.images_extra,
+		link: post.link,
+		date: post.date,
+		game_tag: post.game_tag,
+		type_tag: post.type_tag,
+		likes: post.likes,
+		dislikes: post.dislikes,
+		downloads: post.downloads,
+		user: post.user,
 		changelogs,
 		comments,
-	})
+	}
+}
+
+pub async fn get_additional_posts_data(
+	connection: &mut PgConnection,
+	posts: Vec<DetailedPostNoDepends>,
+) -> Vec<DetailedPost> {
+	let mut results = vec![];
+	for post in posts {
+		results.push(get_additional_post_data(connection, post).await);
+	}
+	results
+}
+
+macro_rules! DetailedPostNoDependsBase {
+	() => {
+		posts::table
+			.inner_join(users::table)
+			.left_join(users_liked_posts::table)
+			.left_join(users_disliked_posts::table)
+			.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+			.group_by((posts::post_id, users::user_id))
+			.select((
+				posts::post_id,
+				posts::post_name,
+				posts::post_text,
+				posts::post_text_short,
+				posts::post_image,
+				posts::post_images_extra,
+				posts::post_link,
+				posts::post_date,
+				posts::post_game_tag,
+				posts::post_type_tag,
+				count_distinct(users_liked_posts::user_id.nullable()),
+				count_distinct(users_disliked_posts::user_id.nullable()),
+				count_distinct(download_stats::timestamp.nullable()),
+				(users::user_id, users::user_name, users::user_avatar),
+			))
+	};
+	($limit:ident, $offset:ident) => {
+		DetailedPostNoDependsBase!().limit($limit).offset($offset)
+	};
+}
+
+macro_rules! ShortPostBase {
+	() => {
+		posts::table
+			.left_join(users_liked_posts::table)
+			.left_join(users_disliked_posts::table)
+			.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+			.group_by(posts::post_id)
+			.select((
+				posts::post_id,
+				posts::post_name,
+				posts::post_text_short,
+				posts::post_image,
+				posts::post_game_tag,
+				posts::post_type_tag,
+				count_distinct(users_liked_posts::user_id.nullable()),
+				count_distinct(users_disliked_posts::user_id.nullable()),
+				count_distinct(download_stats::timestamp.nullable()),
+			))
+	};
+	($limit:ident, $offset:ident) => {
+		ShortPostBase!().limit($limit).offset($offset)
+	};
+}
+
+macro_rules! ShortUserPostsBase {
+	() => {
+		users::table
+			.inner_join(posts::table)
+			.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
+			.left_join(
+				users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)),
+			)
+			.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
+			.group_by((posts::post_id, users::user_id))
+			.select((
+				(
+					posts::post_id,
+					posts::post_name,
+					posts::post_text_short,
+					posts::post_image,
+					posts::post_game_tag,
+					posts::post_type_tag,
+					count_distinct(users_liked_posts::user_id.nullable()),
+					count_distinct(users_disliked_posts::user_id.nullable()),
+					count_distinct(download_stats::timestamp.nullable()),
+				),
+				(users::user_id, users::user_name, users::user_avatar),
+			))
+	};
+	($limit:ident, $offset:ident) => {
+		ShortUserPostsBase!().limit($limit).offset($offset)
+	};
+}
+
+pub async fn get_latest_posts(
+	connection: &mut PgConnection,
+	name: String,
+	offset: i64,
+	game_tag: i32,
+	limit: i64,
+) -> Vec<ShortPost> {
+	ShortPostBase!(limit, offset)
+		.filter(posts::post_game_tag.eq(game_tag))
+		.filter(posts::post_name.ilike(format!("%{}%", name)))
+		.order_by(posts::post_date.desc())
+		.load::<ShortPost>(connection)
+		.unwrap_or_else(|_| vec![])
+}
+
+pub async fn get_latest_posts_detailed(
+	connection: &mut PgConnection,
+	name: String,
+	offset: i64,
+	game_tag: i32,
+	limit: i64,
+) -> Result<Vec<DetailedPost>, Status> {
+	let results = DetailedPostNoDependsBase!(limit, offset)
+		.filter(posts::post_game_tag.eq(game_tag))
+		.filter(posts::post_name.ilike(format!("%{}%", name)))
+		.order_by(posts::post_date.desc())
+		.load::<DetailedPostNoDepends>(connection);
+
+	match results {
+		Ok(posts) => Ok(get_additional_posts_data(connection, posts).await),
+		Err(_) => Err(Status::NotFound),
+	}
+}
+
+pub async fn get_latest_posts_disallowed(
+	connection: &mut PgConnection,
+	name: String,
+	offset: i64,
+	game_tag: i32,
+	disallowed: Vec<i32>,
+	limit: i64,
+) -> Result<Vec<ShortPost>, Status> {
+	let results = ShortPostBase!(limit, offset)
+		.filter(posts::post_name.ilike(format!("%{}%", name)))
+		.filter(posts::post_id.ne_all(disallowed))
+		.filter(posts::post_game_tag.eq(game_tag))
+		.order_by(posts::post_date.desc())
+		.load::<ShortPost>(connection);
+
+	match results {
+		Ok(posts) => Ok(posts),
+		Err(_) => Err(Status::NotFound),
+	}
+}
+
+pub async fn get_latest_posts_unfiltered(
+	connection: &mut PgConnection,
+	limit: i64,
+) -> Vec<ShortPost> {
+	ShortPostBase!()
+		.order_by(posts::post_date.desc())
+		.limit(limit)
+		.load::<ShortPost>(connection)
+		.unwrap_or_else(|_| vec![])
+}
+
+pub async fn get_popular_posts(
+	connection: &mut PgConnection,
+	name: String,
+	offset: i64,
+	game_tag: i32,
+	limit: i64,
+) -> Vec<ShortPost> {
+	ShortPostBase!(limit, offset)
+		.filter(posts::post_name.ilike(format!("%{}%", name)))
+		.filter(posts::post_game_tag.eq(game_tag))
+		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.load::<ShortPost>(connection)
+		.unwrap_or_else(|_| vec![])
+}
+
+pub async fn get_popular_posts_detailed(
+	connection: &mut PgConnection,
+	name: String,
+	offset: i64,
+	game_tag: i32,
+	limit: i64,
+) -> Result<Vec<DetailedPost>, Status> {
+	let results = DetailedPostNoDependsBase!(limit, offset)
+		.filter(posts::post_game_tag.eq(game_tag))
+		.filter(posts::post_name.ilike(format!("%{}%", name)))
+		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.load::<DetailedPostNoDepends>(connection);
+
+	match results {
+		Ok(posts) => Ok(get_additional_posts_data(connection, posts).await),
+		Err(_) => Err(Status::NotFound),
+	}
+}
+
+pub async fn get_popular_posts_disallowed(
+	connection: &mut PgConnection,
+	name: String,
+	offset: i64,
+	game_tag: i32,
+	disallowed: Vec<i32>,
+	limit: i64,
+) -> Result<Vec<ShortPost>, Status> {
+	let results = ShortPostBase!(limit, offset)
+		.filter(posts::post_name.ilike(format!("%{}%", name)))
+		.filter(posts::post_id.ne_all(disallowed))
+		.filter(posts::post_game_tag.eq(game_tag))
+		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.load::<ShortPost>(connection);
+
+	match results {
+		Ok(posts) => Ok(posts),
+		Err(_) => Err(Status::NotFound),
+	}
+}
+
+pub async fn get_post(connection: &mut PgConnection, id: i32) -> Result<DetailedPost, Status> {
+	let result = DetailedPostNoDependsBase!()
+		.filter(posts::post_id.eq(id))
+		.first::<DetailedPostNoDepends>(connection);
+
+	let post = match result {
+		Ok(post) => post,
+		Err(_) => return Err(Status::NotFound),
+	};
+
+	Ok(get_additional_post_data(connection, post).await)
 }
 
 pub async fn get_short_post(conn: &mut PgConnection, id: i32) -> Option<ShortPost> {
-	posts::table
+	ShortPostBase!()
 		.filter(posts::post_id.eq(id))
-		.inner_join(users::table)
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
-		.group_by((posts::post_id, users::user_id))
-		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_game_tag,
-			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
-		))
 		.first::<ShortPost>(conn)
 		.ok()
+}
+
+pub async fn get_posts_detailed(
+	connection: &mut PgConnection,
+	ids: Vec<i32>,
+) -> Vec<DetailedPostNoDepends> {
+	DetailedPostNoDependsBase!()
+		.filter(posts::post_id.eq_any(ids))
+		.order_by(posts::post_id.asc())
+		.load::<DetailedPostNoDepends>(connection)
+		.unwrap_or_default()
+}
+
+pub async fn get_changed_posts_detailed(
+	connection: &mut PgConnection,
+	since: time::PrimitiveDateTime,
+) -> Option<Vec<DetailedPostNoDepends>> {
+	DetailedPostNoDependsBase!()
+		.filter(posts::post_date.gt(since))
+		.order_by(posts::post_date.desc())
+		.load::<DetailedPostNoDepends>(connection)
+		.ok()
+}
+
+pub async fn get_changed_posts_short(
+	connection: &mut PgConnection,
+	since: time::PrimitiveDateTime,
+) -> Option<Vec<ShortPost>> {
+	ShortPostBase!()
+		.filter(posts::post_date.gt(since))
+		.order_by(posts::post_date.desc())
+		.load::<ShortPost>(connection)
+		.ok()
+}
+
+pub async fn get_user_posts_latest(
+	conn: &mut PgConnection,
+	id: i64,
+	offset: i64,
+	game_tag: i32,
+	limit: i64,
+) -> Vec<ShortUserPosts> {
+	ShortUserPostsBase!(limit, offset)
+		.filter(users::user_id.eq(id))
+		.filter(posts::post_game_tag.eq(game_tag))
+		.order_by(posts::post_date.desc())
+		.load::<ShortUserPosts>(conn)
+		.unwrap_or_else(|_| vec![])
+}
+
+pub async fn get_user_posts_popular(
+	conn: &mut PgConnection,
+	id: i64,
+	offset: i64,
+	game_tag: i32,
+	limit: i64,
+) -> Vec<ShortUserPosts> {
+	ShortUserPostsBase!(limit, offset)
+		.filter(users::user_id.eq(id))
+		.filter(posts::post_game_tag.eq(game_tag))
+		.order_by(count_distinct(download_stats::timestamp.nullable()).desc())
+		.load::<ShortUserPosts>(conn)
+		.unwrap_or_else(|_| vec![])
 }
 
 pub async fn delete_post(conn: &mut PgConnection, id: i32) -> Status {
@@ -922,38 +758,6 @@ pub async fn get_post_latest_date(conn: &mut PgConnection) -> chrono::NaiveDateT
 		.unwrap_or_default()
 }
 
-pub async fn get_posts_detailed(
-	connection: &mut PgConnection,
-	ids: Vec<i32>,
-) -> Vec<DetailedPostNoDepends> {
-	posts::table
-		.filter(posts::post_id.eq_any(ids))
-		.inner_join(users::table)
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
-		.group_by((posts::post_id, users::user_id))
-		.order_by(posts::post_id.asc())
-		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_images_extra,
-			posts::post_link,
-			posts::post_date,
-			posts::post_game_tag,
-			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
-			(users::user_id, users::user_name, users::user_avatar),
-		))
-		.load::<DetailedPostNoDepends>(connection)
-		.unwrap_or_default()
-}
-
 pub async fn add_changelog(
 	connection: &mut PgConnection,
 	id: i32,
@@ -1068,47 +872,86 @@ pub async fn get_update_dates(
 		.ok()
 }
 
-pub async fn get_changed_posts_detailed(
-	connection: &mut PgConnection,
-	since: time::PrimitiveDateTime,
-) -> Option<Vec<DetailedPostNoDepends>> {
-	posts::table
-		.filter(posts::post_date.gt(since))
-		.inner_join(users::table)
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
+pub async fn create_user<'a>(
+	conn: &mut PgConnection,
+	id: i64,
+	name: &'a str,
+	avatar: &'a str,
+) -> Result<User, Status> {
+	// Check if entry with same user id already exists, if so update name and avatar
+	let user = users::table
+		.filter(users::user_id.eq(id))
+		.first::<User>(conn);
+	if user.is_ok() {
+		let result = diesel::update(users::table.filter(users::user_id.eq(id)))
+			.set((users::user_name.eq(name), users::user_avatar.eq(avatar)))
+			.get_result(conn);
+		match result {
+			Ok(user) => Ok(user),
+			Err(_) => Err(Status::InternalServerError),
+		}
+	} else {
+		let new_user = NewUser {
+			user_id: id,
+			user_name: name,
+			user_avatar: avatar,
+		};
+		let result = diesel::insert_into(users::table)
+			.values(&new_user)
+			.get_result(conn);
+		match result {
+			Ok(user) => Ok(user),
+			Err(_) => Err(Status::InternalServerError),
+		}
+	}
+}
+
+// Ensure the user is verified before calling this
+pub async fn delete_user(conn: &mut PgConnection, id: i64) -> Status {
+	let result = diesel::delete(users::table.filter(users::user_id.eq(id))).execute(conn);
+
+	if result.is_ok() {
+		Status::Ok
+	} else {
+		Status::InternalServerError
+	}
+}
+
+pub async fn get_user(conn: &mut PgConnection, id: i64) -> Result<User, Status> {
+	let result = users::table.filter(users::user_id.eq(id)).get_result(conn);
+
+	match result {
+		Ok(user) => Ok(user),
+		Err(_) => Err(Status::InternalServerError),
+	}
+}
+
+pub async fn get_user_stats(conn: &mut PgConnection, id: i64) -> UserStats {
+	users::table
+		.filter(users::user_id.eq(id))
+		.inner_join(posts::table)
+		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
+		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
-		.order_by(posts::post_date.desc())
 		.select((
-			posts::post_id,
-			posts::post_name,
-			posts::post_text,
-			posts::post_text_short,
-			posts::post_image,
-			posts::post_images_extra,
-			posts::post_link,
-			posts::post_date,
-			posts::post_game_tag,
-			posts::post_type_tag,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
-			(users::user_id, users::user_name, users::user_avatar),
 		))
-		.load::<DetailedPostNoDepends>(connection)
-		.ok()
+		.get_result::<UserStats>(conn)
+		.unwrap_or_default()
 }
 
-pub async fn get_changed_posts_short(
-	connection: &mut PgConnection,
-	since: time::PrimitiveDateTime,
-) -> Option<Vec<ShortPost>> {
-	posts::table
-		.filter(posts::post_date.gt(since))
-		.inner_join(users::table)
-		.left_join(users_liked_posts::table)
-		.left_join(users_disliked_posts::table)
+pub async fn get_user_liked_posts(
+	conn: &mut PgConnection,
+	id: i64,
+	offset: i64,
+	limit: i64,
+) -> Vec<ShortPostNoLikes> {
+	users_liked_posts::table
+		.filter(users_liked_posts::user_id.eq(id))
+		.inner_join(posts::table)
 		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by(posts::post_id)
 		.order_by(posts::post_date.desc())
@@ -1119,10 +962,10 @@ pub async fn get_changed_posts_short(
 			posts::post_image,
 			posts::post_game_tag,
 			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
 			count_distinct(download_stats::timestamp.nullable()),
 		))
-		.load::<ShortPost>(connection)
-		.ok()
+		.limit(limit)
+		.offset(offset)
+		.load::<ShortPostNoLikes>(conn)
+		.unwrap_or_else(|_| vec![])
 }

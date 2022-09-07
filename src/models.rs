@@ -208,7 +208,8 @@ impl User {
 			Err(_) => return Outcome::Failure((Status::Unauthorized, GenericErorr::Invalid)),
 		};
 		let result =
-			crate::users::get_user(&mut connection.get().unwrap(), token_data.claims.user_id).await;
+			crate::database::get_user(&mut connection.get().unwrap(), token_data.claims.user_id)
+				.await;
 		match result {
 			Ok(user) => Outcome::Success(user),
 			Err(status) => Outcome::Failure((status, GenericErorr::Invalid)),

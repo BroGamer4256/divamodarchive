@@ -82,7 +82,7 @@ pub fn find_posts(
 	game_tag: Option<i32>,
 	user: Option<User>,
 	cookies: &CookieJar<'_>,
-) -> Result<Template, Status> {
+) -> Option<Template> {
 	let sort_order = match order.clone() {
 		Some(order) => match order.as_str() {
 			"popular" => Order::Popular,
@@ -93,41 +93,36 @@ pub fn find_posts(
 	let connection = &mut get_connection(connection);
 	let offset = offset.unwrap_or(0);
 	let name = name.unwrap_or_default();
+	let game_tag = game_tag.unwrap_or(0);
 	let title = match sort_order {
 		Order::Latest => format!("Latest {} Mods", *GAME_NAME),
 		Order::Popular => format!("Popular {} Mods", *GAME_NAME),
 	};
 	let results = match sort_order {
-		Order::Latest => get_latest_posts(
-			connection,
-			name.clone(),
-			offset,
-			game_tag.unwrap_or(0),
-			*WEBUI_LIMIT,
-		),
-		Order::Popular => get_popular_posts(
-			connection,
-			name.clone(),
-			offset,
-			game_tag.unwrap_or(0),
-			*WEBUI_LIMIT,
-		),
+		Order::Latest => {
+			get_latest_posts(connection, name.clone(), offset, game_tag, *WEBUI_LIMIT)?
+		}
+		Order::Popular => {
+			get_popular_posts(connection, name.clone(), offset, game_tag, *WEBUI_LIMIT)?
+		}
 	};
+	let count = get_post_count(connection, name.clone(), game_tag)?;
 	let description = match sort_order {
 		Order::Latest => format!("The latest {} Mods", *GAME_NAME),
 		Order::Popular => format!("The most popular {} Mods", *GAME_NAME),
 	};
-	Ok(Template::render(
+	Some(Template::render(
 		"post_list",
 		context![
 			posts: &results,
+			count: count,
 			is_logged_in: is_logged_in(connection, cookies),
 			title: title,
 			description: description,
 			offset: offset,
 			previous_search: name,
 			previous_sort: order.unwrap_or_default(),
-			previous_game_tag: game_tag.unwrap_or(0),
+			previous_game_tag: game_tag,
 			theme: get_theme(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),
@@ -216,22 +211,16 @@ pub fn user(
 		Order::Latest => format!("Mods by {}", user.name),
 		Order::Popular => format!("Popular mods by {}", user.name),
 	};
+	let game_tag = game_tag.unwrap_or(0);
 	let results = match sort_order {
-		Order::Latest => get_user_posts_latest(
-			connection,
-			user.id,
-			offset,
-			game_tag.unwrap_or(0),
-			*WEBUI_LIMIT,
-		),
-		Order::Popular => get_user_posts_popular(
-			connection,
-			user.id,
-			offset,
-			game_tag.unwrap_or(0),
-			*WEBUI_LIMIT,
-		),
+		Order::Latest => {
+			get_user_posts_latest(connection, user.id, offset, game_tag, *WEBUI_LIMIT)?
+		}
+		Order::Popular => {
+			get_user_posts_popular(connection, user.id, offset, game_tag, *WEBUI_LIMIT)?
+		}
 	};
+	let count = get_user_post_count(connection, user.id, game_tag)?;
 	let description = match sort_order {
 		Order::Latest => format!("The latest {} mods by {}", *GAME_NAME, user.name),
 		Order::Popular => format!("The most popular {} mods by {}", *GAME_NAME, user.name),
@@ -244,12 +233,13 @@ pub fn user(
 		"user_detail",
 		context![
 			user_posts: &results,
+			count: count,
 			is_logged_in: is_logged_in,
 			title: title,
 			description: description,
 			offset: offset,
 			previous_sort: order.unwrap_or_default(),
-			previous_game_tag: game_tag.unwrap_or(0),
+			previous_game_tag: game_tag,
 			total_likes: user_stats.likes,
 			total_dislikes: user_stats.dislikes,
 			total_downloads: user_stats.downloads,

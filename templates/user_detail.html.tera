@@ -38,7 +38,8 @@ Downloads: " ~ total_downloads %}
 	game_tag=game_tag.name, type_tag=type_tag.name) }}
 	{% endfor %}
 </div>
-{{ posts::draw_buttons(current_offset=offset, draw_forward=user_posts | length == 20, order=previous_sort, game_tag=previous_game_tag) }}
+{% set length = user_posts | length %}
+{{ posts::draw_buttons(current_offset=offset, draw_forward=length == 4 and count > offset + length, order=previous_sort, game_tag=previous_game_tag) }}
 {% else %}
 <div class="card">
 	<div class="card-body">

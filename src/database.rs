@@ -679,6 +679,15 @@ pub fn get_post_count(conn: &mut PgConnection, name: String, game_tag: i32) -> O
 		.ok()
 }
 
+pub fn get_user_post_count(connection: &mut PgConnection, id: i64, game_tag: i32) -> Option<i64> {
+	posts::table
+		.filter(posts::post_game_tag.eq(game_tag))
+		.filter(posts::post_uploader.eq(id))
+		.count()
+		.get_result(connection)
+		.ok()
+}
+
 pub fn get_post_ids(conn: &mut PgConnection) -> Option<Vec<SitemapInfo>> {
 	posts::table
 		.select((posts::post_id, posts::post_date))

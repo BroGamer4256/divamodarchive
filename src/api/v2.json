@@ -32,8 +32,734 @@
 				"operationId": "api::v2::get_spec",
 				"responses": {
 					"200": {
-						"description": "The openapi specification file"
+						"description": "Success"
 					}
+				}
+			}
+		},
+		"/post_count": {
+			"get": {
+				"summary": "Gets the count of posts with filters",
+				"operationId": "api::v2::post_count",
+				"tags": [
+					"posts"
+				],
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/name"
+					},
+					{
+						"$ref": "#/components/parameters/game_tag"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "integer",
+									"format": "int64"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "No posts with those filters could be found"
+					}
+				}
+			}
+		},
+		"/detailed/latest": {
+			"get": {
+				"summary": "Get the latest posts with details",
+				"operationId": "api::v2::latest_detailed",
+				"tags": [
+					"posts"
+				],
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/name"
+					},
+					{
+						"$ref": "#/components/parameters/offset"
+					},
+					{
+						"$ref": "#/components/parameters/game_tag"
+					},
+					{
+						"$ref": "#/components/parameters/limit"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/DetailedPost"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Could not find any posts with the specified filters"
+					}
+				}
+			}
+		},
+		"/short/latest": {
+			"get": {
+				"summary": "Get the latest posts",
+				"operationId": "api::v2::latest_short",
+				"tags": [
+					"posts"
+				],
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/name"
+					},
+					{
+						"$ref": "#/components/parameters/offset"
+					},
+					{
+						"$ref": "#/components/parameters/game_tag"
+					},
+					{
+						"$ref": "#/components/parameters/limit"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/ShortPost"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Could not find any posts with the specified filters"
+					}
+				}
+			}
+		},
+		"/detailed/popular": {
+			"get": {
+				"summary": "Get the most popular posts with details",
+				"operationId": "api::v2::popular_detailed",
+				"tags": [
+					"posts"
+				],
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/name"
+					},
+					{
+						"$ref": "#/components/parameters/offset"
+					},
+					{
+						"$ref": "#/components/parameters/game_tag"
+					},
+					{
+						"$ref": "#/components/parameters/limit"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/DetailedPost"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Could not find any posts with the specified filters"
+					}
+				}
+			}
+		},
+		"/short/popular": {
+			"get": {
+				"summary": "Get the most popular posts",
+				"operationId": "api::v2::popular_short",
+				"tags": [
+					"posts"
+				],
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/name"
+					},
+					{
+						"$ref": "#/components/parameters/offset"
+					},
+					{
+						"$ref": "#/components/parameters/game_tag"
+					},
+					{
+						"$ref": "#/components/parameters/limit"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/ShortPost"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Could not find any posts with the specified filters"
+					}
+				}
+			}
+		},
+		"/detailed/changes": {
+			"get": {
+				"summary": "Gets the changes since a date with details",
+				"operationId": "api::v2::changes_detailed",
+				"tags": [
+					"posts"
+				],
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/since"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/DetailedPostNoDepends"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "No updates since date"
+					}
+				}
+			}
+		},
+		"/short/changes": {
+			"get": {
+				"summary": "Gets the changes since a date",
+				"operationId": "api::v2::changes_short",
+				"tags": [
+					"posts"
+				],
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/since"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/ShortPost"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "No updates since date"
+					}
+				}
+			}
+		},
+		"/posts": {
+			"get": {
+				"summary": "Gets details about specific posts",
+				"operationId": "api::v2::posts",
+				"tags": [
+					"details"
+				],
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/post_ids"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "All posts could be found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/DetailedPostNoDepends"
+									}
+								}
+							}
+						}
+					},
+					"206": {
+						"description": "Only some posts could be found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/DetailedPostNoDepends"
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "No posts could be found"
+					}
+				}
+			}
+		},
+		"/post/detailed/{id}": {
+			"get": {
+				"summary": "Gets detailed information about a specific post",
+				"operationId": "api::v2::post_detailed",
+				"tags": [
+					"details"
+				],
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/id"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DetailedPost"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Post could not be found"
+					}
+				}
+			}
+		},
+		"/post/short/{id}": {
+			"get": {
+				"summary": "Gets short information about a specific post",
+				"operationId": "api::v2::post_short",
+				"tags": [
+					"details"
+				],
+				"parameters": [
+					{
+						"$ref": "#/components/parameters/id"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ShortPost"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Post could not be found"
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"DetailedPost": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"text",
+					"text_short",
+					"dependencies",
+					"image",
+					"images_extra",
+					"link",
+					"date",
+					"game_tag",
+					"type_tag",
+					"likes",
+					"dislikes",
+					"downloads",
+					"user",
+					"changelogs",
+					"comments"
+				],
+				"properties": {
+					"id": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"name": {
+						"type": "string"
+					},
+					"text": {
+						"type": "string"
+					},
+					"text_short": {
+						"type": "string"
+					},
+					"dependencies": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DetailedPostNoDepends"
+						}
+					},
+					"image": {
+						"type": "string"
+					},
+					"images_extra": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"link": {
+						"type": "string"
+					},
+					"date": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"game_tag": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"type_tag": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"likes": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"dislikes": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"downloads": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"user": {
+						"$ref": "#/components/schemas/User"
+					},
+					"changelogs": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Changelog"
+						}
+					},
+					"comments": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Comment"
+						}
+					}
+				}
+			},
+			"DetailedPostNoDepends": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"text",
+					"text_short",
+					"image",
+					"images_extra",
+					"link",
+					"date",
+					"game_tag",
+					"type_tag",
+					"likes",
+					"dislikes",
+					"downloads",
+					"user"
+				],
+				"properties": {
+					"id": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"name": {
+						"type": "string"
+					},
+					"text": {
+						"type": "string"
+					},
+					"text_short": {
+						"type": "string"
+					},
+					"image": {
+						"type": "string"
+					},
+					"images_extra": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"link": {
+						"type": "string"
+					},
+					"date": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"game_tag": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"type_tag": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"likes": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"dislikes": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"downloads": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"user": {
+						"$ref": "#/components/schemas/User"
+					}
+				}
+			},
+			"User": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"avatar"
+				],
+				"properties": {
+					"id": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"name": {
+						"type": "string"
+					},
+					"avatar": {
+						"type": "string"
+					}
+				}
+			},
+			"Changelog": {
+				"type": "object",
+				"required": [
+					"description",
+					"time"
+				],
+				"properties": {
+					"description": {
+						"type": "string"
+					},
+					"time": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"download": {
+						"type": "string"
+					}
+				}
+			},
+			"Comment": {
+				"type": "object",
+				"required": [
+					"id",
+					"user",
+					"text",
+					"date"
+				],
+				"properties": {
+					"id": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"user": {
+						"$ref": "#/components/schemas/User"
+					},
+					"text": {
+						"type": "string"
+					},
+					"parent": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"date": {
+						"type": "string",
+						"format": "date-time"
+					}
+				}
+			},
+			"ShortPost": {
+				"type": "object",
+				"required": [
+					"id",
+					"name",
+					"text_short",
+					"image",
+					"game_tag",
+					"type_tag",
+					"likes",
+					"dislikes",
+					"downloads"
+				],
+				"properties": {
+					"id": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"name": {
+						"type": "string"
+					},
+					"text_short": {
+						"type": "string"
+					},
+					"image": {
+						"type": "string"
+					},
+					"game_tag": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"type_tag": {
+						"type": "integer",
+						"format": "int32"
+					},
+					"likes": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"dislikes": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"downloads": {
+						"type": "integer",
+						"format": "int64"
+					}
+				}
+			}
+		},
+		"parameters": {
+			"name": {
+				"name": "name",
+				"in": "query",
+				"description": "The name of posts to search for",
+				"required": false,
+				"schema": {
+					"type": "string"
+				}
+			},
+			"offset": {
+				"name": "offset",
+				"in": "query",
+				"description": "An offset to get more posts",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64"
+				}
+			},
+			"game_tag": {
+				"name": "game_tag",
+				"in": "query",
+				"description": "A tag of what game to search for",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int32"
+				}
+			},
+			"limit": {
+				"name": "limit",
+				"in": "query",
+				"description": "How many posts maximum to return",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"format": "int64"
+				}
+			},
+			"since": {
+				"name": "since",
+				"in": "query",
+				"description": "Date to look for updates after",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"format": "date"
+				}
+			},
+			"post_ids": {
+				"name": "post_ids",
+				"in": "query",
+				"description": "An array of post ids to check",
+				"required": true,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "integer",
+						"format": "int32"
+					}
+				}
+			},
+			"id": {
+				"name": "id",
+				"in": "path",
+				"description": "The ID of the post to get",
+				"required": true,
+				"schema": {
+					"type": "integer",
+					"format": "int32"
 				}
 			}
 		}

@@ -21,13 +21,14 @@ pub fn post_count(
 	connection: &ConnectionState,
 	name: Option<String>,
 	game_tag: Option<i32>,
-) -> Json<i64> {
+) -> Result<Json<i64>, Status> {
 	let connection = &mut get_connection(connection);
-	Json(get_post_count(
-		connection,
-		name.unwrap_or_default(),
-		game_tag.unwrap_or(0),
-	))
+	let count = get_post_count(connection, name.unwrap_or_default(), game_tag.unwrap_or(0));
+	if count == 0 {
+		Err(Status::NotFound)
+	} else {
+		Ok(Json(count))
+	}
 }
 
 #[get("/detailed/latest?<name>&<offset>&<game_tag>&<limit>")]
@@ -124,17 +125,26 @@ pub fn popular_short(
 pub fn changes_detailed(
 	connection: &ConnectionState,
 	since: time::Date,
-) -> Json<Vec<DetailedPostNoDepends>> {
+) -> Result<Json<Vec<DetailedPostNoDepends>>, Status> {
 	let connection = &mut get_connection(connection);
 	let posts = get_changed_posts_detailed(connection, since.midnight());
-	Json(posts.unwrap_or_default())
+	match posts {
+		Some(posts) => Ok(Json(posts)),
+		None => Err(Status::NotFound),
+	}
 }
 
 #[get("/short/changes?<since>")]
-pub fn changes_short(connection: &ConnectionState, since: time::Date) -> Json<Vec<ShortPost>> {
+pub fn changes_short(
+	connection: &ConnectionState,
+	since: time::Date,
+) -> Result<Json<Vec<ShortPost>>, Status> {
 	let connection = &mut get_connection(connection);
 	let posts = get_changed_posts_short(connection, since.midnight());
-	Json(posts.unwrap_or_default())
+	match posts {
+		Some(posts) => Ok(Json(posts)),
+		None => Err(Status::NotFound),
+	}
 }
 
 // Used to get details for specific posts
@@ -157,28 +167,6 @@ pub fn posts(
 		(Status::PartialContent, Json(result))
 	} else {
 		(Status::Ok, Json(result))
-	}
-}
-
-// See posts function for usage details
-#[get("/update_dates?<post_ids>")]
-pub fn update_dates(
-	connection: &ConnectionState,
-	post_ids: Vec<i32>,
-) -> (Status, Json<Vec<PostUpdateTime>>) {
-	let count = post_ids.len();
-	let connection = &mut get_connection(connection);
-	let result = get_update_dates(connection, post_ids);
-	match result {
-		Some(post_update_dates) => {
-			let status = if post_update_dates.len() == count {
-				Status::PartialContent
-			} else {
-				Status::Ok
-			};
-			(status, Json(post_update_dates))
-		}
-		None => (Status::NotFound, Json(vec![])),
 	}
 }
 

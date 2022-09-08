@@ -106,7 +106,6 @@ pub async fn rocket() -> Rocket<Build> {
 			routes![
 				api::v2::get_spec,
 				api::v2::posts,
-				api::v2::update_dates,
 				api::v2::post_detailed,
 				api::v2::post_short,
 				api::v2::post_count,

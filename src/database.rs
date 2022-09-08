@@ -46,7 +46,7 @@ pub fn create_post(
 				)),
 				posts::post_game_tag.eq(post.game_tag),
 				posts::post_type_tag.eq(post.type_tag),
-				posts::post_downloads.eq(0),
+				posts::post_downloads.eq(original_post.downloads),
 			))
 			.get_result::<Post>(conn);
 

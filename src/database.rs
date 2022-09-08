@@ -378,6 +378,7 @@ pub fn get_latest_posts(
 		.order(posts::post_date.desc())
 		.load::<ShortPost>(connection)
 		.ok()
+		.filter(|posts| !posts.is_empty())
 }
 
 pub fn get_latest_posts_detailed(
@@ -387,14 +388,14 @@ pub fn get_latest_posts_detailed(
 	game_tag: i32,
 	limit: i64,
 ) -> Option<Vec<DetailedPost>> {
-	let results = detailed_post_base!(limit, offset)
+	detailed_post_base!(limit, offset)
 		.filter(posts::post_game_tag.eq(game_tag))
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.order(posts::post_date.desc())
 		.load::<DetailedPostNoDepends>(connection)
-		.ok();
-
-	results.map(|posts| get_additional_posts_data(connection, posts))
+		.ok()
+		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_additional_posts_data(connection, posts))
 }
 
 pub fn get_latest_posts_disallowed(
@@ -412,6 +413,7 @@ pub fn get_latest_posts_disallowed(
 		.order(posts::post_date.desc())
 		.load::<ShortPost>(connection)
 		.ok()
+		.filter(|posts| !posts.is_empty())
 }
 
 pub fn get_latest_posts_unfiltered(
@@ -423,6 +425,7 @@ pub fn get_latest_posts_unfiltered(
 		.limit(limit)
 		.load::<ShortPost>(connection)
 		.ok()
+		.filter(|posts| !posts.is_empty())
 }
 
 pub fn get_popular_posts(
@@ -438,6 +441,7 @@ pub fn get_popular_posts(
 		.order(posts::post_downloads.desc())
 		.load::<ShortPost>(connection)
 		.ok()
+		.filter(|posts| !posts.is_empty())
 }
 
 pub fn get_popular_posts_detailed(
@@ -447,14 +451,14 @@ pub fn get_popular_posts_detailed(
 	game_tag: i32,
 	limit: i64,
 ) -> Option<Vec<DetailedPost>> {
-	let results = detailed_post_base!(limit, offset)
+	detailed_post_base!(limit, offset)
 		.filter(posts::post_game_tag.eq(game_tag))
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.order(posts::post_downloads.desc())
 		.load::<DetailedPostNoDepends>(connection)
-		.ok();
-
-	results.map(|posts| get_additional_posts_data(connection, posts))
+		.ok()
+		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_additional_posts_data(connection, posts))
 }
 
 pub fn get_popular_posts_disallowed(
@@ -472,15 +476,15 @@ pub fn get_popular_posts_disallowed(
 		.order(posts::post_downloads.desc())
 		.load::<ShortPost>(connection)
 		.ok()
+		.filter(|posts| !posts.is_empty())
 }
 
 pub fn get_post(connection: &mut PgConnection, id: i32) -> Option<DetailedPost> {
-	let result = detailed_post_base!()
+	detailed_post_base!()
 		.filter(posts::post_id.eq(id))
 		.first::<DetailedPostNoDepends>(connection)
-		.ok();
-
-	result.map(|post| get_additional_post_data(connection, post))
+		.ok()
+		.map(|post| get_additional_post_data(connection, post))
 }
 
 pub fn get_short_post(conn: &mut PgConnection, id: i32) -> Option<ShortPost> {
@@ -494,26 +498,26 @@ pub fn get_posts_detailed(
 	connection: &mut PgConnection,
 	ids: Vec<i32>,
 ) -> Option<Vec<DetailedPost>> {
-	let results = detailed_post_base!()
+	detailed_post_base!()
 		.filter(posts::post_id.eq_any(ids))
 		.order(posts::post_id.asc())
 		.load::<DetailedPostNoDepends>(connection)
-		.ok();
-
-	results.map(|posts| get_additional_posts_data(connection, posts))
+		.ok()
+		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_additional_posts_data(connection, posts))
 }
 
 pub fn get_changed_posts_detailed(
 	connection: &mut PgConnection,
 	since: time::PrimitiveDateTime,
 ) -> Option<Vec<DetailedPost>> {
-	let results = detailed_post_base!()
+	detailed_post_base!()
 		.filter(posts::post_date.gt(since))
 		.order(posts::post_date.desc())
 		.load::<DetailedPostNoDepends>(connection)
-		.ok();
-
-	results.map(|posts| get_additional_posts_data(connection, posts))
+		.ok()
+		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_additional_posts_data(connection, posts))
 }
 
 pub fn get_changed_posts_short(
@@ -525,6 +529,7 @@ pub fn get_changed_posts_short(
 		.order(posts::post_date.desc())
 		.load::<ShortPost>(connection)
 		.ok()
+		.filter(|posts| !posts.is_empty())
 }
 
 pub fn get_user_posts_latest(
@@ -540,6 +545,7 @@ pub fn get_user_posts_latest(
 		.order(posts::post_date.desc())
 		.load::<ShortUserPosts>(conn)
 		.ok()
+		.filter(|posts| !posts.is_empty())
 }
 
 pub fn get_user_posts_popular(
@@ -555,6 +561,7 @@ pub fn get_user_posts_popular(
 		.order(posts::post_downloads.desc())
 		.load::<ShortUserPosts>(conn)
 		.ok()
+		.filter(|posts| !posts.is_empty())
 }
 
 pub fn delete_post(conn: &mut PgConnection, id: i32) -> bool {

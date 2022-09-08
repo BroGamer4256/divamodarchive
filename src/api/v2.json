@@ -299,7 +299,7 @@
 				}
 			}
 		},
-		"/posts": {
+		"/detailed/posts": {
 			"get": {
 				"summary": "Gets details about specific posts",
 				"operationId": "api::v2::posts",
@@ -344,7 +344,7 @@
 				}
 			}
 		},
-		"/post/detailed/{id}": {
+		"/detailed/post/{id}": {
 			"get": {
 				"summary": "Gets detailed information about a specific post",
 				"operationId": "api::v2::post_detailed",
@@ -373,7 +373,7 @@
 				}
 			}
 		},
-		"/post/short/{id}": {
+		"/short/post/{id}": {
 			"get": {
 				"summary": "Gets short information about a specific post",
 				"operationId": "api::v2::post_short",

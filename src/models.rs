@@ -162,7 +162,7 @@ pub fn create_jwt(user_id: i64) -> String {
 }
 
 #[derive(Debug)]
-pub enum GenericErorr {
+pub enum GenericError {
 	Missing,
 	Invalid,
 }
@@ -170,10 +170,10 @@ pub enum GenericErorr {
 pub struct Verified {}
 
 impl Verified {
-	pub fn verify(token: &str) -> Outcome<Self, GenericErorr> {
+	pub fn verify(token: &str) -> Outcome<Self, GenericError> {
 		let token = decode::<Token>(token, &DECODE_KEY, &Validation::default());
 		if token.is_err() {
-			Outcome::Failure((Status::Unauthorized, GenericErorr::Invalid))
+			Outcome::Failure((Status::Unauthorized, GenericError::Invalid))
 		} else {
 			Outcome::Success(Self {})
 		}
@@ -182,11 +182,11 @@ impl Verified {
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Verified {
-	type Error = GenericErorr;
+	type Error = GenericError;
 	async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
 		match request.headers().get_one("Authorization") {
 			None => match request.cookies().get_pending("jwt") {
-				None => Outcome::Failure((Status::Unauthorized, GenericErorr::Missing)),
+				None => Outcome::Failure((Status::Unauthorized, GenericError::Missing)),
 				Some(cookie) => {
 					let token = cookie.value();
 					Self::verify(token)
@@ -201,28 +201,28 @@ impl<'r> FromRequest<'r> for Verified {
 }
 
 impl User {
-	pub fn verify(token: &str, connection: &ConnectionPool) -> Outcome<Self, GenericErorr> {
+	pub fn verify(token: &str, connection: &ConnectionPool) -> Outcome<Self, GenericError> {
 		let token_data = decode::<Token>(token, &DECODE_KEY, &Validation::default());
 		let token_data = match token_data {
 			Ok(token_data) => token_data,
-			Err(_) => return Outcome::Failure((Status::Unauthorized, GenericErorr::Invalid)),
+			Err(_) => return Outcome::Failure((Status::Unauthorized, GenericError::Invalid)),
 		};
 		let result =
 			crate::database::get_user(&mut connection.get().unwrap(), token_data.claims.user_id);
 		match result {
 			Some(user) => Outcome::Success(user),
-			None => Outcome::Failure((Status::BadRequest, GenericErorr::Invalid)),
+			None => Outcome::Failure((Status::BadRequest, GenericError::Invalid)),
 		}
 	}
 }
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for User {
-	type Error = GenericErorr;
+	type Error = GenericError;
 	async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
 		match request.headers().get_one("Authorization") {
 			None => match request.cookies().get_pending("jwt") {
-				None => Outcome::Failure((Status::Unauthorized, GenericErorr::Missing)),
+				None => Outcome::Failure((Status::Unauthorized, GenericError::Missing)),
 				Some(cookie) => {
 					let token = cookie.value();
 					let connection = request.rocket().state::<ConnectionPool>().unwrap();
@@ -245,10 +245,10 @@ pub struct HttpIp {
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for HttpIp {
-	type Error = GenericErorr;
+	type Error = GenericError;
 	async fn from_request(request: &'r rocket::Request<'_>) -> Outcome<Self, Self::Error> {
 		match request.headers().get_one("x-forwarded-for") {
-			None => Outcome::Failure((Status::Unauthorized, GenericErorr::Missing)),
+			None => Outcome::Failure((Status::Unauthorized, GenericError::Missing)),
 			Some(header) => Outcome::Success(Self {
 				ip: header.parse().unwrap(),
 			}),

@@ -129,7 +129,7 @@ pub fn changes_short(
 // /api/v2/posts?post_id=1&post_id=2
 // Gets the details of posts with id 1 and 2
 // Returns in order of post id ascending
-#[get("/posts?<post_ids>")]
+#[get("/detailed/posts?<post_ids>")]
 pub fn posts(
 	connection: &ConnectionState,
 	post_ids: Vec<i32>,
@@ -146,14 +146,14 @@ pub fn posts(
 	})
 }
 
-#[get("/post/detailed/<id>")]
+#[get("/detailed/post/<id>")]
 pub fn post_detailed(connection: &ConnectionState, id: i32) -> Option<Json<DetailedPost>> {
 	let connection = &mut get_connection(connection);
 	let post = get_post(connection, id)?;
 	Some(Json(post))
 }
 
-#[get("/post/short/<id>")]
+#[get("/short/post/<id>")]
 pub fn post_short(connection: &ConnectionState, id: i32) -> Option<Json<ShortPost>> {
 	let connection = &mut get_connection(connection);
 	let post = get_short_post(connection, id)?;
@@ -177,5 +177,6 @@ impl Fairing for V2VecErrHandler {
 
 		let body = "[]";
 		response.set_sized_body(body.len(), std::io::Cursor::new(body));
+		response.set_status(Status::NotFound);
 	}
 }

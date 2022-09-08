@@ -23,8 +23,8 @@ pub fn who_is_logged_in(
 	};
 	let result = get_user(connection, token_data.claims.user_id);
 	match result {
-		Ok(user) => Ok(user),
-		Err(_) => Err(Status::Unauthorized),
+		Some(user) => Ok(user),
+		None => Err(Status::Unauthorized),
 	}
 }
 
@@ -40,7 +40,7 @@ pub fn is_logged_in(connection: &mut PgConnection, cookies: &CookieJar<'_>) -> b
 		Ok(token_data) => token_data,
 		Err(_) => return false,
 	};
-	get_user(connection, token_data.claims.user_id).is_ok()
+	get_user(connection, token_data.claims.user_id).is_some()
 }
 
 pub fn get_theme(cookies: &CookieJar<'_>) -> Theme {
@@ -140,11 +140,7 @@ pub fn find_posts(
 }
 
 #[get("/posts/<id>")]
-pub fn details(
-	connection: &ConnectionState,
-	id: i32,
-	cookies: &CookieJar<'_>,
-) -> Result<Template, Status> {
+pub fn details(connection: &ConnectionState, id: i32, cookies: &CookieJar<'_>) -> Option<Template> {
 	let connection = &mut get_connection(connection);
 	let post = get_post(connection, id)?;
 	let who_is_logged_in = who_is_logged_in(connection, cookies);
@@ -153,12 +149,12 @@ pub fn details(
 		let has_liked = has_liked_post(connection, who_is_logged_in, id);
 		let has_disliked = has_disliked_post(connection, who_is_logged_in, id);
 		let jwt = cookies.get_pending("jwt").unwrap();
-		Ok(Template::render(
+		Some(Template::render(
 			"post_detail",
 			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, theme: get_theme(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&who_is_logged_in), base_url: BASE_URL.to_string(), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
 		))
 	} else {
-		Ok(Template::render(
+		Some(Template::render(
 			"post_detail",
 			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, theme: get_theme(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: false, base_url: BASE_URL.to_string(), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
 		))
@@ -188,16 +184,12 @@ pub async fn login(
 }
 
 #[get("/upload")]
-pub fn upload(
-	connection: &ConnectionState,
-	user: User,
-	cookies: &CookieJar<'_>,
-) -> Result<Template, Status> {
+pub fn upload(connection: &ConnectionState, user: User, cookies: &CookieJar<'_>) -> Template {
 	let connection = &mut get_connection(connection);
-	Ok(Template::render(
+	Template::render(
 		"upload",
 		context![user: &user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), theme: get_theme(cookies),base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
-	))
+	)
 }
 
 #[get("/user/<id>?<offset>&<order>&<game_tag>")]
@@ -209,7 +201,7 @@ pub fn user(
 	game_tag: Option<i32>,
 	cookies: &CookieJar<'_>,
 	current_user: Option<User>,
-) -> Result<Template, Status> {
+) -> Option<Template> {
 	let connection = &mut get_connection(connection);
 	let user = get_user(connection, id)?;
 	let sort_order = match order.clone() {
@@ -248,7 +240,7 @@ pub fn user(
 	let user_stats = get_user_stats(connection, user.id);
 	let is_logged_in = is_logged_in(connection, cookies);
 
-	Ok(Template::render(
+	Some(Template::render(
 		"user_detail",
 		context![
 			user_posts: &results,
@@ -281,8 +273,8 @@ pub fn edit(
 ) -> Result<Template, Redirect> {
 	let connection = &mut get_connection(connection);
 	let post = match get_post(connection, id) {
-		Ok(post) => post,
-		Err(_) => return Err(Redirect::to(format!("/posts/{}", id))),
+		Some(post) => post,
+		None => return Err(Redirect::to(format!("/posts/{}", id))),
 	};
 	let who_is_logged_in = match who_is_logged_in(connection, cookies) {
 		Ok(who_is_logged_in) => who_is_logged_in,
@@ -312,8 +304,8 @@ pub fn dependency(
 ) -> Result<Template, Redirect> {
 	let connection = &mut get_connection(connection);
 	let post = match get_post(connection, id) {
-		Ok(post) => post,
-		Err(_) => return Err(Redirect::to(format!("/posts/{}", id))),
+		Some(post) => post,
+		None => return Err(Redirect::to(format!("/posts/{}", id))),
 	};
 	if post.user.id != user.id {
 		return Err(Redirect::to(format!("/posts/{}", id)));
@@ -514,8 +506,8 @@ pub fn report(
 ) -> Result<Template, Redirect> {
 	let connection = &mut get_connection(connection);
 	let post = match get_post(connection, id) {
-		Ok(post) => post,
-		Err(_) => return Err(Redirect::to("/")),
+		Some(post) => post,
+		None => return Err(Redirect::to("/")),
 	};
 	Ok(Template::render(
 		"report",

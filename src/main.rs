@@ -133,7 +133,7 @@ pub struct Timer {
 
 impl Timer {
 	fn new() -> Self {
-		Timer {
+		Self {
 			time: SystemTime::now(),
 		}
 	}
@@ -149,15 +149,15 @@ impl Fairing for RequestTimer {
 	}
 
 	async fn on_request(&self, request: &mut Request<'_>, _: &mut Data<'_>) {
-		request.local_cache(|| Timer::new());
+		request.local_cache(Timer::new);
 	}
 
-	async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut Response<'r>) {
-		let start_time = req.local_cache(|| Timer::new());
+	async fn on_response<'r>(&self, request: &'r Request<'_>, result: &mut Response<'r>) {
+		let start_time = request.local_cache(Timer::new);
 		let time = start_time.time.elapsed().unwrap_or_default();
-		let time_str = format!("{:.3?}", time).replace("µ", "u");
-		info!("{} took {}", req.uri(), time_str);
-		res.set_raw_header("Time-Spent", time_str);
+		let time_str = format!("{:.3?}", time).replace('µ', "u");
+		info!("{} took {}", request.uri(), time_str);
+		result.set_raw_header("Time-Spent", time_str);
 	}
 }
 
@@ -240,10 +240,10 @@ pub struct Urlset {
 }
 
 #[get("/sitemap.xml")]
-pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
+pub fn sitemap(connection: &models::ConnectionState) -> Option<(ContentType, String)> {
 	let mut urls = Vec::new();
 	let connection = &mut models::get_connection(connection);
-	let latest_date = database::get_post_latest_date(connection);
+	let latest_date = database::get_post_latest_date(connection)?;
 	let base_url = Url {
 		loc: Loc {
 			loc: format!("{}/", *models::BASE_URL),
@@ -271,7 +271,7 @@ pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 		},
 		lastmod: None,
 	};
-	let posts_info = database::get_post_ids(connection);
+	let posts_info = database::get_post_ids(connection)?;
 	urls.push(about_url);
 	for post_info in posts_info {
 		let url = Url {
@@ -294,8 +294,8 @@ pub fn sitemap(connection: &models::ConnectionState) -> (ContentType, String) {
 		url: urls,
 		xmlns: String::from("http://www.sitemaps.org/schemas/sitemap/0.9"),
 	};
-	let xml = quick_xml::se::to_string(&xml).unwrap();
-	(ContentType::XML, xml)
+	let xml = quick_xml::se::to_string(&xml).ok()?;
+	Some((ContentType::XML, xml))
 }
 
 #[get("/storage/<user_id>/<file_name>")]

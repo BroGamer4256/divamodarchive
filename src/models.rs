@@ -210,8 +210,8 @@ impl User {
 		let result =
 			crate::database::get_user(&mut connection.get().unwrap(), token_data.claims.user_id);
 		match result {
-			Ok(user) => Outcome::Success(user),
-			Err(status) => Outcome::Failure((status, GenericErorr::Invalid)),
+			Some(user) => Outcome::Success(user),
+			None => Outcome::Failure((Status::BadRequest, GenericErorr::Invalid)),
 		}
 	}
 }

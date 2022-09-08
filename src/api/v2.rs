@@ -21,14 +21,10 @@ pub fn post_count(
 	connection: &ConnectionState,
 	name: Option<String>,
 	game_tag: Option<i32>,
-) -> Result<Json<i64>, Status> {
+) -> Option<Json<i64>> {
 	let connection = &mut get_connection(connection);
-	let count = get_post_count(connection, name.unwrap_or_default(), game_tag.unwrap_or(0));
-	if count == 0 {
-		Err(Status::NotFound)
-	} else {
-		Ok(Json(count))
-	}
+	let count = get_post_count(connection, name.unwrap_or_default(), game_tag.unwrap_or(0))?;
+	Some(Json(count))
 }
 
 #[get("/detailed/latest?<name>&<offset>&<game_tag>&<limit>")]
@@ -38,19 +34,16 @@ pub fn latest_detailed(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
-) -> Result<Json<Vec<DetailedPost>>, Status> {
+) -> Option<Json<Vec<DetailedPost>>> {
 	let connection = &mut get_connection(connection);
-	let result = get_latest_posts_detailed(
+	let posts = get_latest_posts_detailed(
 		connection,
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	);
-	match result {
-		Ok(posts) => Ok(Json(posts)),
-		Err(status) => Err(status),
-	}
+	)?;
+	Some(Json(posts))
 }
 
 #[get("/short/latest?<name>&<offset>&<game_tag>&<limit>")]
@@ -60,7 +53,7 @@ pub fn latest_short(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
-) -> Result<Json<Vec<ShortPost>>, Status> {
+) -> Option<Json<Vec<ShortPost>>> {
 	let connection = &mut get_connection(connection);
 	let result = get_latest_posts(
 		connection,
@@ -68,12 +61,8 @@ pub fn latest_short(
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	);
-	if result.is_empty() {
-		Err(Status::NotFound)
-	} else {
-		Ok(Json(result))
-	}
+	)?;
+	Some(Json(result))
 }
 
 #[get("/detailed/popular?<name>&<offset>&<game_tag>&<limit>")]
@@ -83,7 +72,7 @@ pub fn popular_detailed(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
-) -> Result<Json<Vec<DetailedPost>>, Status> {
+) -> Option<Json<Vec<DetailedPost>>> {
 	let connection = &mut get_connection(connection);
 	let result = get_popular_posts_detailed(
 		connection,
@@ -91,11 +80,8 @@ pub fn popular_detailed(
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	);
-	match result {
-		Ok(posts) => Ok(Json(posts)),
-		Err(status) => Err(status),
-	}
+	)?;
+	Some(Json(result))
 }
 
 #[get("/short/popular?<name>&<offset>&<game_tag>&<limit>")]
@@ -105,7 +91,7 @@ pub fn popular_short(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
-) -> Result<Json<Vec<ShortPost>>, Status> {
+) -> Option<Json<Vec<ShortPost>>> {
 	let connection = &mut get_connection(connection);
 	let result = get_popular_posts(
 		connection,
@@ -113,38 +99,28 @@ pub fn popular_short(
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	);
-	if result.is_empty() {
-		Err(Status::NotFound)
-	} else {
-		Ok(Json(result))
-	}
+	)?;
+	Some(Json(result))
 }
 
 #[get("/detailed/changes?<since>")]
 pub fn changes_detailed(
 	connection: &ConnectionState,
 	since: time::Date,
-) -> Result<Json<Vec<DetailedPost>>, Status> {
+) -> Option<Json<Vec<DetailedPost>>> {
 	let connection = &mut get_connection(connection);
-	let posts = get_changed_posts_detailed(connection, since.midnight());
-	match posts {
-		Ok(posts) => Ok(Json(posts)),
-		Err(status) => Err(status),
-	}
+	let posts = get_changed_posts_detailed(connection, since.midnight())?;
+	Some(Json(posts))
 }
 
 #[get("/short/changes?<since>")]
 pub fn changes_short(
 	connection: &ConnectionState,
 	since: time::Date,
-) -> Result<Json<Vec<ShortPost>>, Status> {
+) -> Option<Json<Vec<ShortPost>>> {
 	let connection = &mut get_connection(connection);
-	let posts = get_changed_posts_short(connection, since.midnight());
-	match posts {
-		Some(posts) => Ok(Json(posts)),
-		None => Err(Status::NotFound),
-	}
+	let posts = get_changed_posts_short(connection, since.midnight())?;
+	Some(Json(posts))
 }
 
 // Used to get details for specific posts
@@ -157,40 +133,31 @@ pub fn changes_short(
 pub fn posts(
 	connection: &ConnectionState,
 	post_ids: Vec<i32>,
-) -> (Status, Json<Vec<DetailedPost>>) {
+) -> Option<(Status, Json<Vec<DetailedPost>>)> {
 	let count = post_ids.len();
 	let connection = &mut get_connection(connection);
 	let result = get_posts_detailed(connection, post_ids);
-	match result {
-		Ok(posts) => {
-			if posts.len() == count {
-				(Status::Ok, Json(posts))
-			} else {
-				(Status::PartialContent, Json(posts))
-			}
+	result.map(|posts| {
+		if posts.len() == count {
+			(Status::Ok, Json(posts))
+		} else {
+			(Status::PartialContent, Json(posts))
 		}
-		Err(status) => (status, Json(vec![])),
-	}
+	})
 }
 
 #[get("/post/detailed/<id>")]
-pub fn post_detailed(connection: &ConnectionState, id: i32) -> Result<Json<DetailedPost>, Status> {
+pub fn post_detailed(connection: &ConnectionState, id: i32) -> Option<Json<DetailedPost>> {
 	let connection = &mut get_connection(connection);
-	let result = get_post(connection, id);
-	match result {
-		Ok(post) => Ok(Json(post)),
-		Err(status) => Err(status),
-	}
+	let post = get_post(connection, id)?;
+	Some(Json(post))
 }
 
 #[get("/post/short/<id>")]
-pub fn post_short(connection: &ConnectionState, id: i32) -> Result<Json<ShortPost>, Status> {
+pub fn post_short(connection: &ConnectionState, id: i32) -> Option<Json<ShortPost>> {
 	let connection = &mut get_connection(connection);
-	let result = get_short_post(connection, id);
-	match result {
-		Some(post) => Ok(Json(post)),
-		None => Err(Status::NotFound),
-	}
+	let post = get_short_post(connection, id)?;
+	Some(Json(post))
 }
 
 pub struct V2VecErrHandler;

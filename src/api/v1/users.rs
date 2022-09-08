@@ -105,16 +105,18 @@ pub async fn login(
 		)
 	};
 	let connection = &mut get_connection(connection);
-	create_user(connection, id, &response.username, &avatar)?;
-
-	Ok(create_jwt(id))
+	let result = create_user(connection, id, &response.username, &avatar);
+	match result {
+		Some(_) => Ok(create_jwt(id)),
+		None => Err(Status::BadRequest),
+	}
 }
 
 #[get("/<id>")]
-pub fn details(connection: &ConnectionState, id: i64) -> Result<Json<User>, Status> {
+pub fn details(connection: &ConnectionState, id: i64) -> Option<Json<User>> {
 	let connection = &mut get_connection(connection);
 	let result = get_user(connection, id)?;
-	Ok(Json(result))
+	Some(Json(result))
 }
 
 #[get("/<id>/latest?<offset>&<game_tag>&<limit>")]
@@ -124,7 +126,7 @@ pub fn latest(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
-) -> Result<Json<Vec<ShortUserPosts>>, Status> {
+) -> Option<Json<Vec<ShortUserPosts>>> {
 	let connection = &mut get_connection(connection);
 	let result = get_user_posts_latest(
 		connection,
@@ -132,8 +134,8 @@ pub fn latest(
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	);
-	Ok(Json(result))
+	)?;
+	Some(Json(result))
 }
 
 #[get("/<id>/popular?<offset>&<game_tag>&<limit>")]
@@ -143,7 +145,7 @@ pub fn popular(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
-) -> Result<Json<Vec<ShortUserPosts>>, Status> {
+) -> Option<Json<Vec<ShortUserPosts>>> {
 	let connection = &mut get_connection(connection);
 	let result = get_user_posts_popular(
 		connection,
@@ -151,12 +153,12 @@ pub fn popular(
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
-	);
-	Ok(Json(result))
+	)?;
+	Some(Json(result))
 }
 
 #[delete("/delete")]
-pub fn delete(connection: &ConnectionState, user: User) -> Status {
+pub fn delete(connection: &ConnectionState, user: User) {
 	let connection = &mut get_connection(connection);
-	delete_user(connection, user.id)
+	delete_user(connection, user.id);
 }

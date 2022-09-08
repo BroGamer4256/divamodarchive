@@ -116,44 +116,44 @@ pub fn edit(
 	user: User,
 	post: Json<PostMetadata>,
 	update_id: i32,
-) -> Result<Json<Post>, Status> {
+) -> Option<Json<Post>> {
 	let post = post.into_inner();
 	let connection = &mut get_connection(connection);
 	if !owns_post(connection, update_id, user.id) {
-		return Err(Status::Unauthorized);
+		return None;
 	}
 
 	let change = post.change.clone();
-	let result = update_post(connection, post, update_id)?;
+	let result = update_post(connection, post, update_id);
+	let post = match result {
+		Some(post) => post,
+		None => return None,
+	};
 	if let Some(change) = change {
 		add_changelog(connection, update_id, change, None);
 	}
-	Ok(Json(result))
+	Some(Json(post))
 }
 
 #[get("/<id>")]
-pub fn details(connection: &ConnectionState, id: i32) -> Result<Json<DetailedPost>, Status> {
+pub fn details(connection: &ConnectionState, id: i32) -> Option<Json<DetailedPost>> {
 	let connection = &mut get_connection(connection);
 	let result = get_post(connection, id)?;
-	Ok(Json(result))
+	Some(Json(result))
 }
 
 #[post("/<id>/like")]
-pub fn like(connection: &ConnectionState, id: i32, user: User) -> Result<Json<LikedPost>, Status> {
+pub fn like(connection: &ConnectionState, id: i32, user: User) -> Option<Json<LikedPost>> {
 	let connection = &mut get_connection(connection);
 	let result = like_post_from_ids(connection, user.id, id)?;
-	Ok(Json(result))
+	Some(Json(result))
 }
 
 #[post("/<id>/dislike")]
-pub fn dislike(
-	connection: &ConnectionState,
-	id: i32,
-	user: User,
-) -> Result<Json<DislikedPost>, Status> {
+pub fn dislike(connection: &ConnectionState, id: i32, user: User) -> Option<Json<DislikedPost>> {
 	let connection = &mut get_connection(connection);
 	let result = dislike_post_from_ids(connection, user.id, id)?;
-	Ok(Json(result))
+	Some(Json(result))
 }
 
 // Add a dependency to the post with id on dependency
@@ -162,7 +162,11 @@ pub fn dislike(
 pub fn dependency(connection: &ConnectionState, id: i32, dependency: i32, user: User) -> Status {
 	let connection = &mut get_connection(connection);
 	if owns_post(connection, id, user.id) {
-		add_dependency(connection, id, dependency)
+		if add_dependency(connection, id, dependency) {
+			Status::Ok
+		} else {
+			Status::NotFound
+		}
 	} else {
 		Status::Forbidden
 	}
@@ -184,7 +188,7 @@ pub fn latest(
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
 	);
-	if let Ok(result) = result {
+	if let Some(result) = result {
 		(Status::Ok, Json(result))
 	} else {
 		(Status::NotFound, Json(vec![]))
@@ -207,7 +211,7 @@ pub fn popular(
 		game_tag.unwrap_or(0),
 		limit.unwrap_or(*WEBUI_LIMIT),
 	);
-	if let Ok(result) = result {
+	if let Some(result) = result {
 		(Status::Ok, Json(result))
 	} else {
 		(Status::NotFound, Json(vec![]))
@@ -218,7 +222,8 @@ pub fn popular(
 pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
 	let connection = &mut get_connection(connection);
 	if owns_post(connection, id, user.id) {
-		delete_post(connection, id)
+		delete_post(connection, id);
+		Status::Ok
 	} else {
 		Status::Forbidden
 	}
@@ -234,14 +239,14 @@ pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> (Status, Json<V
 	let connection = &mut get_connection(connection);
 	let result = get_posts_detailed(connection, post_id);
 	match result {
-		Ok(posts) => {
+		Some(posts) => {
 			if posts.len() == count {
 				(Status::Ok, Json(posts))
 			} else {
 				(Status::PartialContent, Json(posts))
 			}
 		}
-		Err(status) => (status, Json(vec![])),
+		None => (Status::NotFound, Json(vec![])),
 	}
 }
 
@@ -252,9 +257,5 @@ pub fn post_count(
 	game_tag: Option<i32>,
 ) -> Json<i64> {
 	let connection = &mut get_connection(connection);
-	Json(get_post_count(
-		connection,
-		name.unwrap_or_default(),
-		game_tag.unwrap_or(0),
-	))
+	Json(get_post_count(connection, name.unwrap_or_default(), game_tag.unwrap_or(0)).unwrap_or(0))
 }

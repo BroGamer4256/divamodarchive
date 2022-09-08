@@ -1,5 +1,3 @@
-// @generated automatically by Diesel CLI.
-
 diesel::table! {
 	download_limit (limit_id) {
 		limit_id -> Int4,
@@ -44,7 +42,7 @@ diesel::table! {
 		post_text -> Text,
 		post_text_short -> Text,
 		post_image -> Text,
-		post_images_extra -> Array<Nullable<Text>>,
+		post_images_extra -> Array<Text>,
 		post_uploader -> Int8,
 		post_link -> Text,
 		post_date -> Timestamp,

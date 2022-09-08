@@ -14,7 +14,7 @@ pub mod web;
 
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use rocket::fairing::*;
 use rocket::http::*;
 use rocket::serde::{Deserialize, Serialize};
@@ -25,11 +25,11 @@ use std::time::SystemTime;
 
 #[launch]
 pub async fn rocket() -> Rocket<Build> {
-	dotenv().ok();
+	dotenv().expect(".env must exist");
 	let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| String::new());
 	assert!(!database_url.is_empty(), "DATABASE_URL must not be empty");
 	let manager = diesel::r2d2::ConnectionManager::<PgConnection>::new(database_url);
-	let pool = diesel::r2d2::Pool::builder().max_size(20).build(manager);
+	let pool = diesel::r2d2::Pool::builder().max_size(16).build(manager);
 	let pool = match pool {
 		Ok(pool) => pool,
 		Err(err) => panic!("Failed to create database pool: {}", err),
@@ -129,7 +129,17 @@ pub async fn rocket() -> Rocket<Build> {
 pub struct RequestTimer;
 
 #[derive(Copy, Clone)]
-struct TimerStart(Option<SystemTime>);
+pub struct Timer {
+	pub time: SystemTime,
+}
+
+impl Timer {
+	fn new() -> Self {
+		Timer {
+			time: SystemTime::now(),
+		}
+	}
+}
 
 #[rocket::async_trait]
 impl Fairing for RequestTimer {
@@ -141,15 +151,15 @@ impl Fairing for RequestTimer {
 	}
 
 	async fn on_request(&self, request: &mut Request<'_>, _: &mut Data<'_>) {
-		request.local_cache(|| TimerStart(Some(SystemTime::now())));
+		request.local_cache(|| Timer::new());
 	}
 
-	async fn on_response<'r>(&self, req: &'r Request<'_>, _: &mut Response<'r>) {
-		let start_time = req.local_cache(|| TimerStart(None));
-		if let Some(Ok(duration)) = start_time.0.map(|st| st.elapsed()) {
-			let ms = duration.as_secs() * 1000 + duration.subsec_millis() as u64;
-			info!("{} took {}ms", req.uri(), ms);
-		}
+	async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut Response<'r>) {
+		let start_time = req.local_cache(|| Timer::new());
+		let time = start_time.time.elapsed().unwrap_or_default();
+		let time_str = format!("{:.3?}", time).replace("µ", "u");
+		info!("{} took {}", req.uri(), time_str);
+		res.set_raw_header("Time-Spent", time_str);
 	}
 }
 

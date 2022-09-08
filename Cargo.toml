@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 rocket_dyn_templates = { version = "0.1.0-rc.2", features = ["tera"] }
 diesel = { version = "2.0.0-rc.1", features = ["postgres", "extras", "r2d2"] }
-dotenv = "0.15.0"
+dotenvy = "0.15.3"
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
 serde = { version = "1.0.138", features = ["derive"] }
 serde_with = { version = "2.0.0", features = ["chrono"] }

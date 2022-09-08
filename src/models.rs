@@ -1,7 +1,7 @@
 use crate::schema::*;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::PgConnection;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use jsonwebtoken::*;
 use lazy_static::lazy_static;
 use rocket::{
@@ -13,47 +13,47 @@ use std::{env, io::Read};
 
 lazy_static! {
 	pub static ref DECODE_KEY: DecodingKey = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		let secret = env::var("SECRET_KEY").expect("SECRET_KEY must exist");
 		DecodingKey::from_secret(secret.as_bytes())
 	};
 	pub static ref ENCODE_KEY: EncodingKey = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		let secret = env::var("SECRET_KEY").expect("SECRET_KEY must exist");
 		EncodingKey::from_secret(secret.as_bytes())
 	};
 	pub static ref DISCORD_ID: String = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		env::var("DISCORD_ID").expect("DISCORD_ID must exist")
 	};
 	pub static ref DISCORD_SECRET: String = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		env::var("DISCORD_SECRET").expect("DISCORD_SECRET must exist")
 	};
 	pub static ref BASE_URL: String = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		env::var("BASE_URL").expect("BASE_URL must exist")
 	};
 	pub static ref MAX_IMAGE_SIZE: u64 = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		let size = env::var("MAX_IMAGE_SIZE").expect("MAX_IMAGE_SIZE must exist");
 		size.parse::<u64>().unwrap()
 	};
 	pub static ref MAX_FILE_SIZE: u64 = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		let size = env::var("MAX_FILE_SIZE").expect("MAX_FILE_SIZE must exist");
 		size.parse::<u64>().unwrap()
 	};
 	pub static ref CLOUDFLARE_IMAGE_TOKEN: String = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		env::var("CLOUDFLARE_IMAGE_TOKEN").expect("CLOUDFLARE_IMAGE_TOKEN must exist")
 	};
 	pub static ref CLOUDFLARE_ACCOUNT_ID: String = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		env::var("CLOUDFLARE_ACCOUNT_ID").expect("CLOUDFLARE_ACCOUNT_ID must exist")
 	};
 	pub static ref TAG_TOML: TagToml = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		let mut tag_file = std::fs::File::open(
 			env::var("TAG_TOML_PATH").unwrap_or_else(|_| String::from("static/tags.toml")),
 		)
@@ -65,7 +65,7 @@ lazy_static! {
 		toml::from_str(&tag_toml).expect("static/tags.toml must be a valid tags toml file")
 	};
 	pub static ref ADMINS: Vec<i64> = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		let admin_str = env::var("ADMIN_IDS").expect("ADMIN_IDS must exist");
 		admin_str
 			.split(',')
@@ -73,7 +73,7 @@ lazy_static! {
 			.collect()
 	};
 	pub static ref THEMES_TOML: ThemeToml = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		let mut theme_file = std::fs::File::open(
 			env::var("THEMES_TOML_PATH").unwrap_or_else(|_| String::from("static/themes.toml")),
 		)
@@ -85,16 +85,16 @@ lazy_static! {
 		toml::from_str(&theme_toml).expect("static/themes.toml must be a valid themes toml file")
 	};
 	pub static ref WEBUI_LIMIT: i64 = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		let limit = env::var("WEBUI_LIMIT").expect("WEBUI_LIMIT must exist");
 		limit.parse::<i64>().unwrap()
 	};
 	pub static ref GTAG: String = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		env::var("GTAG").expect("GTAG must exist")
 	};
 	pub static ref GAME_NAME: String = {
-		dotenv().ok();
+		dotenv().expect(".env must exist");
 		env::var("GAME_NAME").expect("GAME_NAME must exist")
 	};
 }

@@ -46,6 +46,7 @@ pub fn create_post(
 				)),
 				posts::post_game_tag.eq(post.game_tag),
 				posts::post_type_tag.eq(post.type_tag),
+				posts::post_downloads.eq(0),
 			))
 			.get_result::<Post>(conn);
 
@@ -73,6 +74,7 @@ pub fn create_post(
 		post_link: &post.link,
 		post_game_tag: post.game_tag,
 		post_type_tag: post.type_tag,
+		post_downloads: 0,
 	};
 
 	let result = diesel::insert_into(posts::table)
@@ -228,9 +230,6 @@ pub fn get_additional_post_data(
 			users_disliked_posts::table
 				.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
 		)
-		.left_join(
-			download_stats::table.on(download_stats::post_id.eq(post_dependencies::dependency_id)),
-		)
 		.group_by((posts::post_id, users::user_id))
 		.select((
 			posts::post_id,
@@ -245,7 +244,7 @@ pub fn get_additional_post_data(
 			posts::post_type_tag,
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
+			posts::post_downloads,
 			(users::user_id, users::user_name, users::user_avatar),
 		))
 		.load::<DetailedPostNoDepends>(connection)
@@ -314,7 +313,6 @@ macro_rules! detailed_post_base {
 			.inner_join(users::table)
 			.left_join(users_liked_posts::table)
 			.left_join(users_disliked_posts::table)
-			.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 			.group_by((posts::post_id, users::user_id))
 			.select((
 				posts::post_id,
@@ -329,7 +327,7 @@ macro_rules! detailed_post_base {
 				posts::post_type_tag,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
-				count_distinct(download_stats::timestamp.nullable()),
+				posts::post_downloads,
 				(users::user_id, users::user_name, users::user_avatar),
 			))
 	};
@@ -343,7 +341,6 @@ macro_rules! short_post_base {
 		posts::table
 			.left_join(users_liked_posts::table)
 			.left_join(users_disliked_posts::table)
-			.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 			.group_by(posts::post_id)
 			.select((
 				posts::post_id,
@@ -354,7 +351,7 @@ macro_rules! short_post_base {
 				posts::post_type_tag,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
-				count_distinct(download_stats::timestamp.nullable()),
+				posts::post_downloads,
 			))
 	};
 	($limit:ident, $offset:ident) => {
@@ -370,7 +367,6 @@ macro_rules! short_user_post_base {
 			.left_join(
 				users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)),
 			)
-			.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 			.group_by((posts::post_id, users::user_id))
 			.select((
 				(
@@ -382,7 +378,7 @@ macro_rules! short_user_post_base {
 					posts::post_type_tag,
 					count_distinct(users_liked_posts::user_id.nullable()),
 					count_distinct(users_disliked_posts::user_id.nullable()),
-					count_distinct(download_stats::timestamp.nullable()),
+					posts::post_downloads,
 				),
 				(users::user_id, users::user_name, users::user_avatar),
 			))
@@ -465,7 +461,7 @@ pub fn get_popular_posts(
 	short_post_base!(limit, offset)
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_game_tag.eq(game_tag))
-		.order(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order(posts::post_downloads.desc())
 		.load::<ShortPost>(connection)
 		.unwrap_or_else(|_| vec![])
 }
@@ -480,7 +476,7 @@ pub fn get_popular_posts_detailed(
 	let results = detailed_post_base!(limit, offset)
 		.filter(posts::post_game_tag.eq(game_tag))
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
-		.order(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order(posts::post_downloads.desc())
 		.load::<DetailedPostNoDepends>(connection);
 
 	match results {
@@ -501,7 +497,7 @@ pub fn get_popular_posts_disallowed(
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_id.ne_all(disallowed))
 		.filter(posts::post_game_tag.eq(game_tag))
-		.order(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order(posts::post_downloads.desc())
 		.load::<ShortPost>(connection);
 
 	match results {
@@ -588,7 +584,7 @@ pub fn get_user_posts_popular(
 	short_user_post_base!(limit, offset)
 		.filter(users::user_id.eq(id))
 		.filter(posts::post_game_tag.eq(game_tag))
-		.order(count_distinct(download_stats::timestamp.nullable()).desc())
+		.order(posts::post_downloads.desc())
 		.load::<ShortUserPosts>(conn)
 		.unwrap_or_else(|_| vec![])
 }
@@ -608,13 +604,13 @@ pub fn update_download_count(conn: &mut PgConnection, path: String) -> Status {
 		.select(posts::post_id)
 		.first::<i32>(conn);
 
-	let result = match result {
-		Ok(result) => result,
+	let post_id = match result {
+		Ok(post_id) => post_id,
 		Err(_) => return Status::NotFound,
 	};
-	let post_id = result;
-	let result = diesel::insert_into(download_stats::table)
-		.values(download_stats::post_id.eq(post_id))
+	let result = diesel::update(posts::table)
+		.filter(posts::post_id.eq(post_id))
+		.set(posts::post_downloads.eq(posts::post_downloads + 1))
 		.execute(conn);
 	if result.is_ok() {
 		Status::Ok
@@ -670,7 +666,6 @@ pub fn get_reports(conn: &mut PgConnection) -> Vec<Report> {
 		.left_join(
 			users_disliked_posts::table.on(users_disliked_posts::post_id.eq(reports::post_id)),
 		)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(reports::post_id)))
 		.order(reports::time.desc())
 		.group_by((posts::post_id, users::user_id, reports::report_id))
 		.select((
@@ -685,7 +680,7 @@ pub fn get_reports(conn: &mut PgConnection) -> Vec<Report> {
 				posts::post_type_tag,
 				count_distinct(users_liked_posts::user_id.nullable()),
 				count_distinct(users_disliked_posts::user_id.nullable()),
-				count_distinct(download_stats::timestamp.nullable()),
+				posts::post_downloads,
 			),
 			reports::description,
 		))
@@ -920,12 +915,10 @@ pub fn get_user_stats(conn: &mut PgConnection, id: i64) -> UserStats {
 		.inner_join(posts::table)
 		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
 		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by((posts::post_id, users::user_id))
 		.select((
 			count_distinct(users_liked_posts::user_id.nullable()),
 			count_distinct(users_disliked_posts::user_id.nullable()),
-			count_distinct(download_stats::timestamp.nullable()),
 		))
 		.get_result::<UserStats>(conn)
 		.unwrap_or_default()
@@ -940,7 +933,6 @@ pub fn get_user_liked_posts(
 	users_liked_posts::table
 		.filter(users_liked_posts::user_id.eq(id))
 		.inner_join(posts::table)
-		.left_join(download_stats::table.on(download_stats::post_id.eq(posts::post_id)))
 		.group_by(posts::post_id)
 		.order(posts::post_date.desc())
 		.select((
@@ -950,7 +942,7 @@ pub fn get_user_liked_posts(
 			posts::post_image,
 			posts::post_game_tag,
 			posts::post_type_tag,
-			count_distinct(download_stats::timestamp.nullable()),
+			posts::post_downloads,
 		))
 		.limit(limit)
 		.offset(offset)

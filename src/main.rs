@@ -13,7 +13,6 @@ pub mod schema;
 pub mod web;
 
 use diesel::pg::PgConnection;
-use diesel::prelude::*;
 use dotenvy::dotenv;
 use rocket::fairing::*;
 use rocket::http::*;
@@ -348,28 +347,3 @@ pub async fn get_from_storage(
 
 	Ok(response::Redirect::to(file.uri().to_string()))
 }
-
-allow_columns_to_appear_in_same_group_by_clause!(
-	schema::posts::post_id,
-	schema::posts::post_name,
-	schema::posts::post_text,
-	schema::posts::post_text_short,
-	schema::posts::post_image,
-	schema::posts::post_images_extra,
-	schema::posts::post_link,
-	schema::posts::post_date,
-	schema::posts::post_game_tag,
-	schema::posts::post_type_tag,
-	schema::users::user_id,
-	schema::users::user_name,
-	schema::users::user_avatar,
-	schema::reports::report_id,
-	schema::reports::user_id,
-	schema::reports::post_id,
-	schema::reports::description,
-	schema::reports::time,
-	schema::post_comments::comment_id,
-	schema::post_comments::comment_text,
-	schema::post_comments::comment_parent,
-	schema::post_comments::comment_date,
-);

@@ -260,7 +260,6 @@ impl<'r> FromRequest<'r> for HttpIp {
 pub struct UserStats {
 	pub likes: i64,
 	pub dislikes: i64,
-	pub downloads: i64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -269,7 +268,7 @@ pub struct PostUnidentified {
 	pub text: String,
 	pub text_short: String,
 	pub image: Option<String>,
-	pub images_extra: Option<Vec<String>>,
+	pub images_extra: Option<Vec<Option<String>>>,
 	pub link: String,
 	pub game_tag: i32,
 	pub type_tag: i32,
@@ -318,7 +317,7 @@ pub struct DetailedPostNoDepends {
 	pub text: String,
 	pub text_short: String,
 	pub image: String,
-	pub images_extra: Vec<String>,
+	pub images_extra: Vec<Option<String>>,
 	pub link: String,
 	pub date: chrono::NaiveDateTime,
 	pub game_tag: i32,
@@ -337,7 +336,7 @@ pub struct DetailedPost {
 	pub text_short: String,
 	pub dependencies: Vec<DetailedPostNoDepends>,
 	pub image: String,
-	pub images_extra: Vec<String>,
+	pub images_extra: Vec<Option<String>>,
 	pub link: String,
 	pub date: chrono::NaiveDateTime,
 	pub game_tag: i32,
@@ -378,12 +377,13 @@ pub struct Post {
 	pub text: String,
 	pub text_short: String,
 	pub image: String,
-	pub images_extra: Vec<String>,
+	pub images_extra: Vec<Option<String>>,
 	pub uploader: i64,
 	pub link: String,
 	pub date: chrono::NaiveDateTime,
 	pub game_tag: i32,
 	pub type_tag: i32,
+	pub downloads: i64,
 }
 
 #[derive(Insertable)]
@@ -393,11 +393,12 @@ pub struct NewPost<'a> {
 	pub post_text: &'a str,
 	pub post_text_short: &'a str,
 	pub post_image: &'a str,
-	pub post_images_extra: &'a Vec<String>,
+	pub post_images_extra: &'a Vec<Option<String>>,
 	pub post_uploader: i64,
 	pub post_link: &'a str,
 	pub post_game_tag: i32,
 	pub post_type_tag: i32,
+	pub post_downloads: i64,
 }
 
 #[derive(Queryable, Serialize, Deserialize)]

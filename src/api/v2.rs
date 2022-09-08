@@ -125,12 +125,12 @@ pub fn popular_short(
 pub fn changes_detailed(
 	connection: &ConnectionState,
 	since: time::Date,
-) -> Result<Json<Vec<DetailedPostNoDepends>>, Status> {
+) -> Result<Json<Vec<DetailedPost>>, Status> {
 	let connection = &mut get_connection(connection);
 	let posts = get_changed_posts_detailed(connection, since.midnight());
 	match posts {
-		Some(posts) => Ok(Json(posts)),
-		None => Err(Status::NotFound),
+		Ok(posts) => Ok(Json(posts)),
+		Err(status) => Err(status),
 	}
 }
 
@@ -157,16 +157,19 @@ pub fn changes_short(
 pub fn posts(
 	connection: &ConnectionState,
 	post_ids: Vec<i32>,
-) -> (Status, Json<Vec<DetailedPostNoDepends>>) {
+) -> (Status, Json<Vec<DetailedPost>>) {
 	let count = post_ids.len();
 	let connection = &mut get_connection(connection);
 	let result = get_posts_detailed(connection, post_ids);
-	if result.is_empty() {
-		(Status::NotFound, Json(result))
-	} else if result.len() != count {
-		(Status::PartialContent, Json(result))
-	} else {
-		(Status::Ok, Json(result))
+	match result {
+		Ok(posts) => {
+			if posts.len() == count {
+				(Status::Ok, Json(posts))
+			} else {
+				(Status::PartialContent, Json(posts))
+			}
+		}
+		Err(status) => (status, Json(vec![])),
 	}
 }
 

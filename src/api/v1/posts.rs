@@ -229,19 +229,19 @@ pub fn delete(connection: &ConnectionState, id: i32, user: User) -> Status {
 // Gets the details of posts with id 1 and 2
 // Returns in order of post id ascending
 #[get("/posts?<post_id>")]
-pub fn posts(
-	connection: &ConnectionState,
-	post_id: Vec<i32>,
-) -> (Status, Json<Vec<DetailedPostNoDepends>>) {
+pub fn posts(connection: &ConnectionState, post_id: Vec<i32>) -> (Status, Json<Vec<DetailedPost>>) {
 	let count = post_id.len();
 	let connection = &mut get_connection(connection);
 	let result = get_posts_detailed(connection, post_id);
-	if result.is_empty() {
-		(Status::NotFound, Json(result))
-	} else if result.len() != count {
-		(Status::PartialContent, Json(result))
-	} else {
-		(Status::Ok, Json(result))
+	match result {
+		Ok(posts) => {
+			if posts.len() == count {
+				(Status::Ok, Json(posts))
+			} else {
+				(Status::PartialContent, Json(posts))
+			}
+		}
+		Err(status) => (status, Json(vec![])),
 	}
 }
 

@@ -23,7 +23,8 @@
 		},
 		"contact": {
 			"name": "BroGamer"
-		}
+		},
+		"description": "This is a read only version of the API, if you want write access look at V1"
 	},
 	"paths": {
 		"/v2.json": {
@@ -254,7 +255,7 @@
 								"schema": {
 									"type": "array",
 									"items": {
-										"$ref": "#/components/schemas/DetailedPostNoDepends"
+										"$ref": "#/components/schemas/DetailedPost"
 									}
 								}
 							}
@@ -318,7 +319,7 @@
 								"schema": {
 									"type": "array",
 									"items": {
-										"$ref": "#/components/schemas/DetailedPostNoDepends"
+										"$ref": "#/components/schemas/DetailedPost"
 									}
 								}
 							}
@@ -331,7 +332,7 @@
 								"schema": {
 									"type": "array",
 									"items": {
-										"$ref": "#/components/schemas/DetailedPostNoDepends"
+										"$ref": "#/components/schemas/DetailedPost"
 									}
 								}
 							}
@@ -722,7 +723,7 @@
 			"limit": {
 				"name": "limit",
 				"in": "query",
-				"description": "How many posts maximum to return",
+				"description": "How many posts maximum to return default 20",
 				"required": false,
 				"schema": {
 					"type": "integer",

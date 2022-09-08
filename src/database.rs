@@ -530,23 +530,31 @@ pub fn get_short_post(conn: &mut PgConnection, id: i32) -> Option<ShortPost> {
 pub fn get_posts_detailed(
 	connection: &mut PgConnection,
 	ids: Vec<i32>,
-) -> Vec<DetailedPostNoDepends> {
-	detailed_post_base!()
+) -> Result<Vec<DetailedPost>, Status> {
+	let results = detailed_post_base!()
 		.filter(posts::post_id.eq_any(ids))
 		.order(posts::post_id.asc())
-		.load::<DetailedPostNoDepends>(connection)
-		.unwrap_or_default()
+		.load::<DetailedPostNoDepends>(connection);
+
+	match results {
+		Ok(posts) => Ok(get_additional_posts_data(connection, posts)),
+		Err(_) => Err(Status::NotFound),
+	}
 }
 
 pub fn get_changed_posts_detailed(
 	connection: &mut PgConnection,
 	since: time::PrimitiveDateTime,
-) -> Option<Vec<DetailedPostNoDepends>> {
-	detailed_post_base!()
+) -> Result<Vec<DetailedPost>, Status> {
+	let results = detailed_post_base!()
 		.filter(posts::post_date.gt(since))
 		.order(posts::post_date.desc())
-		.load::<DetailedPostNoDepends>(connection)
-		.ok()
+		.load::<DetailedPostNoDepends>(connection);
+
+	match results {
+		Ok(posts) => Ok(get_additional_posts_data(connection, posts)),
+		Err(_) => Err(Status::NotFound),
+	}
 }
 
 pub fn get_changed_posts_short(

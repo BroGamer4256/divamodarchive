@@ -260,6 +260,7 @@ impl<'r> FromRequest<'r> for HttpIp {
 pub struct UserStats {
 	pub likes: i64,
 	pub dislikes: i64,
+	pub downloads: i64,
 }
 
 #[derive(Serialize, Deserialize)]

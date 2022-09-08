@@ -834,6 +834,7 @@ version = "1.0.0"
 dependencies = [
  "aws-config",
  "aws-sdk-s3",
+ "bigdecimal",
  "chrono",
  "diesel",
  "dotenvy",

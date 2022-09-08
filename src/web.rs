@@ -260,6 +260,7 @@ pub fn user(
 			previous_game_tag: game_tag.unwrap_or(0),
 			total_likes: user_stats.likes,
 			total_dislikes: user_stats.dislikes,
+			total_downloads: user_stats.downloads,
 			theme: get_theme(cookies),
 			game_tags: TAG_TOML.game_tags.clone(),
 			type_tags: TAG_TOML.type_tags.clone(),

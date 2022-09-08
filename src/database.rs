@@ -1,5 +1,6 @@
 use crate::models::*;
 use crate::schema::*;
+use bigdecimal::ToPrimitive;
 use diesel::dsl::*;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
@@ -909,19 +910,33 @@ pub fn get_user(conn: &mut PgConnection, id: i64) -> Result<User, Status> {
 	}
 }
 
-pub fn get_user_stats(conn: &mut PgConnection, id: i64) -> UserStats {
-	users::table
-		.filter(users::user_id.eq(id))
-		.inner_join(posts::table)
-		.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
-		.left_join(users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)))
-		.group_by((posts::post_id, users::user_id))
-		.select((
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
-		))
-		.get_result::<UserStats>(conn)
+pub fn get_user_stats(connection: &mut PgConnection, id: i64) -> UserStats {
+	let downloads = posts::table
+		.filter(posts::post_uploader.eq(id))
+		.select(sum(posts::post_downloads))
+		.get_result::<Option<bigdecimal::BigDecimal>>(connection)
 		.unwrap_or_default()
+		.unwrap_or_default()
+		.to_i64()
+		.unwrap_or_default();
+	let likes = users_liked_posts::table
+		.inner_join(posts::table)
+		.filter(posts::post_uploader.eq(id))
+		.select(count(users_liked_posts::user_id))
+		.get_result::<i64>(connection)
+		.unwrap_or_default();
+	let dislikes = users_disliked_posts::table
+		.inner_join(posts::table)
+		.filter(posts::post_uploader.eq(id))
+		.select(count(users_disliked_posts::user_id))
+		.get_result::<i64>(connection)
+		.unwrap_or_default();
+
+	UserStats {
+		likes,
+		dislikes,
+		downloads,
+	}
 }
 
 pub fn get_user_liked_posts(

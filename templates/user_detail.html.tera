@@ -3,7 +3,8 @@
 
 {% block head %}
 {% set description = description ~ "
-" ~ total_likes ~ "👍" ~ total_dislikes ~ "👎"%}
+" ~ total_likes ~ "👍" ~ total_dislikes ~ "👎" ~ "
+Downloads: " ~ total_downloads %}
 {{ posts::draw_embed(title=title, description=description, author=game_name ~ " Mod Archive") }}
 {% if user_posts | length > 0 %}
 <meta property="og:image" content="{{ user_posts[0].user.avatar }}">
@@ -23,6 +24,7 @@
 		<div class="col-10 card-body">
 			<h1 class="text">{{ user_posts[0].user.name }}</h1>
 			<h5 class="text">{{ total_likes }}👍{{ total_dislikes }}👎</h5>
+			<h5 class="text">Downloads: {{ total_downloads }}</h5>
 		</div>
 	</div>
 </div>

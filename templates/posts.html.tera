@@ -25,10 +25,10 @@
 {% endmacro draw_embed %}
 
 {% macro draw_post_short(id, name, text_short, image, likes=-1, dislikes=-1, downloads=-1, draw_remove=false,
-game_tag="MM+", type_tag="Other") %}
+game_tag="MM+", type_tag="Other", preload=true) %}
 <div class="col">
 	<div class="card shadow-sm">
-		<a title="{{ text_short }}" style="text-decoration: none;" href="/posts/{{ id }}">
+		<a title="{{ text_short }}" style="text-decoration: none;" href="/posts/{{ id }}" {% if not preload %} data-cold="" {% endif %}>
 			<div class="card-img-top ratio ratio-16x9 bg-clear" loading="lazy">
 				<img src="{{ image }}" class="rounded-image" width="100%" alt="{{ text_short }}" loading="lazy" data-cold="">
 			</div>

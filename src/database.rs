@@ -193,20 +193,12 @@ pub fn dislike_post_from_ids(
 
 pub fn get_additional_post_data(
 	connection: &mut PgConnection,
-	post: DetailedPostNoDepends,
+	post: &DetailedPostNoDepends,
 ) -> DetailedPost {
 	let dependencies = post_dependencies::table
 		.filter(post_dependencies::post_id.eq(post.id))
 		.inner_join(posts::table.on(posts::post_id.eq(post_dependencies::dependency_id)))
 		.inner_join(users::table.on(users::user_id.eq(posts::post_uploader)))
-		.left_join(
-			users_liked_posts::table
-				.on(users_liked_posts::post_id.eq(post_dependencies::dependency_id)),
-		)
-		.left_join(
-			users_disliked_posts::table
-				.on(users_disliked_posts::post_id.eq(post_dependencies::dependency_id)),
-		)
 		.group_by((posts::post_id, users::user_id))
 		.select((
 			posts::post_id,
@@ -219,8 +211,6 @@ pub fn get_additional_post_data(
 			posts::post_date,
 			posts::post_game_tag,
 			posts::post_type_tag,
-			count_distinct(users_liked_posts::user_id.nullable()),
-			count_distinct(users_disliked_posts::user_id.nullable()),
 			posts::post_downloads,
 			(users::user_id, users::user_name, users::user_avatar),
 		))
@@ -250,26 +240,37 @@ pub fn get_additional_post_data(
 			post_comments::comment_date,
 		))
 		.load::<Comment>(connection)
-		.unwrap_or_else(|_| vec![]);
+		.unwrap_or_default();
+
+	let likes = users_liked_posts::table
+		.filter(users_liked_posts::post_id.eq(post.id))
+		.count()
+		.get_result(connection)
+		.unwrap_or_default();
+	let dislikes = users_disliked_posts::table
+		.filter(users_disliked_posts::post_id.eq(post.id))
+		.count()
+		.get_result(connection)
+		.unwrap_or_default();
 
 	DetailedPost {
 		id: post.id,
-		name: post.name,
-		text: post.text,
-		text_short: post.text_short,
-		image: post.image,
-		images_extra: post.images_extra,
-		link: post.link,
+		name: post.name.clone(),
+		text: post.text.clone(),
+		text_short: post.text_short.clone(),
+		image: post.image.clone(),
+		images_extra: post.images_extra.clone(),
+		link: post.link.clone(),
 		date: post.date,
 		game_tag: post.game_tag,
 		type_tag: post.type_tag,
-		likes: post.likes,
-		dislikes: post.dislikes,
 		downloads: post.downloads,
-		user: post.user,
+		user: post.user.clone(),
 		dependencies,
 		changelogs,
 		comments,
+		likes,
+		dislikes,
 	}
 }
 
@@ -277,19 +278,64 @@ pub fn get_additional_posts_data(
 	connection: &mut PgConnection,
 	posts: Vec<DetailedPostNoDepends>,
 ) -> Vec<DetailedPost> {
-	let mut results = vec![];
-	for post in posts {
-		results.push(get_additional_post_data(connection, post));
+	posts
+		.iter()
+		.map(|post| get_additional_post_data(connection, post))
+		.collect()
+}
+
+pub fn get_short_post_data(connection: &mut PgConnection, post: &ShortPostNoLikes) -> ShortPost {
+	let likes = users_liked_posts::table
+		.filter(users_liked_posts::post_id.eq(post.id))
+		.count()
+		.get_result(connection)
+		.unwrap_or_default();
+	let dislikes = users_disliked_posts::table
+		.filter(users_disliked_posts::post_id.eq(post.id))
+		.count()
+		.get_result(connection)
+		.unwrap_or_default();
+
+	ShortPost {
+		id: post.id,
+		name: post.name.clone(),
+		text_short: post.text_short.clone(),
+		image: post.image.clone(),
+		game_tag: post.game_tag,
+		type_tag: post.type_tag,
+		downloads: post.downloads,
+		likes,
+		dislikes,
 	}
-	results
+}
+
+pub fn get_short_posts_data(
+	connection: &mut PgConnection,
+	posts: Vec<ShortPostNoLikes>,
+) -> Vec<ShortPost> {
+	posts
+		.iter()
+		.map(|post| get_short_post_data(connection, post))
+		.collect()
+}
+
+pub fn get_user_posts_data(
+	connection: &mut PgConnection,
+	posts: Vec<ShortUserPostsNoLikes>,
+) -> Vec<ShortUserPosts> {
+	posts
+		.iter()
+		.map(|user_post| ShortUserPosts {
+			post: get_short_post_data(connection, &user_post.post),
+			user: user_post.user.clone(),
+		})
+		.collect()
 }
 
 macro_rules! detailed_post_base {
 	() => {
 		posts::table
 			.inner_join(users::table)
-			.left_join(users_liked_posts::table)
-			.left_join(users_disliked_posts::table)
 			.group_by((posts::post_id, users::user_id))
 			.select((
 				posts::post_id,
@@ -302,8 +348,6 @@ macro_rules! detailed_post_base {
 				posts::post_date,
 				posts::post_game_tag,
 				posts::post_type_tag,
-				count_distinct(users_liked_posts::user_id.nullable()),
-				count_distinct(users_disliked_posts::user_id.nullable()),
 				posts::post_downloads,
 				(users::user_id, users::user_name, users::user_avatar),
 			))
@@ -315,21 +359,15 @@ macro_rules! detailed_post_base {
 
 macro_rules! short_post_base {
 	() => {
-		posts::table
-			.left_join(users_liked_posts::table)
-			.left_join(users_disliked_posts::table)
-			.group_by(posts::post_id)
-			.select((
-				posts::post_id,
-				posts::post_name,
-				posts::post_text_short,
-				posts::post_image,
-				posts::post_game_tag,
-				posts::post_type_tag,
-				count_distinct(users_liked_posts::user_id.nullable()),
-				count_distinct(users_disliked_posts::user_id.nullable()),
-				posts::post_downloads,
-			))
+		posts::table.group_by(posts::post_id).select((
+			posts::post_id,
+			posts::post_name,
+			posts::post_text_short,
+			posts::post_image,
+			posts::post_game_tag,
+			posts::post_type_tag,
+			posts::post_downloads,
+		))
 	};
 	($limit:ident, $offset:ident) => {
 		short_post_base!().limit($limit).offset($offset)
@@ -340,10 +378,6 @@ macro_rules! short_user_post_base {
 	() => {
 		users::table
 			.inner_join(posts::table)
-			.left_join(users_liked_posts::table.on(users_liked_posts::post_id.eq(posts::post_id)))
-			.left_join(
-				users_disliked_posts::table.on(users_disliked_posts::post_id.eq(posts::post_id)),
-			)
 			.group_by((posts::post_id, users::user_id))
 			.select((
 				(
@@ -353,8 +387,6 @@ macro_rules! short_user_post_base {
 					posts::post_image,
 					posts::post_game_tag,
 					posts::post_type_tag,
-					count_distinct(users_liked_posts::user_id.nullable()),
-					count_distinct(users_disliked_posts::user_id.nullable()),
 					posts::post_downloads,
 				),
 				(users::user_id, users::user_name, users::user_avatar),
@@ -376,9 +408,10 @@ pub fn get_latest_posts(
 		.filter(posts::post_game_tag.eq(game_tag))
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.order(posts::post_date.desc())
-		.load::<ShortPost>(connection)
+		.load::<ShortPostNoLikes>(connection)
 		.ok()
 		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_short_posts_data(connection, posts))
 }
 
 pub fn get_latest_posts_detailed(
@@ -411,9 +444,10 @@ pub fn get_latest_posts_disallowed(
 		.filter(posts::post_id.ne_all(disallowed))
 		.filter(posts::post_game_tag.eq(game_tag))
 		.order(posts::post_date.desc())
-		.load::<ShortPost>(connection)
+		.load::<ShortPostNoLikes>(connection)
 		.ok()
 		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_short_posts_data(connection, posts))
 }
 
 pub fn get_latest_posts_unfiltered(
@@ -423,9 +457,10 @@ pub fn get_latest_posts_unfiltered(
 	short_post_base!()
 		.order(posts::post_date.desc())
 		.limit(limit)
-		.load::<ShortPost>(connection)
+		.load::<ShortPostNoLikes>(connection)
 		.ok()
 		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_short_posts_data(connection, posts))
 }
 
 pub fn get_popular_posts(
@@ -439,9 +474,10 @@ pub fn get_popular_posts(
 		.filter(posts::post_name.ilike(format!("%{}%", name)))
 		.filter(posts::post_game_tag.eq(game_tag))
 		.order(posts::post_downloads.desc())
-		.load::<ShortPost>(connection)
+		.load::<ShortPostNoLikes>(connection)
 		.ok()
 		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_short_posts_data(connection, posts))
 }
 
 pub fn get_popular_posts_detailed(
@@ -474,9 +510,10 @@ pub fn get_popular_posts_disallowed(
 		.filter(posts::post_id.ne_all(disallowed))
 		.filter(posts::post_game_tag.eq(game_tag))
 		.order(posts::post_downloads.desc())
-		.load::<ShortPost>(connection)
+		.load::<ShortPostNoLikes>(connection)
 		.ok()
 		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_short_posts_data(connection, posts))
 }
 
 pub fn get_post(connection: &mut PgConnection, id: i32) -> Option<DetailedPost> {
@@ -484,14 +521,15 @@ pub fn get_post(connection: &mut PgConnection, id: i32) -> Option<DetailedPost> 
 		.filter(posts::post_id.eq(id))
 		.first::<DetailedPostNoDepends>(connection)
 		.ok()
-		.map(|post| get_additional_post_data(connection, post))
+		.map(|post| get_additional_post_data(connection, &post))
 }
 
-pub fn get_short_post(conn: &mut PgConnection, id: i32) -> Option<ShortPost> {
+pub fn get_short_post(connection: &mut PgConnection, id: i32) -> Option<ShortPost> {
 	short_post_base!()
 		.filter(posts::post_id.eq(id))
-		.first::<ShortPost>(conn)
+		.first::<ShortPostNoLikes>(connection)
 		.ok()
+		.map(|post| get_short_post_data(connection, &post))
 }
 
 pub fn get_posts_detailed(
@@ -527,13 +565,14 @@ pub fn get_changed_posts_short(
 	short_post_base!()
 		.filter(posts::post_date.gt(since))
 		.order(posts::post_date.desc())
-		.load::<ShortPost>(connection)
+		.load::<ShortPostNoLikes>(connection)
 		.ok()
 		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_short_posts_data(connection, posts))
 }
 
 pub fn get_user_posts_latest(
-	conn: &mut PgConnection,
+	connection: &mut PgConnection,
 	id: i64,
 	offset: i64,
 	game_tag: i32,
@@ -543,13 +582,14 @@ pub fn get_user_posts_latest(
 		.filter(users::user_id.eq(id))
 		.filter(posts::post_game_tag.eq(game_tag))
 		.order(posts::post_date.desc())
-		.load::<ShortUserPosts>(conn)
+		.load::<ShortUserPostsNoLikes>(connection)
 		.ok()
 		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_user_posts_data(connection, posts))
 }
 
 pub fn get_user_posts_popular(
-	conn: &mut PgConnection,
+	connection: &mut PgConnection,
 	id: i64,
 	offset: i64,
 	game_tag: i32,
@@ -559,9 +599,10 @@ pub fn get_user_posts_popular(
 		.filter(users::user_id.eq(id))
 		.filter(posts::post_game_tag.eq(game_tag))
 		.order(posts::post_downloads.desc())
-		.load::<ShortUserPosts>(conn)
+		.load::<ShortUserPostsNoLikes>(connection)
 		.ok()
 		.filter(|posts| !posts.is_empty())
+		.map(|posts| get_user_posts_data(connection, posts))
 }
 
 pub fn delete_post(conn: &mut PgConnection, id: i32) -> bool {

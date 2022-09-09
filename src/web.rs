@@ -213,14 +213,13 @@ pub fn user(
 	};
 	let game_tag = game_tag.unwrap_or(0);
 	let results = match sort_order {
-		Order::Latest => {
-			get_user_posts_latest(connection, user.id, offset, game_tag, *WEBUI_LIMIT)?
-		}
+		Order::Latest => get_user_posts_latest(connection, user.id, offset, game_tag, *WEBUI_LIMIT),
 		Order::Popular => {
-			get_user_posts_popular(connection, user.id, offset, game_tag, *WEBUI_LIMIT)?
+			get_user_posts_popular(connection, user.id, offset, game_tag, *WEBUI_LIMIT)
 		}
-	};
-	let count = get_user_post_count(connection, user.id, game_tag)?;
+	}
+	.unwrap_or_default();
+	let count = get_user_post_count(connection, user.id, game_tag).unwrap_or(0);
 	let description = match sort_order {
 		Order::Latest => format!("The latest {} mods by {}", *GAME_NAME, user.name),
 		Order::Popular => format!("The most popular {} mods by {}", *GAME_NAME, user.name),

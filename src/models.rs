@@ -311,7 +311,7 @@ pub struct ShortPostNoLikes {
 	pub downloads: i64,
 }
 
-#[derive(Queryable, Serialize, Deserialize, Debug)]
+#[derive(Queryable, Serialize, Deserialize)]
 pub struct DetailedPostNoDepends {
 	pub id: i32,
 	pub name: String,
@@ -323,8 +323,6 @@ pub struct DetailedPostNoDepends {
 	pub date: chrono::NaiveDateTime,
 	pub game_tag: i32,
 	pub type_tag: i32,
-	pub likes: i64,
-	pub dislikes: i64,
 	pub downloads: i64,
 	pub user: User,
 }
@@ -356,7 +354,13 @@ pub struct ShortUserPosts {
 	pub user: User,
 }
 
-#[derive(Queryable, Serialize, Deserialize, Default, Debug)]
+#[derive(Queryable, Serialize, Deserialize, Default)]
+pub struct ShortUserPostsNoLikes {
+	pub post: ShortPostNoLikes,
+	pub user: User,
+}
+
+#[derive(Queryable, Serialize, Deserialize, Default, Clone)]
 pub struct User {
 	pub id: i64,
 	pub name: String,

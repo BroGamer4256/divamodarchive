@@ -13,7 +13,7 @@
 	{% set type_tag = type_tags | filter(attribute="id", value=post.type_tag) | first %}
 	{{ posts::draw_post_short(id=id ~ "/dependency/" ~ post.id, name=post.name, text_short=post.text_short,
 	image=post.image, likes=post.likes, dislikes=post.dislikes, downloads=post.downloads, game_tag=game_tag.name,
-	type_tag=type_tag.name) }}
+	type_tag=type_tag.name, preload=false) }}
 	{% endfor %}
 </div>
 {{ posts::draw_buttons(current_offset=offset, draw_forward=posts | length == 20, order=previous_sort, name=previous_search) }}

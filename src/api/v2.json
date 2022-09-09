@@ -512,8 +512,6 @@
 					"date",
 					"game_tag",
 					"type_tag",
-					"likes",
-					"dislikes",
 					"downloads",
 					"user"
 				],
@@ -554,14 +552,6 @@
 					"type_tag": {
 						"type": "integer",
 						"format": "int32"
-					},
-					"likes": {
-						"type": "integer",
-						"format": "int64"
-					},
-					"dislikes": {
-						"type": "integer",
-						"format": "int64"
 					},
 					"downloads": {
 						"type": "integer",

@@ -14,6 +14,10 @@
 		<div class="col-lg-6 col-xl-8">
 			<h3 class="text">About {{ game_name }} Mod Archive</h3>
 			<p class="text">
+				Project DIVA © 2009-2022 SEGA. CO., LTD. All rights reserved.<br>
+				This site is not affiliated in any way with SEGA CO., LTD.
+			</p>
+			<p class="text">
 				Developed by BroGamer#6927<br>
 				Development is currently hosted on the <a href="https://discord.gg/cvBVGDZ" class="text">Project DIVA
 					Modding 2nd server</a>.<br>

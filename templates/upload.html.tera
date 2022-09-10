@@ -261,6 +261,17 @@
 	}
 </script>
 <form id="form" class="row align-items-md-stretch gap-3" enctype="application/x-www-form-urlencoded">
+	<div class="card card-body">
+		<h3 class="text">The admins reserve the right to delete your post for ANY reason</h3>
+		<p class="text mb-0">
+			Common reasons include but are not limited to:
+		</p>
+		<ul class="mb-0">
+			<li class="text">Copyright infringement</li>
+			<li class="text">Duplicate post</li>
+			<li class="text">Unreasonably low quality</li>
+		</ul>
+	</div>
 	<div class="col-md-7 card card-body">
 		{% if previous_title %}
 		<h2 class="card-text text"><label for="title">Title: </label><input type="text" id="title" name="title"

@@ -119,12 +119,13 @@ pub fn like_post_from_ids(
 	let has_liked = has_liked_post(conn, user_id, post_id);
 
 	if has_liked {
-		let _result = diesel::delete(
+		return diesel::delete(
 			users_liked_posts::table
 				.filter(users_liked_posts::user_id.eq(user_id))
 				.filter(users_liked_posts::post_id.eq(post_id)),
 		)
-		.get_result::<LikedPost>(conn);
+		.get_result::<LikedPost>(conn)
+		.ok();
 	}
 
 	let has_disliked = users_disliked_posts::table
@@ -164,12 +165,13 @@ pub fn dislike_post_from_ids(
 	let has_disliked = has_disliked_post(conn, user_id, post_id);
 
 	if has_disliked {
-		let _result = diesel::delete(
+		return diesel::delete(
 			users_disliked_posts::table
 				.filter(users_disliked_posts::user_id.eq(user_id))
 				.filter(users_disliked_posts::post_id.eq(post_id)),
 		)
-		.get_result::<DislikedPost>(conn);
+		.get_result::<DislikedPost>(conn)
+		.ok();
 	}
 
 	let has_liked = users_liked_posts::table

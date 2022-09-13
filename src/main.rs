@@ -46,6 +46,7 @@ pub async fn rocket() -> Rocket<Build> {
 				web::find_posts,
 				web::details,
 				web::login,
+				web::login_failed,
 				web::upload,
 				web::user,
 				web::edit,
@@ -322,10 +323,10 @@ pub async fn get_from_storage(
 	};
 
 	let result = database::update_download_limit(connection, ip.ip, file_size);
-	if result != Status::Ok {
+	if result.is_failure() {
 		return Err(result);
 	}
-	let _result = database::update_download_count(connection, path);
+	let _ = database::update_download_count(connection, path);
 
 	let file = s3
 		.get_object()
@@ -345,4 +346,19 @@ pub async fn get_from_storage(
 	};
 
 	Ok(response::Redirect::to(file.uri().to_string()))
+}
+
+pub trait DidSucceed {
+	fn is_success(&self) -> bool;
+	fn is_failure(&self) -> bool;
+}
+
+impl DidSucceed for Status {
+	fn is_success(&self) -> bool {
+		self.class() == StatusClass::Success
+	}
+
+	fn is_failure(&self) -> bool {
+		self.class() != StatusClass::Success
+	}
 }

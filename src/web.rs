@@ -156,16 +156,17 @@ pub fn details(connection: &ConnectionState, id: i32, cookies: &CookieJar<'_>) -
 	}
 }
 
+#[get("/login")]
+pub fn login_failed() -> Redirect {
+	Redirect::to("/")
+}
+
 #[get("/login?<code>")]
 pub async fn login(
 	connection: &ConnectionState,
-	code: Option<String>,
+	code: String,
 	cookies: &CookieJar<'_>,
 ) -> Redirect {
-	let code = match code {
-		Some(code) => code,
-		None => return Redirect::to("/"),
-	};
 	let jwt =
 		crate::api::v1::users::login(connection, code, Some(format!("{}/login", *BASE_URL))).await;
 	let jwt = match jwt {

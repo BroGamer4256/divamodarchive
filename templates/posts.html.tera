@@ -341,7 +341,7 @@ extra_images, comments) %}
 			{% set game_tag = game_tags | filter(attribute="id", value=post.game_tag) | first %}
 			{% set type_tag = type_tags | filter(attribute="id", value=post.type_tag) | first %}
 			{{ posts::draw_post_short(id=post.id, name=post.name, text_short=post.text_short, image=post.image,
-			likes=-1, dislikes=-1, downloads=post.downloads, draw_remove=draw_remove,
+			downloads=post.downloads, draw_remove=draw_remove,
 			game_tag=game_tag.name, type_tag=type_tag.name) }}
 			{% endfor %}
 		</div>

@@ -923,11 +923,11 @@ pub fn get_user_stats(connection: &mut PgConnection, id: i64) -> UserStats {
 }
 
 pub fn get_user_liked_posts(
-	conn: &mut PgConnection,
+	connection: &mut PgConnection,
 	id: i64,
 	offset: i64,
 	limit: i64,
-) -> Option<Vec<ShortPostNoLikes>> {
+) -> Option<Vec<ShortPost>> {
 	users_liked_posts::table
 		.filter(users_liked_posts::user_id.eq(id))
 		.inner_join(posts::table)
@@ -944,6 +944,7 @@ pub fn get_user_liked_posts(
 		))
 		.limit(limit)
 		.offset(offset)
-		.load::<ShortPostNoLikes>(conn)
+		.load::<ShortPostNoLikes>(connection)
 		.ok()
+		.map(|posts| get_short_posts_data(connection, posts))
 }

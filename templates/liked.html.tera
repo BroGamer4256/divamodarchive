@@ -11,7 +11,7 @@
     {% set game_tag = game_tags | filter(attribute="id", value=post.game_tag) | first %}
     {% set type_tag = type_tags | filter(attribute="id", value=post.type_tag) | first %}
     {{ posts::draw_post_short(id=post.id, name=post.name, text_short=post.text_short, image=post.image,
-    downloads=post.downloads, game_tag=game_tag.name, type_tag=type_tag.name)
+    downloads=post.downloads, game_tag=game_tag.name, type_tag=type_tag.name, likes=post.likes, dislikes=post.dislikes)
     }}
     {% endfor %}
 </div>

@@ -68,6 +68,20 @@
 			flex: 0 0 auto;
 			width: 1%;
 		}
+		@media (min-width: 768px) {
+			.text-align-right-md {
+				text-align: right;
+			}
+		}
+		.text-align-right {
+			text-align: right;
+		}
+		.bg-clear {
+			background-color: transparent !important;
+		}
+		.border-none {
+			border: none !important;
+		}
 	</style>
 </head>
 

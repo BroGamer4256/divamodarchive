@@ -10,18 +10,6 @@
 <meta name="twitter:card" content="summary_large_image">
 {% endif %}
 <meta property="og:site_name" content="{{ game_name }} Mod Archive">
-
-<style>
-	@media (min-width: 768px) {
-		.text-align-right-md {
-			text-align: right;
-		}
-	}
-
-	.text-align-right {
-		text-align: right;
-	}
-</style>
 {% endmacro draw_embed %}
 
 {% macro draw_post_short(id, name, text_short, image, likes=-1, dislikes=-1, downloads=-1, draw_remove=false,
@@ -29,7 +17,7 @@ game_tag="MM+", type_tag="Other", preload=true) %}
 <div class="col">
 	<div class="card shadow-sm">
 		<a title="{{ text_short }}" style="text-decoration: none;" href="/posts/{{ id }}" {% if not preload %} data-cold="" {% endif %}>
-			<div class="card-img-top ratio ratio-16x9 bg-clear" loading="lazy">
+			<div class="card-img-top ratio ratio-16x9 bg-clear border-none" loading="lazy">
 				<img src="{{ image }}" class="rounded-image" width="100%" alt="{{ text_short }}" loading="lazy" data-cold="">
 			</div>
 			<div class="card-body">
@@ -249,6 +237,25 @@ extra_images, comments) %}
 		window.location = `/posts/${postId}/comments/new?text=${commentText}`;
 	}
 </script>
+<!-- Modals, theyre here because quartz theme fucking dies when theyre nested -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js" async></script>
+<div class="modal modal-xl fade" id="mainImgModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered ratio ratio-16x9">
+		<img src="{{ image }}" class="flat-image" loading="lazy" alt="Preview of {{ name }}">
+	</div>
+</div>
+{% if extra_images | length > 0 %}
+{% set i = 0 %}
+{% for image in extra_images %}
+<div class="modal modal-xl fade" id="imgModal{{ i }}" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered ratio ratio-16x9">
+		<img src="{{ image }}" class="flat-image" loading="lazy" alt="Preview of {{ name }}">
+	</div>
+</div>
+{% set i = i + 1 %}
+{% endfor %}
+{% endif %}
+<!-- The actual content -->
 <div class="row align-items-md-stretch gap-3">
 	<div class="col-md-7 card card-body">
 		<h2 class="text card-title" style="text-align: center">{{ name }} </h2>
@@ -263,9 +270,9 @@ extra_images, comments) %}
 			</div>
 			<h5 class="card-subtitle text">Last updated: {{ last_updated | date }}</h5>
 		</div>
-		<a href="{{ image }}" target="_blank" class="ratio ratio-16x9 bg-clear" data-cold="">
-			<img src="{{ image }}" class="card-img-top flat-image" loading="lazy" alt="Preview of {{ name }}">
-		</a>
+			<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal" data-bs-target="#mainImgModal">
+				<img src="{{ image }}" class="card-img-top flat-image" loading="lazy" alt="Preview of {{ name }}">
+			</button>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
 		<div class="btn-group">
@@ -351,14 +358,14 @@ extra_images, comments) %}
 	<div class="card card-body">
 		<h4>Additional screenshots:</h4>
 		<div class="row row-cols-2 row-cols-lg-4 gy-3">
+			{% set i = 0 %}
 			{% for image in extra_images %}
 			<div class="col">
-				<div class="card shadow-sm">
-					<a href="{{ image }}" target="_blank" class="card-img-top ratio ratio-16x9 bg-clear" data-cold="">
-						<img src="{{ image }}" class="flat-image" width="100%" loading="lazy" alt="Preview of {{ name }}">
-					</a>
-				</div>
+				<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal" data-bs-target="#imgModal{{ i }}">
+					<img src="{{ image }}" class="card-img-top flat-image" loading="lazy" alt="Preview of {{ name }}">
+				</button>
 			</div>
+			{% set i = i + 1 %}
 			{% endfor %}
 		</div>
 	</div>
@@ -367,7 +374,7 @@ extra_images, comments) %}
 {% if is_logged_in %}
 <div class="row g-1 m-0">
 	<div class="col-small me-1">
-			<div class="card line"></div>
+		<div class="card line"></div>
 	</div>
 	<div class="col row g-1">
 		<div class="row-cols-1 card p-0" id="newComment">

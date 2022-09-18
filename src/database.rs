@@ -614,23 +614,14 @@ pub fn delete_post(conn: &mut PgConnection, id: i32) -> bool {
 }
 
 pub fn update_download_count(conn: &mut PgConnection, path: String) -> Status {
-	let result = posts::table
-		.filter(posts::post_link.eq(path))
-		.select(posts::post_id)
-		.first::<i32>(conn);
-
-	let post_id = match result {
-		Ok(post_id) => post_id,
-		Err(_) => return Status::NotFound,
-	};
 	let result = diesel::update(posts::table)
-		.filter(posts::post_id.eq(post_id))
+		.filter(posts::post_link.eq(&path))
 		.set(posts::post_downloads.eq(posts::post_downloads + 1))
 		.execute(conn);
 	if result.is_ok() {
 		Status::Ok
 	} else {
-		Status::InternalServerError
+		Status::NotFound
 	}
 }
 

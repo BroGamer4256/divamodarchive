@@ -203,7 +203,7 @@
 				'Authorization': 'Bearer {{ jwt }}'
 			}
 		}
-		var upload_url = await fetch_retry('/api/v1/posts/upload_archive?name=' + file.name, options, 3)
+		var upload_url = await fetch_retry('/api/v1/posts/upload_archive?name=' + encodeURIComponent(file.name), options, 3)
 			.then(response => response.json())
 			.catch(error => crash_and_burn("Unknown error when uploading"));
 		options = {
@@ -214,7 +214,7 @@
 			body: file
 		},
 		await fetch_retry(upload_url, options, 3).catch(error => crash_and_burn("Unknown error when uploading"));
-		let archive_url = '{{ base_url | safe }}/storage/{{ user.id }}/' + file.name;
+		let archive_url = '{{ base_url | safe }}/storage/{{ user.id }}/' + encodeURIComponent(file.name);
 		let post_data = {
 			'name': name,
 			'text': text,

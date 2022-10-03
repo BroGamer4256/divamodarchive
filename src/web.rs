@@ -529,14 +529,14 @@ pub fn report_send(
 ) -> Redirect {
 	let reason = reason.replace("reason=", "");
 	let connection = &mut get_connection(connection);
-	let _ = add_report(connection, id, user.id, reason);
+	_ = add_report(connection, id, user.id, reason);
 	Redirect::to("/")
 }
 
 #[get("/posts/<id>/comments/new?<text>")]
 pub fn create_comment(connection: &ConnectionState, user: User, id: i32, text: String) -> Redirect {
 	let connection = &mut get_connection(connection);
-	let _ = add_comment(connection, user.id, id, text, None);
+	_ = add_comment(connection, user.id, id, text, None);
 	Redirect::to(format!("/posts/{}", id))
 }
 
@@ -549,7 +549,7 @@ pub fn reply_comment(
 	text: String,
 ) -> Redirect {
 	let connection = &mut get_connection(connection);
-	let _ = add_comment(connection, user.id, id, text, Some(comment_id));
+	_ = add_comment(connection, user.id, id, text, Some(comment_id));
 	Redirect::to(format!("/posts/{}", id))
 }
 
@@ -561,6 +561,6 @@ pub fn remove_comment(
 	comment_id: i32,
 ) -> Redirect {
 	let connection = &mut get_connection(connection);
-	let _ = delete_comment(connection, comment_id, user.id);
+	_ = delete_comment(connection, comment_id, user.id);
 	Redirect::to(format!("/posts/{}", id))
 }

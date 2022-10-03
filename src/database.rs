@@ -135,7 +135,7 @@ pub fn like_post_from_ids(
 		.is_ok();
 
 	if has_disliked {
-		let _result = diesel::delete(users_disliked_posts::table)
+		_ = diesel::delete(users_disliked_posts::table)
 			.filter(users_disliked_posts::user_id.eq(user_id))
 			.filter(users_disliked_posts::post_id.eq(post_id))
 			.get_result::<DislikedPost>(conn);
@@ -181,7 +181,7 @@ pub fn dislike_post_from_ids(
 		.is_ok();
 
 	if has_liked {
-		let _result = diesel::delete(users_liked_posts::table)
+		_ = diesel::delete(users_liked_posts::table)
 			.filter(users_liked_posts::user_id.eq(user_id))
 			.filter(users_liked_posts::post_id.eq(post_id))
 			.get_result::<LikedPost>(conn);
@@ -302,7 +302,7 @@ pub fn get_short_post_data(connection: &mut PgConnection, post: &ShortPostNoLike
 		id: post.id,
 		name: post.name.clone(),
 		text_short: post.text_short.clone(),
-		image: post.image.clone(),
+		image: post.image.clone().replace("/public", "/thumbnail"),
 		game_tag: post.game_tag,
 		type_tag: post.type_tag,
 		downloads: post.downloads,
@@ -800,7 +800,7 @@ pub fn update_download_limit(connection: &mut PgConnection, ip: IpAddr, size: i6
 		if used_limit >= 3 * 1024 * 1024 * 1024 {
 			return Status::TooManyRequests;
 		}
-		let _ = diesel::update(
+		_ = diesel::update(
 			download_limit::table
 				.filter(download_limit::ip.eq(ip.to_string()))
 				.filter(download_limit::date.eq(current_time)),
@@ -812,7 +812,7 @@ pub fn update_download_limit(connection: &mut PgConnection, ip: IpAddr, size: i6
 		))
 		.execute(connection);
 	} else {
-		let _ = diesel::insert_into(download_limit::table)
+		_ = diesel::insert_into(download_limit::table)
 			.values((
 				download_limit::date.eq(current_time),
 				download_limit::ip.eq(ip.to_string()),

@@ -309,7 +309,12 @@ pub async fn get_from_storage(
 ) -> Result<response::Redirect, Status> {
 	let connection = &mut models::get_connection(connection);
 	let file = format!("{}/{}", user_id, file_name);
-	let path = format!("{}/storage/{}", *models::BASE_URL, file);
+	let path = format!(
+		"{}/storage/{}/{}",
+		*models::BASE_URL,
+		user_id,
+		urlencoding::encode(file_name)
+	);
 	let file_size = s3
 		.head_object()
 		.bucket("divamodarchive")
@@ -326,7 +331,7 @@ pub async fn get_from_storage(
 	if result.is_failure() {
 		return Err(result);
 	}
-	let _ = database::update_download_count(connection, path);
+	_ = database::update_download_count(connection, path);
 
 	let file = s3
 		.get_object()

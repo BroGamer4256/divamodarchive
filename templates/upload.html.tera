@@ -141,7 +141,7 @@
 		var result = await fetch_retry(image_upload_url, options, 3)
 			.then(response => response.json())
 			.catch(error => crash_and_burn(error, "Failed to upload image"));
-		var image_url = result.result.variants[0]
+		var image_url = result.result.variants[0].replace("/thumbnail", "/public");
 		if (image_url == null) {
 			alert("Image upload failed\nMaximum size for images is 10MiB");
 			return
@@ -187,7 +187,7 @@
 				alert("Image upload failed\nMaximum size for images is 10MiB");
 				return
 			}
-			var extra_image_url = result.result.variants[0]
+			var extra_image_url = result.result.variants[0].replace("/thumbnail", "/public");
 			var extra_image_url = extra_image_url.replace("https://imagedelivery.net/", "{{ base_url | safe }}/cdn-cgi/imagedelivery/")
 			images_extra_urls.push(extra_image_url);
 		}

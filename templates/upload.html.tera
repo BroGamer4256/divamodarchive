@@ -282,8 +282,19 @@
 		
 		<label for="imagePicker" class="form-label mt-4">Image</label>
 		<input class="form-control" accept="image/*" type="file" id="imagePicker">
+		<div id="imagePreview" class="card-img-top ratio ratio-16x9 bg-clear border-none" style="display: none;">
+			<img id="imagePreviewImg" class="rounded-image" width="100%">
+		</div>
 		<label for="imagesExtra" class="form-label mt-4">Optional: Extra images</label>
 		<input class="form-control" accept="image/*" type="file" id="imagesExtra" multiple>
+		<div id="imagesExtraPreview" class="row row-cols-2 row-cols-lg-4 gy-3" style="display: none;">
+
+			<!--
+			<div class="col">
+				<img src="" class="card-img-top flat-image">
+			</div>
+			-->
+		</div>
 
 		{% if update_id %}
 		<br>
@@ -396,10 +407,26 @@
 		});
 		element.addEventListener('drop', async(e) => {
 			e.preventDefault();
-			e.preventDefault();
 			element.files = e.dataTransfer.files;
 		});
 	};
+	//<div class="col ratio ratio-16x9 bg-clear border-none">
+	//	<img src="" class="card-img-top flat-image">
+	//</div>
+	function createExtraImageInner(src) {
+		let div = document.createElement("div");
+		div.classList = "col";
+		let div2 = document.createElement("div");
+		div2.classList = "ratio ratio-16x9 bg-clear border-none";
+		let img = document.createElement("img");
+		img.src = src;
+		img.classList = "card-img-top flat-image";
+
+		div2.appendChild(img);
+		div.appendChild(div2);
+
+		return div;
+	}
 
 	const form = document.getElementById("form");
 	const filePicker = form['filePicker'];
@@ -408,5 +435,41 @@
 	addDropHandler(filePicker);
 	addDropHandler(imagePicker);
 	addDropHandler(imagesExtra);
+
+	const imagePreview = document.getElementById("imagePreview");
+	const imagePreviewImg = document.getElementById("imagePreviewImg");
+	const imagesExtraPreview = document.getElementById("imagesExtraPreview");
+
+	imagePicker.addEventListener("change", function () {
+		let file = imagePicker.files[0];
+		imagePreview.style.display = "none";
+		if (file) {
+			let fileReader = new FileReader();
+			fileReader.addEventListener("load", function () {
+				imagePreview.style.display = "";
+				imagePreviewImg.setAttribute("src", this.result);
+			});
+			fileReader.readAsDataURL(file);
+		}
+	});
+	imagesExtra.addEventListener("change", function () {
+		imagesExtraPreview.style.display = "";
+		let child = imagesExtraPreview.firstChild;
+		while (child != undefined) {
+			imagesExtraPreview.removeChild(child);
+			child = imagesExtraPreview.firstChild;
+		}
+		for (let i = 0; i < imagesExtra.files.length; i++) {
+			let file = imagesExtra.files[i];
+			if (file) {
+				let fileReader = new FileReader();
+				fileReader.addEventListener("load", function () {
+					imagesExtraPreview.style.display = "";
+					imagesExtraPreview.appendChild(createExtraImageInner(this.result));
+				});
+				fileReader.readAsDataURL(file);
+			}
+		}
+	});
 </script>
 {% endblock content %}

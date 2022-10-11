@@ -393,6 +393,9 @@
 		border: 1px dashed #ccc;
 	}
 </style>
+<!--
+	Add drop handlers and image previews
+-->
 <script>
 	function addDropHandler(element) {
 		element.addEventListener('dragenter', function(e) {
@@ -410,6 +413,7 @@
 			element.files = e.dataTransfer.files;
 		});
 	};
+
 	//<div class="col ratio ratio-16x9 bg-clear border-none">
 	//	<img src="" class="card-img-top flat-image">
 	//</div>
@@ -428,19 +432,7 @@
 		return div;
 	}
 
-	const form = document.getElementById("form");
-	const filePicker = form['filePicker'];
-	const imagePicker = form['imagePicker'];
-	const imagesExtra = form['imagesExtra'];
-	addDropHandler(filePicker);
-	addDropHandler(imagePicker);
-	addDropHandler(imagesExtra);
-
-	const imagePreview = document.getElementById("imagePreview");
-	const imagePreviewImg = document.getElementById("imagePreviewImg");
-	const imagesExtraPreview = document.getElementById("imagesExtraPreview");
-
-	imagePicker.addEventListener("change", function () {
+	function displayImagePreview() {
 		let file = imagePicker.files[0];
 		imagePreview.style.display = "none";
 		if (file) {
@@ -451,8 +443,8 @@
 			});
 			fileReader.readAsDataURL(file);
 		}
-	});
-	imagesExtra.addEventListener("change", function () {
+	}
+	function displayExtraImagesPreview() {
 		imagesExtraPreview.style.display = "";
 		let child = imagesExtraPreview.firstChild;
 		while (child != undefined) {
@@ -470,6 +462,23 @@
 				fileReader.readAsDataURL(file);
 			}
 		}
-	});
+	}
+
+	const form = document.getElementById("form");
+	const filePicker = form['filePicker'];
+	const imagePicker = form['imagePicker'];
+	const imagesExtra = form['imagesExtra'];
+	addDropHandler(filePicker);
+	addDropHandler(imagePicker);
+	addDropHandler(imagesExtra);
+
+	const imagePreview = document.getElementById("imagePreview");
+	const imagePreviewImg = document.getElementById("imagePreviewImg");
+	const imagesExtraPreview = document.getElementById("imagesExtraPreview");
+
+	imagePicker.addEventListener("change", displayImagePreview);
+	imagePicker.addEventListener("drop", displayImagePreview);
+	imagesExtra.addEventListener("change", displayExtraImagesPreview);
+	imagesExtra.addEventListener("drop", displayExtraImagesPreview);
 </script>
 {% endblock content %}

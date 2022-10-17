@@ -88,11 +88,13 @@
 <body>
 	<br>
 	<div id="content" class="container">
+		<!--
 		<div class="alert alert-danger text" style="margin-left: -0.75rem; margin-right: -0.75rem;">
 			Recently I have switched the file host to AWS S3 which has lead to fast download speeds.<br>
 			<a href="https://ko-fi.com/brogamer" class="nav-link p-0 nav-text">However this is expensive, if you want the speeds to stay fast please donate</a>
 			Because of the current situation downloads have been limited to 3GB per user per day. Sorry if this causes problems for you.
 		</div>
+		-->
 		<main>
 			{% block content %}{% endblock content %}
 		</main>

@@ -15,8 +15,33 @@ previous_game_tag=previous_game_tag) }}
 	{{ posts::draw_post_short(id=post.id, name=post.name, text_short=post.text_short, image=post.image,
 	likes=post.likes, dislikes=post.dislikes, downloads=post.downloads, game_tag=game_tag.name, type_tag=type_tag.name)
 	}}
+	{% if base_url == "https://divamodarchive.com" and loop.index % 5 == 0 %}
+	<div class="col adsbygooglecontainer">
+		<div class="card shadow-sm">
+			<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3105671526550373" crossorigin="anonymous"></script>
+			<ins class="adsbygoogle"
+				style="display:block"
+				data-ad-format="fluid"
+				data-ad-layout-key="-7r+ey-3-5f+9v"
+				data-ad-client="ca-pub-3105671526550373"
+				data-ad-slot="3297686643">
+			</ins>
+			<script>
+				(adsbygoogle = window.adsbygoogle || []).push({});
+			</script>
+		</div>
+	</div>
+	{% endif %}
 	{% endfor %}
 </div>
+<script>
+	let elements = document.getElementsByClassName("adsbygooglecontainer");
+	for (let i = elements.length - 1; i >= 0; i--) { 
+		if (elements[i].clientWidth < 250) {
+			elements[i].remove();
+		}
+	}
+</script>
 {% set length = posts | length %}
 {{ posts::draw_buttons(current_offset=offset, draw_forward=length == 20 and count > offset + length, order=previous_sort, game_tag=previous_game_tag, name=previous_search) }}
 {% endblock content %}

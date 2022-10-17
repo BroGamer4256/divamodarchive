@@ -335,6 +335,26 @@ extra_images, comments) %}
 			</div>
 		{% endfor %}
 	{% endif %}
+	{% if base_url == "https://divamodarchive.com" %}
+		<div class="card card-body texts adsbygooglecontainer">
+			<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3105671526550373" crossorigin="anonymous"></script>
+			<ins class="adsbygoogle"
+				style="display:block; text-align:center;"
+				data-ad-layout="in-article"
+				data-ad-format="fluid"
+				data-ad-client="ca-pub-3105671526550373"
+				data-ad-slot="1035319533"></ins>
+			<script>
+				(adsbygoogle = window.adsbygoogle || []).push({});
+			</script>
+		</div>
+		<script>
+			let element = document.getElementsByClassName("adsbygooglecontainer")[0];
+			if (element.clientWidth < 250) {
+				element.remove();
+			}
+		</script>
+	{% endif %}
 	{% if dependencies | length > 0 %}
 	<div class="card card-body">
 		<h4>This mod requires: </h4>

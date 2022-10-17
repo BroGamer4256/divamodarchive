@@ -67,6 +67,7 @@ pub async fn rocket() -> Rocket<Build> {
 				web::remove_comment,
 				get_from_storage,
 				robots,
+				ads,
 				favicon,
 				large_icon,
 				sitemap,
@@ -176,6 +177,11 @@ pub fn robots() -> String {
 		"User-agent: *\nDisallow: /api/\nSitemap: {}/sitemap.xml",
 		*models::BASE_URL
 	)
+}
+
+#[get("/ads.txt")]
+pub const fn ads() -> &'static str {
+	"google.com, pub-3105671526550373, DIRECT, f08c47fec0942fa0"
 }
 
 #[get("/favicon.ico")]

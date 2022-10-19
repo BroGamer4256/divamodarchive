@@ -2,6 +2,7 @@ use crate::database::*;
 use crate::models::*;
 use rocket::http::Status;
 use rocket::serde::json::Json;
+use rocket::State;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -19,10 +20,10 @@ struct CloudflareDirectUpload {
 }
 
 #[get("/upload_image")]
-pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
+pub async fn upload_image(user: User, config: &State<Config>) -> Result<Json<String>, Status> {
 	let cloudflare_url = format!(
 		"https://api.cloudflare.com/client/v4/accounts/{}/images/v2/direct_upload",
-		*CLOUDFLARE_ACCOUNT_ID
+		config.cloudflare_account_id
 	);
 	let params =
 		reqwest::multipart::Form::new().text("metadata", format!("{{\"user\":\"{}\"}}", user.id));
@@ -30,7 +31,7 @@ pub async fn upload_image(user: User) -> Result<Json<String>, Status> {
 		.post(&cloudflare_url)
 		.header(
 			"Authorization",
-			format!("Bearer {}", *CLOUDFLARE_IMAGE_TOKEN),
+			format!("Bearer {}", config.cloudflare_image_token),
 		)
 		.multipart(params)
 		.send()
@@ -86,17 +87,18 @@ pub async fn upload(
 	user: User,
 	post: Json<PostUnidentified>,
 	update_id: Option<i32>,
+	config: &State<Config>,
 ) -> Result<Json<Post>, Status> {
 	let post = post.into_inner();
 	if update_id.is_none() && post.image.is_none() {
 		return Err(Status::BadRequest);
 	}
-	if let Some(image) = post.image.clone() && (!image.starts_with(&format!("{}/cdn-cgi/imagedelivery", *BASE_URL)) || reqwest::get(image).await.is_err()){
+	if let Some(image) = post.image.clone() && (!image.starts_with(&format!("{}/cdn-cgi/imagedelivery", config.base_url)) || reqwest::get(image).await.is_err()){
 		return Err(Status::BadRequest);
 	}
 	if !post
 		.link
-		.starts_with(&format!("{}/storage/{}/", *BASE_URL, user.id))
+		.starts_with(&format!("{}/storage/{}/", config.base_url, user.id))
 	{
 		return Err(Status::BadRequest);
 	}
@@ -179,6 +181,7 @@ pub fn latest(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
+	config: &State<Config>,
 ) -> (Status, Json<Vec<DetailedPost>>) {
 	let connection = &mut get_connection(connection);
 	let result = get_latest_posts_detailed(
@@ -186,7 +189,7 @@ pub fn latest(
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
-		limit.unwrap_or(*WEBUI_LIMIT),
+		limit.unwrap_or(config.webui_limit),
 	);
 	if let Some(result) = result {
 		(Status::Ok, Json(result))
@@ -202,6 +205,7 @@ pub fn popular(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
+	config: &State<Config>,
 ) -> (Status, Json<Vec<DetailedPost>>) {
 	let connection = &mut get_connection(connection);
 	let result = get_popular_posts_detailed(
@@ -209,7 +213,7 @@ pub fn popular(
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
-		limit.unwrap_or(*WEBUI_LIMIT),
+		limit.unwrap_or(config.webui_limit),
 	);
 	if let Some(result) = result {
 		(Status::Ok, Json(result))

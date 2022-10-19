@@ -14,12 +14,15 @@ pub mod web;
 
 use diesel::pg::PgConnection;
 use dotenvy::dotenv;
+use jsonwebtoken::*;
 use rocket::fairing::*;
 use rocket::http::*;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::*;
 use rocket_dyn_templates::Template;
 use std::env;
+use std::fs::File;
+use std::io::Read;
 use std::time::SystemTime;
 
 #[launch]
@@ -38,6 +41,72 @@ pub async fn rocket() -> Rocket<Build> {
 		aws_config::meta::region::RegionProviderChain::default_provider().or_else("us-west-1");
 	let config = aws_config::from_env().region(region_provider).load().await;
 	let s3 = aws_sdk_s3::Client::new(&config);
+
+	let secret_key = env::var("SECRET_KEY").expect("SECRET_KEY must exist");
+	let decoding_key = DecodingKey::from_secret(secret_key.as_bytes());
+	let encoding_key = EncodingKey::from_secret(secret_key.as_bytes());
+	let discord_id = env::var("DISCORD_ID").expect("DISCORD_ID must exist");
+	let discord_secret = env::var("DISCORD_SECRET").expect("DISCORD_SECRET must exist");
+	let base_url = env::var("BASE_URL").expect("BASE_URL must exist");
+	let max_image_size: u64 = env::var("MAX_IMAGE_SIZE")
+		.expect("MAX_IMAGE_SIZE must exist")
+		.parse()
+		.expect("MAX_IMAGE_SIZE must be u64");
+	let max_file_size: u64 = env::var("MAX_FILE_SIZE")
+		.expect("MAX_FILE_SIZE must exist")
+		.parse()
+		.expect("MAX_FILE_SIZE must be u64");
+	let cloudflare_image_token =
+		env::var("CLOUDFLARE_IMAGE_TOKEN").expect("CLOUDFLARE_IMAGE_TOKEN must exist");
+	let cloudflare_account_id =
+		env::var("CLOUDFLARE_ACCOUNT_ID").expect("CLOUDFLARE_ACCOUNT_ID must exist");
+	let admins = env::var("ADMIN_IDS")
+		.expect("ADMIN_IDS must exist")
+		.split(',')
+		.map(|x| x.parse::<i64>().expect("Admin IDs must be i64"))
+		.collect();
+	let mut tag_file =
+		File::open(env::var("TAG_TOML_PATH").unwrap_or_else(|_| String::from("static/tags.toml")))
+			.expect("static/tags.toml must exist");
+	let mut tag_toml = String::new();
+	tag_file
+		.read_to_string(&mut tag_toml)
+		.expect("static/tags.toml must be a valid file");
+	let tag_toml: models::TagToml =
+		toml::from_str(&tag_toml).expect("static/tags.toml must be a valid tags toml file");
+	let mut theme_file = File::open(
+		env::var("THEMES_TOML_PATH").unwrap_or_else(|_| String::from("static/themes.toml")),
+	)
+	.expect("static/themes.toml must exist");
+	let mut theme_toml = String::new();
+	theme_file
+		.read_to_string(&mut theme_toml)
+		.expect("static/themes.toml must be a valid file");
+	let theme_toml: models::ThemeToml =
+		toml::from_str(&theme_toml).expect("static/themes.toml must be a valid themes toml file");
+	let webui_limit: i64 = env::var("WEBUI_LIMIT")
+		.expect("WEBUI_LIMIT must exist")
+		.parse()
+		.expect("WEBUI_LIMIT must be i64");
+	let gtag = env::var("GTAG").expect("GTAG must exist");
+	let game_name = env::var("GAME_NAME").expect("GAME_NAME must exist");
+	let config = models::Config {
+		decoding_key,
+		encoding_key,
+		discord_id,
+		discord_secret,
+		base_url,
+		max_image_size,
+		max_file_size,
+		cloudflare_image_token,
+		cloudflare_account_id,
+		admins,
+		tag_toml,
+		theme_toml,
+		webui_limit,
+		gtag,
+		game_name,
+	};
 
 	rocket::build()
 		.mount(
@@ -121,6 +190,7 @@ pub async fn rocket() -> Rocket<Build> {
 		)
 		.manage(pool)
 		.manage(s3)
+		.manage(config)
 		.attach(Template::fairing())
 		.attach(api::v2::V2VecErrHandler)
 		.attach(RequestTimer)
@@ -172,10 +242,10 @@ pub const fn flamethrower() -> (ContentType, &'static str) {
 }
 
 #[get("/robots.txt")]
-pub fn robots() -> String {
+pub fn robots(config: &State<models::Config>) -> String {
 	format!(
 		"User-agent: *\nDisallow: /api/\nSitemap: {}/sitemap.xml",
-		*models::BASE_URL
+		config.base_url
 	)
 }
 
@@ -247,13 +317,16 @@ pub struct Urlset {
 }
 
 #[get("/sitemap.xml")]
-pub fn sitemap(connection: &models::ConnectionState) -> Option<(ContentType, String)> {
+pub fn sitemap(
+	connection: &models::ConnectionState,
+	config: &State<models::Config>,
+) -> Option<(ContentType, String)> {
 	let mut urls = Vec::new();
 	let connection = &mut models::get_connection(connection);
 	let latest_date = database::get_post_latest_date(connection)?;
 	let base_url = Url {
 		loc: Loc {
-			loc: format!("{}/", *models::BASE_URL),
+			loc: format!("{}/", config.base_url),
 		},
 		changefreq: Changefreq {
 			changefreq: String::from("daily"),
@@ -268,7 +341,7 @@ pub fn sitemap(connection: &models::ConnectionState) -> Option<(ContentType, Str
 	urls.push(base_url);
 	let about_url = Url {
 		loc: Loc {
-			loc: format!("{}/about", *models::BASE_URL),
+			loc: format!("{}/about", config.base_url),
 		},
 		changefreq: Changefreq {
 			changefreq: String::from("monthly"),
@@ -283,7 +356,7 @@ pub fn sitemap(connection: &models::ConnectionState) -> Option<(ContentType, Str
 	for post_info in posts_info {
 		let url = Url {
 			loc: Loc {
-				loc: format!("{}/posts/{}", *models::BASE_URL, post_info.id),
+				loc: format!("{}/posts/{}", config.base_url, post_info.id),
 			},
 			changefreq: Changefreq {
 				changefreq: String::from("monthly"),
@@ -312,12 +385,13 @@ pub async fn get_from_storage(
 	file_name: &str,
 	s3: &State<aws_sdk_s3::Client>,
 	ip: models::HttpIp,
+	config: &State<models::Config>,
 ) -> Result<response::Redirect, Status> {
 	let connection = &mut models::get_connection(connection);
 	let file = format!("{}/{}", user_id, file_name);
 	let path = format!(
 		"{}/storage/{}/{}",
-		*models::BASE_URL,
+		config.base_url,
 		user_id,
 		urlencoding::encode(file_name)
 	);

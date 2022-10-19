@@ -4,11 +4,13 @@ use diesel::PgConnection;
 use jsonwebtoken::*;
 use rocket::http::*;
 use rocket::response::Redirect;
+use rocket::State;
 use rocket_dyn_templates::Template;
 
 pub fn who_is_logged_in(
 	connection: &mut PgConnection,
 	cookies: &CookieJar<'_>,
+	config: &State<Config>,
 ) -> Result<User, Status> {
 	let jwt = cookies.get_pending("jwt");
 	let jwt = match jwt {
@@ -16,7 +18,7 @@ pub fn who_is_logged_in(
 		None => return Err(Status::Unauthorized),
 	};
 	let jwt = jwt.value();
-	let token_data = decode::<Token>(jwt, &DECODE_KEY, &Validation::default());
+	let token_data = decode::<Token>(jwt, &config.decoding_key, &Validation::default());
 	let token_data = match token_data {
 		Ok(token_data) => token_data,
 		Err(_) => return Err(Status::Unauthorized),
@@ -28,14 +30,18 @@ pub fn who_is_logged_in(
 	}
 }
 
-pub fn is_logged_in(connection: &mut PgConnection, cookies: &CookieJar<'_>) -> bool {
+pub fn is_logged_in(
+	connection: &mut PgConnection,
+	cookies: &CookieJar<'_>,
+	config: &State<Config>,
+) -> bool {
 	let jwt = cookies.get_pending("jwt");
 	let jwt = match jwt {
 		Some(jwt) => jwt,
 		None => return false,
 	};
 	let jwt = jwt.value();
-	let token_data = decode::<Token>(jwt, &DECODE_KEY, &Validation::default());
+	let token_data = decode::<Token>(jwt, &config.decoding_key, &Validation::default());
 	let token_data = match token_data {
 		Ok(token_data) => token_data,
 		Err(_) => return false,
@@ -43,17 +49,22 @@ pub fn is_logged_in(connection: &mut PgConnection, cookies: &CookieJar<'_>) -> b
 	get_user(connection, token_data.claims.user_id).is_some()
 }
 
-pub fn get_theme(cookies: &CookieJar<'_>) -> Theme {
+pub fn get_theme(cookies: &CookieJar<'_>, config: &State<Config>) -> Theme {
 	let theme = cookies.get_pending("theme");
 	let theme_id = theme.map_or(0, |theme| theme.value().parse::<i32>().unwrap_or(0));
-	let theme_result = THEMES_TOML.themes.iter().find(|theme| theme.id == theme_id);
+	let theme_result = config
+		.theme_toml
+		.themes
+		.iter()
+		.find(|theme| theme.id == theme_id);
 	theme_result.map_or_else(Theme::default, std::clone::Clone::clone)
 }
 
 #[get("/theme")]
-pub fn set_theme(cookies: &CookieJar<'_>) -> Redirect {
-	let current_id = get_theme(cookies).id;
-	let ids = THEMES_TOML
+pub fn set_theme(cookies: &CookieJar<'_>, config: &State<Config>) -> Redirect {
+	let current_id = get_theme(cookies, config).id;
+	let ids = config
+		.theme_toml
 		.themes
 		.iter()
 		.map(|x| x.id)
@@ -82,6 +93,7 @@ pub fn find_posts(
 	game_tag: Option<i32>,
 	user: Option<User>,
 	cookies: &CookieJar<'_>,
+	config: &State<Config>,
 ) -> Option<Template> {
 	let sort_order = match order.clone() {
 		Some(order) => match order.as_str() {
@@ -95,50 +107,63 @@ pub fn find_posts(
 	let name = name.unwrap_or_default();
 	let game_tag = game_tag.unwrap_or(0);
 	let title = match sort_order {
-		Order::Latest => format!("Latest {} Mods", *GAME_NAME),
-		Order::Popular => format!("Popular {} Mods", *GAME_NAME),
+		Order::Latest => format!("Latest {} Mods", config.game_name.clone()),
+		Order::Popular => format!("Popular {} Mods", config.game_name.clone()),
 	};
 	let results = match sort_order {
-		Order::Latest => {
-			get_latest_posts(connection, name.clone(), offset, game_tag, *WEBUI_LIMIT)?
-		}
-		Order::Popular => {
-			get_popular_posts(connection, name.clone(), offset, game_tag, *WEBUI_LIMIT)?
-		}
+		Order::Latest => get_latest_posts(
+			connection,
+			name.clone(),
+			offset,
+			game_tag,
+			config.webui_limit,
+		)?,
+		Order::Popular => get_popular_posts(
+			connection,
+			name.clone(),
+			offset,
+			game_tag,
+			config.webui_limit,
+		)?,
 	};
 	let count = get_post_count(connection, name.clone(), game_tag)?;
 	let description = match sort_order {
-		Order::Latest => format!("The latest {} Mods", *GAME_NAME),
-		Order::Popular => format!("The most popular {} Mods", *GAME_NAME),
+		Order::Latest => format!("The latest {} Mods", config.game_name.clone()),
+		Order::Popular => format!("The most popular {} Mods", config.game_name.clone()),
 	};
 	Some(Template::render(
 		"post_list",
 		context![
 			posts: &results,
 			count: count,
-			is_logged_in: is_logged_in(connection, cookies),
+			is_logged_in: is_logged_in(connection, cookies, config),
 			title: title,
 			description: description,
 			offset: offset,
 			previous_search: name,
 			previous_sort: order.unwrap_or_default(),
 			previous_game_tag: game_tag,
-			theme: get_theme(cookies),
-			game_tags: TAG_TOML.game_tags.clone(),
-			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&user.unwrap_or_default().id),
-			base_url: BASE_URL.to_string(),
-			gtag: GTAG.to_string(),
-			game_name: GAME_NAME.to_string(),
+			theme: get_theme(cookies, config),
+			game_tags: config.tag_toml.game_tags.clone(),
+			type_tags: config.tag_toml.type_tags.clone(),
+			is_admin: config.admins.contains(&user.unwrap_or_default().id),
+			base_url: config.base_url.clone(),
+			gtag: config.gtag.clone(),
+			game_name: config.game_name.clone(),
 		],
 	))
 }
 
 #[get("/posts/<id>")]
-pub fn details(connection: &ConnectionState, id: i32, cookies: &CookieJar<'_>) -> Option<Template> {
+pub fn details(
+	connection: &ConnectionState,
+	id: i32,
+	cookies: &CookieJar<'_>,
+	config: &State<Config>,
+) -> Option<Template> {
 	let connection = &mut get_connection(connection);
 	let post = get_post(connection, id)?;
-	let who_is_logged_in = who_is_logged_in(connection, cookies);
+	let who_is_logged_in = who_is_logged_in(connection, cookies, config);
 	if let Ok(who_is_logged_in) = who_is_logged_in {
 		let who_is_logged_in = who_is_logged_in.id;
 		let has_liked = has_liked_post(connection, who_is_logged_in, id);
@@ -146,12 +171,12 @@ pub fn details(connection: &ConnectionState, id: i32, cookies: &CookieJar<'_>) -
 		let jwt = cookies.get_pending("jwt").unwrap();
 		Some(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, theme: get_theme(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&who_is_logged_in), base_url: BASE_URL.to_string(), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
+			context![post: &post, is_logged_in: true, has_liked: has_liked, has_disliked: has_disliked, jwt: jwt.value(), who_is_logged_in: who_is_logged_in, theme: get_theme(cookies, config), game_tags: config.tag_toml.game_tags.clone(), type_tags: config.tag_toml.type_tags.clone(), is_admin: config.admins.contains(&who_is_logged_in), base_url: config.base_url.clone(), gtag: config.gtag.clone(), game_name: config.game_name.clone(),],
 		))
 	} else {
 		Some(Template::render(
 			"post_detail",
-			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, theme: get_theme(cookies), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: false, base_url: BASE_URL.to_string(), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
+			context![post: &post, is_logged_in: false, has_liked: false, has_disliked: false, jwt: None::<String>, who_is_logged_in: 0, theme: get_theme(cookies, config), game_tags: config.tag_toml.game_tags.clone(), type_tags: config.tag_toml.type_tags.clone(), is_admin: false, base_url: config.base_url.clone(), gtag: config.gtag.clone(), game_name: config.game_name.clone(),],
 		))
 	}
 }
@@ -166,9 +191,15 @@ pub async fn login(
 	connection: &ConnectionState,
 	code: String,
 	cookies: &CookieJar<'_>,
+	config: &State<Config>,
 ) -> Redirect {
-	let jwt =
-		crate::api::v1::users::login(connection, code, Some(format!("{}/login", *BASE_URL))).await;
+	let jwt = crate::api::v1::users::login(
+		connection,
+		code,
+		Some(format!("{}/login", config.base_url.clone())),
+		config,
+	)
+	.await;
 	let jwt = match jwt {
 		Ok(jwt) => jwt,
 		Err(_) => return Redirect::to("/"),
@@ -180,11 +211,16 @@ pub async fn login(
 }
 
 #[get("/upload")]
-pub fn upload(connection: &ConnectionState, user: User, cookies: &CookieJar<'_>) -> Template {
+pub fn upload(
+	connection: &ConnectionState,
+	user: User,
+	cookies: &CookieJar<'_>,
+	config: &State<Config>,
+) -> Template {
 	let connection = &mut get_connection(connection);
 	Template::render(
 		"upload",
-		context![user: &user, is_logged_in: is_logged_in(connection, cookies), jwt: cookies.get_pending("jwt").unwrap().value(), theme: get_theme(cookies),base_url: BASE_URL.to_string(), game_tags: TAG_TOML.game_tags.clone(), type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
+		context![user: &user, is_logged_in: is_logged_in(connection, cookies, config), jwt: cookies.get_pending("jwt").unwrap().value(), theme: get_theme(cookies, config), base_url: config.base_url.clone(), game_tags: config.tag_toml.game_tags.clone(), type_tags: config.tag_toml.type_tags.clone(), is_admin: config.admins.contains(&user.id), gtag: config.gtag.clone(), game_name: config.game_name.clone(),],
 	)
 }
 
@@ -197,6 +233,7 @@ pub fn user(
 	game_tag: Option<i32>,
 	cookies: &CookieJar<'_>,
 	current_user: Option<User>,
+	config: &State<Config>,
 ) -> Option<Template> {
 	let connection = &mut get_connection(connection);
 	let user = get_user(connection, id)?;
@@ -214,20 +251,30 @@ pub fn user(
 	};
 	let game_tag = game_tag.unwrap_or(0);
 	let results = match sort_order {
-		Order::Latest => get_user_posts_latest(connection, user.id, offset, game_tag, *WEBUI_LIMIT),
+		Order::Latest => {
+			get_user_posts_latest(connection, user.id, offset, game_tag, config.webui_limit)
+		}
 		Order::Popular => {
-			get_user_posts_popular(connection, user.id, offset, game_tag, *WEBUI_LIMIT)
+			get_user_posts_popular(connection, user.id, offset, game_tag, config.webui_limit)
 		}
 	}
 	.unwrap_or_default();
 	let count = get_user_post_count(connection, user.id, game_tag).unwrap_or(0);
 	let description = match sort_order {
-		Order::Latest => format!("The latest {} mods by {}", *GAME_NAME, user.name),
-		Order::Popular => format!("The most popular {} mods by {}", *GAME_NAME, user.name),
+		Order::Latest => format!(
+			"The latest {} mods by {}",
+			config.game_name.clone(),
+			user.name
+		),
+		Order::Popular => format!(
+			"The most popular {} mods by {}",
+			config.game_name.clone(),
+			user.name
+		),
 	};
 
 	let user_stats = get_user_stats(connection, user.id);
-	let is_logged_in = is_logged_in(connection, cookies);
+	let is_logged_in = is_logged_in(connection, cookies, config);
 
 	Some(Template::render(
 		"user_detail",
@@ -243,13 +290,13 @@ pub fn user(
 			total_likes: user_stats.likes,
 			total_dislikes: user_stats.dislikes,
 			total_downloads: user_stats.downloads,
-			theme: get_theme(cookies),
-			game_tags: TAG_TOML.game_tags.clone(),
-			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&current_user.unwrap_or_default().id),
-			base_url: BASE_URL.to_string(),
-			gtag: GTAG.to_string(),
-			game_name: GAME_NAME.to_string(),
+			theme: get_theme(cookies, config),
+			game_tags: config.tag_toml.game_tags.clone(),
+			type_tags: config.tag_toml.type_tags.clone(),
+			is_admin: config.admins.contains(&current_user.unwrap_or_default().id),
+			base_url: config.base_url.clone(),
+			gtag: config.gtag.clone(),
+			game_name: config.game_name.clone(),
 		],
 	))
 }
@@ -260,13 +307,14 @@ pub fn edit(
 	id: i32,
 	user: User,
 	cookies: &CookieJar<'_>,
+	config: &State<Config>,
 ) -> Result<Template, Redirect> {
 	let connection = &mut get_connection(connection);
 	let post = match get_post(connection, id) {
 		Some(post) => post,
 		None => return Err(Redirect::to(format!("/posts/{}", id))),
 	};
-	let who_is_logged_in = match who_is_logged_in(connection, cookies) {
+	let who_is_logged_in = match who_is_logged_in(connection, cookies, config) {
 		Ok(who_is_logged_in) => who_is_logged_in,
 		Err(_) => return Err(Redirect::to(format!("/posts/{}", id))),
 	};
@@ -275,7 +323,7 @@ pub fn edit(
 		let jwt = cookies.get_pending("jwt").unwrap();
 		Ok(Template::render(
 			"upload",
-			context![user: &user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, theme: get_theme(cookies), update_id: id, base_url: BASE_URL.to_string(), previous_game_tag: post.game_tag, previous_type_tag: post.type_tag, game_tags: TAG_TOML.game_tags.clone(),type_tags: TAG_TOML.type_tags.clone(), is_admin: ADMINS.contains(&user.id), gtag: GTAG.to_string(), game_name: GAME_NAME.to_string(),],
+			context![user: &user, is_logged_in: true, jwt: jwt.value(), previous_title: post.name, previous_description: post.text, previous_description_short: post.text_short, likes: post.likes, dislikes: post.dislikes, theme: get_theme(cookies, config), update_id: id, base_url: config.base_url.clone(), previous_game_tag: post.game_tag, previous_type_tag: post.type_tag, game_tags: config.tag_toml.game_tags.clone(),type_tags: config.tag_toml.type_tags.clone(), is_admin: config.admins.contains(&user.id), gtag: config.gtag.clone(), game_name: config.game_name.clone(),],
 		))
 	} else {
 		Err(Redirect::to(format!("/posts/{}", id)))
@@ -291,6 +339,7 @@ pub fn dependency(
 	order: Option<String>,
 	user: User,
 	cookies: &CookieJar<'_>,
+	config: &State<Config>,
 ) -> Result<Template, Redirect> {
 	let connection = &mut get_connection(connection);
 	let post = match get_post(connection, id) {
@@ -318,7 +367,7 @@ pub fn dependency(
 			offset,
 			post.game_tag,
 			vec![id],
-			*WEBUI_LIMIT,
+			config.webui_limit,
 		),
 		Order::Popular => get_popular_posts_disallowed(
 			connection,
@@ -326,7 +375,7 @@ pub fn dependency(
 			offset,
 			post.game_tag,
 			vec![id],
-			*WEBUI_LIMIT,
+			config.webui_limit,
 		),
 	}
 	.unwrap_or_default();
@@ -336,16 +385,16 @@ pub fn dependency(
 			id: id,
 			posts: &posts,
 			is_logged_in: true,
-			theme: get_theme(cookies),
+			theme: get_theme(cookies, config),
 			previous_search: name,
 			previous_sort: order.unwrap_or_default(),
 			offset: offset,
-			game_tags: TAG_TOML.game_tags.clone(),
-			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&user.id),
-			base_url: BASE_URL.to_string(),
-			gtag: GTAG.to_string(),
-			game_name: GAME_NAME.to_string(),
+			game_tags: config.tag_toml.game_tags.clone(),
+			type_tags: config.tag_toml.type_tags.clone(),
+			is_admin: config.admins.contains(&user.id),
+			base_url: config.base_url.clone(),
+			gtag: config.gtag.clone(),
+			game_name: config.game_name.clone(),
 		],
 	))
 }
@@ -383,17 +432,18 @@ pub fn about(
 	connection: &ConnectionState,
 	cookies: &CookieJar<'_>,
 	user: Option<User>,
+	config: &State<Config>,
 ) -> Template {
 	let connection = &mut get_connection(connection);
 	Template::render(
 		"about",
 		context![
-			is_logged_in: is_logged_in(connection, cookies),
-			theme: get_theme(cookies),
-			is_admin: ADMINS.contains(&user.unwrap_or_default().id),
-			base_url: BASE_URL.to_string(),
-			gtag: GTAG.to_string(),
-			game_name: GAME_NAME.to_string(),
+			is_logged_in: is_logged_in(connection, cookies, config),
+			theme: get_theme(cookies, config),
+			is_admin: config.admins.contains(&user.unwrap_or_default().id),
+			base_url: config.base_url.clone(),
+			gtag: config.gtag.clone(),
+			game_name: config.game_name.clone(),
 		],
 	)
 }
@@ -404,24 +454,25 @@ pub fn liked(
 	user: User,
 	offset: Option<i64>,
 	cookies: &CookieJar<'_>,
+	config: &State<Config>,
 ) -> Template {
 	let connection = &mut get_connection(connection);
-	let posts = get_user_liked_posts(connection, user.id, offset.unwrap_or(0), *WEBUI_LIMIT);
+	let posts = get_user_liked_posts(connection, user.id, offset.unwrap_or(0), config.webui_limit);
 	Template::render(
 		"liked",
 		context![
 			posts: &posts,
-			is_logged_in: is_logged_in(connection, cookies),
+			is_logged_in: is_logged_in(connection, cookies, config),
 			title: "Liked Mods",
 			description: "Liked Mods",
 			offset: offset,
-			theme: get_theme(cookies),
-			game_tags: TAG_TOML.game_tags.clone(),
-			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&user.id),
-			base_url: BASE_URL.to_string(),
-			gtag: GTAG.to_string(),
-			game_name: GAME_NAME.to_string(),
+			theme: get_theme(cookies, config),
+			game_tags: config.tag_toml.game_tags.clone(),
+			type_tags: config.tag_toml.type_tags.clone(),
+			is_admin: config.admins.contains(&user.id),
+			base_url: config.base_url.clone(),
+			gtag: config.gtag.clone(),
+			game_name: config.game_name.clone(),
 		],
 	)
 }
@@ -442,8 +493,9 @@ pub fn admin(
 	connection: &ConnectionState,
 	user: User,
 	cookies: &CookieJar<'_>,
+	config: &State<Config>,
 ) -> Result<Template, Redirect> {
-	if !ADMINS.contains(&user.id) {
+	if !config.admins.contains(&user.id) {
 		return Err(Redirect::to("/"));
 	}
 	let connection = &mut get_connection(connection);
@@ -451,22 +503,27 @@ pub fn admin(
 		"admin",
 		context![
 			is_logged_in: true,
-			theme: get_theme(cookies),
-			game_tags: TAG_TOML.game_tags.clone(),
-			type_tags: TAG_TOML.type_tags.clone(),
+			theme: get_theme(cookies, config),
+			game_tags: config.tag_toml.game_tags.clone(),
+			type_tags: config.tag_toml.type_tags.clone(),
 			is_admin: true,
 			reports: get_reports(connection),
-			posts: get_latest_posts_unfiltered(connection, *WEBUI_LIMIT),
-			base_url: BASE_URL.to_string(),
-			gtag: GTAG.to_string(),
-			game_name: GAME_NAME.to_string(),
+			posts: get_latest_posts_unfiltered(connection, config.webui_limit),
+			base_url: config.base_url.clone(),
+			gtag: config.gtag.clone(),
+			game_name: config.game_name.clone(),
 		],
 	))
 }
 
 #[get("/posts/<id>/remove")]
-pub fn remove_post_admin(connection: &ConnectionState, user: User, id: i32) -> Redirect {
-	if !ADMINS.contains(&user.id) {
+pub fn remove_post_admin(
+	connection: &ConnectionState,
+	user: User,
+	id: i32,
+	config: &State<Config>,
+) -> Redirect {
+	if !config.admins.contains(&user.id) {
 		return Redirect::to("/");
 	}
 	let connection = &mut get_connection(connection);
@@ -475,8 +532,13 @@ pub fn remove_post_admin(connection: &ConnectionState, user: User, id: i32) -> R
 }
 
 #[get("/report/<id>/remove")]
-pub fn remove_report(connection: &ConnectionState, user: User, id: i32) -> Redirect {
-	if !ADMINS.contains(&user.id) {
+pub fn remove_report(
+	connection: &ConnectionState,
+	user: User,
+	id: i32,
+	config: &State<Config>,
+) -> Redirect {
+	if !config.admins.contains(&user.id) {
 		return Redirect::to("/");
 	}
 	let connection = &mut get_connection(connection);
@@ -493,6 +555,7 @@ pub fn report(
 	user: User,
 	id: i32,
 	cookies: &CookieJar<'_>,
+	config: &State<Config>,
 ) -> Result<Template, Redirect> {
 	let connection = &mut get_connection(connection);
 	let post = match get_post(connection, id) {
@@ -502,16 +565,16 @@ pub fn report(
 	Ok(Template::render(
 		"report",
 		context![
-			is_logged_in: is_logged_in(connection, cookies),
-			theme: get_theme(cookies),
+			is_logged_in: is_logged_in(connection, cookies, config),
+			theme: get_theme(cookies, config),
 			user: &user,
 			post: &post,
-			game_tags: TAG_TOML.game_tags.clone(),
-			type_tags: TAG_TOML.type_tags.clone(),
-			is_admin: ADMINS.contains(&user.id),
-			base_url: BASE_URL.to_string(),
-			gtag: GTAG.to_string(),
-			game_name: GAME_NAME.to_string(),
+			game_tags: config.tag_toml.game_tags.clone(),
+			type_tags: config.tag_toml.type_tags.clone(),
+			is_admin: config.admins.contains(&user.id),
+			base_url: config.base_url.clone(),
+			gtag: config.gtag.clone(),
+			game_name: config.game_name.clone(),
 		],
 	))
 }

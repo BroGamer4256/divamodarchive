@@ -2,6 +2,7 @@ use crate::database::*;
 use crate::models::*;
 use rocket::http::Status;
 use rocket::serde::json::Json;
+use rocket::State;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -53,15 +54,16 @@ pub async fn login(
 	connection: &ConnectionState,
 	code: String,
 	redirect_uri: Option<String>,
+	config: &State<Config>,
 ) -> Result<String, Status> {
 	let mut params = std::collections::HashMap::new();
-	params.insert("client_id", DISCORD_ID.to_string());
-	params.insert("client_secret", DISCORD_SECRET.to_string());
+	params.insert("client_id", config.discord_id.clone());
+	params.insert("client_secret", config.discord_secret.clone());
 	params.insert("grant_type", String::from("authorization_code"));
 	params.insert("code", code);
 	params.insert(
 		"redirect_uri",
-		redirect_uri.unwrap_or(format!("{}/api/v1/users/login", *BASE_URL)),
+		redirect_uri.unwrap_or(format!("{}/api/v1/users/login", config.base_url)),
 	);
 	let response = reqwest::Client::new()
 		.post("https://discord.com/api/v10/oauth2/token")
@@ -107,7 +109,7 @@ pub async fn login(
 	let connection = &mut get_connection(connection);
 	let result = create_user(connection, id, &response.username, &avatar);
 	match result {
-		Some(_) => Ok(create_jwt(id)),
+		Some(_) => Ok(create_jwt(id, config)),
 		None => Err(Status::BadRequest),
 	}
 }
@@ -126,6 +128,7 @@ pub fn latest(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
+	config: &State<Config>,
 ) -> Option<Json<Vec<ShortUserPosts>>> {
 	let connection = &mut get_connection(connection);
 	let result = get_user_posts_latest(
@@ -133,7 +136,7 @@ pub fn latest(
 		id,
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
-		limit.unwrap_or(*WEBUI_LIMIT),
+		limit.unwrap_or(config.webui_limit),
 	)?;
 	Some(Json(result))
 }
@@ -145,6 +148,7 @@ pub fn popular(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
+	config: &State<Config>,
 ) -> Option<Json<Vec<ShortUserPosts>>> {
 	let connection = &mut get_connection(connection);
 	let result = get_user_posts_popular(
@@ -152,7 +156,7 @@ pub fn popular(
 		id,
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
-		limit.unwrap_or(*WEBUI_LIMIT),
+		limit.unwrap_or(config.webui_limit),
 	)?;
 	Some(Json(result))
 }

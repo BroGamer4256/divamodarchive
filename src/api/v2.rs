@@ -3,6 +3,7 @@
 // V2 is designed specifically for apps which simply want to read posts
 
 use crate::database::*;
+use crate::models;
 use crate::models::*;
 use rocket::fairing::*;
 use rocket::http::*;
@@ -34,6 +35,7 @@ pub fn latest_detailed(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
+	config: &State<models::Config>,
 ) -> Option<Json<Vec<DetailedPost>>> {
 	let connection = &mut get_connection(connection);
 	let posts = get_latest_posts_detailed(
@@ -41,7 +43,7 @@ pub fn latest_detailed(
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
-		limit.unwrap_or(*WEBUI_LIMIT),
+		limit.unwrap_or(config.webui_limit),
 	)?;
 	Some(Json(posts))
 }
@@ -53,6 +55,7 @@ pub fn latest_short(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
+	config: &State<models::Config>,
 ) -> Option<Json<Vec<ShortPost>>> {
 	let connection = &mut get_connection(connection);
 	let result = get_latest_posts(
@@ -60,7 +63,7 @@ pub fn latest_short(
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
-		limit.unwrap_or(*WEBUI_LIMIT),
+		limit.unwrap_or(config.webui_limit),
 	)?;
 	Some(Json(result))
 }
@@ -72,6 +75,7 @@ pub fn popular_detailed(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
+	config: &State<models::Config>,
 ) -> Option<Json<Vec<DetailedPost>>> {
 	let connection = &mut get_connection(connection);
 	let result = get_popular_posts_detailed(
@@ -79,7 +83,7 @@ pub fn popular_detailed(
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
-		limit.unwrap_or(*WEBUI_LIMIT),
+		limit.unwrap_or(config.webui_limit),
 	)?;
 	Some(Json(result))
 }
@@ -91,6 +95,7 @@ pub fn popular_short(
 	offset: Option<i64>,
 	game_tag: Option<i32>,
 	limit: Option<i64>,
+	config: &State<models::Config>,
 ) -> Option<Json<Vec<ShortPost>>> {
 	let connection = &mut get_connection(connection);
 	let result = get_popular_posts(
@@ -98,7 +103,7 @@ pub fn popular_short(
 		name.unwrap_or_default(),
 		offset.unwrap_or(0),
 		game_tag.unwrap_or(0),
-		limit.unwrap_or(*WEBUI_LIMIT),
+		limit.unwrap_or(config.webui_limit),
 	)?;
 	Some(Json(result))
 }

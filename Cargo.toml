@@ -10,14 +10,14 @@ rocket_dyn_templates = { version = "0.1.0-rc.2", features = ["tera"] }
 diesel = { version = "2.0.2", features = ["postgres", "extras", "r2d2"] }
 dotenvy = "0.15.6"
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
-serde = { version = "1.0.145", features = ["derive"] }
-serde_with = { version = "2.0.1", features = ["chrono"] }
+serde = { version = "1.0.147", features = ["derive"] }
+serde_with = { version = "2.1.0", features = ["chrono"] }
 jsonwebtoken = "8.1.1"
-chrono = "0.4.22"
-reqwest = { version = "0.11.12", features = ["json", "multipart", "blocking"] }
+chrono = "0.4.23"
+reqwest = { version = "0.11.13", features = ["json", "multipart", "blocking"] }
 toml = "0.5.9"
-quick-xml = { version = "0.25.0", features = ["serialize"] }
-aws-sdk-s3 = "0.19.0"
-aws-config = "0.49.0"
+quick-xml = { version = "0.26.0", features = ["serialize"] }
+aws-sdk-s3 = "0.21.0"
+aws-config = "0.51.0"
 bigdecimal = "0.3.0"
 urlencoding = "2.1.2"

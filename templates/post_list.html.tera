@@ -6,8 +6,10 @@
 {% endblock head %}
 
 {% block content %}
+{% if count > 0 %}
 {{ posts::draw_search_box(previous_title=previous_search, previous_sort=previous_sort,
 previous_game_tag=previous_game_tag) }}
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3105671526550373" crossorigin="anonymous"></script>
 <div class="row row-cols-2 row-cols-lg-4 gy-3">
 	{% for post in posts %}
 	{% set game_tag = game_tags | filter(attribute="id", value=post.game_tag) | first %}
@@ -18,7 +20,6 @@ previous_game_tag=previous_game_tag) }}
 	{% if base_url == "https://divamodarchive.com" and loop.index % 5 == 0 %}
 	<div class="col adsbygooglecontainer">
 		<div class="card shadow-sm">
-			<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3105671526550373" crossorigin="anonymous"></script>
 			<ins class="adsbygoogle"
 				style="display:block"
 				data-ad-format="fluid"
@@ -44,4 +45,12 @@ previous_game_tag=previous_game_tag) }}
 </script>
 {% set length = posts | length %}
 {{ posts::draw_buttons(current_offset=offset, draw_forward=length == 20 and count > offset + length, order=previous_sort, game_tag=previous_game_tag, name=previous_search) }}
+{% else %}
+<div class="card">
+	<div class="card-body">
+		<h1 class="text">No posts found</h1>
+	</div>
+</div>
+{{ posts::draw_search_box(previous_title=previous_search, previous_sort=previous_sort, previous_game_tag=previous_game_tag) }}
+{% endif %}
 {% endblock content %}

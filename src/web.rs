@@ -94,7 +94,7 @@ pub fn find_posts(
 	user: Option<User>,
 	cookies: &CookieJar<'_>,
 	config: &State<Config>,
-) -> Option<Template> {
+) -> Template {
 	let sort_order = match order.clone() {
 		Some(order) => match order.as_str() {
 			"popular" => Order::Popular,
@@ -117,29 +117,30 @@ pub fn find_posts(
 			offset,
 			game_tag,
 			config.webui_limit,
-		)?,
+		),
 		Order::Popular => get_popular_posts(
 			connection,
 			name.clone(),
 			offset,
 			game_tag,
 			config.webui_limit,
-		)?,
-	};
-	let count = get_post_count(connection, name.clone(), game_tag)?;
+		),
+	}
+	.unwrap_or_default();
+	let count = get_post_count(connection, name.clone(), game_tag).unwrap_or_default();
 	let description = match sort_order {
 		Order::Latest => format!("The latest {} Mods", config.game_name.clone()),
 		Order::Popular => format!("The most popular {} Mods", config.game_name.clone()),
 	};
-	Some(Template::render(
+	Template::render(
 		"post_list",
 		context![
 			posts: &results,
-			count: count,
+			count,
 			is_logged_in: is_logged_in(connection, cookies, config),
-			title: title,
+			title,
 			description: description,
-			offset: offset,
+			offset,
 			previous_search: name,
 			previous_sort: order.unwrap_or_default(),
 			previous_game_tag: game_tag,
@@ -151,7 +152,7 @@ pub fn find_posts(
 			gtag: config.gtag.clone(),
 			game_name: config.game_name.clone(),
 		],
-	))
+	)
 }
 
 #[get("/posts/<id>")]

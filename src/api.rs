@@ -224,6 +224,31 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 	let now = time::OffsetDateTime::now_utc();
 	let time = time::PrimitiveDateTime::new(now.date(), now.time());
 
+	let command = tokio::process::Command::new("rclone")
+		.arg("link")
+		.arg(format!("pixeldrainfs:/divamodarchive/{}", filepath))
+		.output()
+		.await;
+	let Ok(command) = command else {
+		return;
+	};
+	if !command.status.success() {
+		return;
+	}
+	let Ok(path) = String::from_utf8(command.stdout) else {
+		return;
+	};
+
+	if !path.starts_with("https://pixeldrain.com/d/") {
+		return;
+	}
+
+	let download = path.trim().replace(
+		"https://pixeldrain.com/d/",
+		"https://pixeldrain.com/api/filesystem/",
+	);
+	let download = format!("{download}?download");
+
 	let post_id = if let Some(post_id) = params.id {
 		_ = sqlx::query!(
 			"UPDATE posts SET name = $2, text = $3, type = $4, file = $5, images = $6, time = $7 WHERE id = $1",
@@ -231,7 +256,7 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 			params.name,
 			params.text,
 			params.post_type,
-			filepath,
+			download,
 			&images,
 			time
 		)
@@ -240,7 +265,7 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 
 		post_id
 	} else {
-		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, file, time, type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ID", params.name, params.text, &images, filepath, time, params.post_type)
+		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, file, time, type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ID", params.name, params.text, &images, download, time, params.post_type)
 			.fetch_one(&state.db)
 			.await else {
 				return;
@@ -276,30 +301,6 @@ async fn download(
 		return Err(StatusCode::NOT_FOUND);
 	};
 
-	let command = tokio::process::Command::new("rclone")
-		.arg("link")
-		.arg(format!("pixeldrainfs:/divamodarchive/{}", post.file))
-		.output()
-		.await;
-	let Ok(command) = command else {
-		return Err(StatusCode::INTERNAL_SERVER_ERROR);
-	};
-	if !command.status.success() {
-		return Err(StatusCode::INTERNAL_SERVER_ERROR);
-	}
-	let Ok(path) = String::from_utf8(command.stdout) else {
-		return Err(StatusCode::INTERNAL_SERVER_ERROR);
-	};
-
-	if !path.starts_with("https://pixeldrain.com/d/") {
-		return Err(StatusCode::NOT_FOUND);
-	}
-
-	let path = path.trim().replace(
-		"https://pixeldrain.com/d/",
-		"https://pixeldrain.com/api/filesystem/",
-	);
-
 	_ = sqlx::query!(
 		"UPDATE posts SET download_count = download_count +1 WHERE id = $1",
 		id
@@ -311,7 +312,7 @@ async fn download(
 		_ = state.meilisearch.add_or_update(&[post], None).await;
 	};
 
-	Ok(Redirect::to(&format!("{path}?download")))
+	Ok(Redirect::permanent(&post.file))
 }
 
 async fn like(Path(id): Path<i32>, user: User, State(state): State<AppState>) -> StatusCode {

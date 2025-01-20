@@ -50,11 +50,11 @@
 <div style="display: flex; justify-content: center;">
 	<div class="row row-cols-2 row-cols-md-4">
 		<div class="col flex-md-grow-1">
-			<input class="form-control list-text" type="text" placeholder="Query" name="query" id="searchQuery"
-				autocomplete="off">
+			<input onchange="search()" class="form-control list-text" type="text" placeholder="Query" name="query"
+				id="searchQuery" autocomplete="off">
 		</div>
 		<div class="col flex-md-grow-1">
-			<select name="sort" id="searchSort" class="form-control list-text">
+			<select onchange="search()" name="sort" id="searchSort" class="form-control list-text">
 				<option value="time:desc">Newest</option>
 				<option value="time:asc">Oldest</option>
 				<option value="download_count:desc">Downloads</option>
@@ -62,7 +62,7 @@
 			</select>
 		</div>
 		<div class="col flex-md-grow-1">
-			<select name="filter" id="searchFilter" class="form-control list-text">
+			<select onchange="search()" name="filter" id="searchFilter" class="form-control list-text">
 				<option value="">Any</option>
 				<option value="post_type=Song">Song</option>
 				<option value="post_type=Module">Module</option>
@@ -70,9 +70,6 @@
 				<option value="post_type=Plugin">Plugin</option>
 				<option value="post_type=Other">Other</option>
 			</select>
-		</div>
-		<div class="col-1">
-			<button class="btn btn-secondary" onclick="search()">Search</button>
 		</div>
 	</div>
 </div>

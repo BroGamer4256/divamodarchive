@@ -19,8 +19,11 @@ pub fn route(state: AppState) -> Router {
 		.route("/liked/:id", get(liked))
 		.route("/user/:id", get(user))
 		.route("/upload", get(upload))
-		.route("/search", get(search))
+		//.route("/search", get(search))
 		//.route("/admin", get(admin))
+		//.route(/post/:id/edit, get(edit))
+		//.route(/post/:id/add_dependency, get(add_dependency))
+		//.route(/post/:id/report, get(report))
 		.with_state(state)
 }
 

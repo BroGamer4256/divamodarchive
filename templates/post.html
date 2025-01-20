@@ -29,8 +29,25 @@
 				'Authorization': 'Bearer {{ jwt }}'
 			}
 		}
-		fetch('/api/v1/posts/like/{{ post.id }}', options).catch(error => console.error(error));
+		fetch('/api/v1/posts/{{ post.id }}/like', options).catch(error => console.error(error));
 	}
+
+	{% if is_author %}
+	function deletePost() {
+		const options = {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			}
+		}
+		fetch("/api/v1/posts/{{ post.id }}/delete/", options)
+			.then(response => {
+				window.location.href = "/"
+			})
+			.catch(error => console.error(error))
+	}
+	{% endif %}
 </script>
 {% endif %}
 
@@ -76,7 +93,7 @@
 				}}👍</label>
 			{% endif %}
 		</div>
-		<a href="/api/v1/posts/download/{{ post.id }}" class="btn btn-sm btn-outline-success btn-success" download>
+		<a href="/api/v1/posts/{{ post.id }}/download" class="btn btn-sm btn-outline-success btn-success" download>
 			<button type="button" class="btn text-light">Download</button>
 		</a>
 		<a href="divamodmanager:dma/{{ post.id }}" class="btn btn-sm btn-outline-info btn-info" download>
@@ -87,7 +104,7 @@
 		<a href="/post/{{ post.id }}/edit" class="btn btn-sm btn-outline-warning btn-warning">
 			<button type="button" class="btn text-light">Edit</button>
 		</a>
-		<a href="/post/{{ post.id }}/dependency" class="btn btn-sm btn-outline-danger btn-danger">
+		<a href="/post/{{ post.id }}/dependency" class="btn btn-sm btn-outline-warning btn-warning">
 			<button type="button" class="btn text-light">Add dependency</button>
 		</a>
 		<div class="btn btn-sm btn-outline-danger btn-danger" onclick="deletePost()">
@@ -128,6 +145,35 @@
 		{% call post_helpers::draw_post_list(dependencies) %}
 	</div>
 	{% endif %}
+	{% endif %}
+
+	{% if let Some(comments) = post.comments %}
+	{% for (depth, comment) in comments.iter() %}
+	<div class="row g-1 m-0">
+		{% for _ in 0..=depth %}
+		<div class="col-small me-1">
+			<div class="card line"></div>
+		</div>
+		{% endfor %}
+		<div class="col row g-1">
+			<div class="row-cols-1 card p-0 fit" id="{{ comment.id }}">
+				<div class="card-body card-text text p-2">
+					{{ comment.text }}
+				</div>
+				<div class="card-footer text-muted p-2">
+					<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{comment.user.name }}</a>
+					{{ comment.time.date() }}
+					{% if let Some(user) = user %}
+					{% if user.id == comment.user.id %}
+					<!--Delete Button-->
+					{% endif %}
+					<!--Reply button modal-->
+					{% endif %}
+				</div>
+			</div>
+		</div>
+	</div>
+	{% endfor %}
 	{% endif %}
 </div><br>
 

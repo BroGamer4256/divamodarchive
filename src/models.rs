@@ -69,9 +69,10 @@ pub struct Post {
 	pub authors: Vec<User>,
 	pub dependencies: Option<Vec<Post>>,
 	#[serde(skip)]
-	pub comments: Option<slab_tree::Tree<Comment>>,
+	pub comments: Option<Comments>,
 }
 
+#[derive(Clone)]
 pub struct Comment {
 	pub id: i32,
 	pub user: User,
@@ -82,6 +83,71 @@ pub struct Comment {
 impl PartialEq for Comment {
 	fn eq(&self, other: &Self) -> bool {
 		self.id == other.id
+	}
+}
+
+pub struct Comments {
+	pub tree: slab_tree::Tree<Comment>,
+}
+
+impl Comments {
+	pub fn iter(&self) -> CommentIterator {
+		CommentIterator {
+			tree: &self.tree,
+			last_node: None,
+			skip_children: false,
+			depth: 0,
+		}
+	}
+}
+
+pub struct CommentIterator<'a> {
+	pub tree: &'a slab_tree::Tree<Comment>,
+	pub last_node: Option<slab_tree::NodeId>,
+	pub skip_children: bool,
+	pub depth: i32,
+}
+
+impl Iterator for CommentIterator<'_> {
+	type Item = (i32, Comment);
+
+	fn next(&mut self) -> Option<Self::Item> {
+		if let Some(last_node) = self.last_node {
+			let last = self.tree.get(last_node)?;
+			if !self.skip_children && last.children().count() > 0 {
+				let child = last.last_child()?;
+				self.last_node = Some(child.node_id());
+				self.skip_children = false;
+				self.depth += 1;
+
+				Some((self.depth, child.data().clone()))
+			} else {
+				if let Some(sibling) = last.prev_sibling() {
+					self.last_node = Some(sibling.node_id());
+					self.skip_children = false;
+
+					Some((self.depth, sibling.data().clone()))
+				} else {
+					let parent = last.parent()?;
+					if parent.node_id() == self.tree.root_id()? {
+						None
+					} else {
+						self.last_node = Some(parent.node_id());
+						self.skip_children = true;
+						self.depth -= 1;
+
+						self.next()
+					}
+				}
+			}
+		} else {
+			let root = self.tree.root()?;
+			let first = root.last_child()?;
+			self.last_node = Some(first.node_id());
+			self.skip_children = false;
+
+			Some((self.depth, first.data().clone()))
+		}
 	}
 }
 
@@ -193,6 +259,7 @@ impl Post {
 			.build();
 		let root = tree.root_id()?;
 		let mut ids = BTreeMap::new();
+		let mut first_comment = None;
 
 		for comment in comments {
 			if let Some(parent_id) = comment.parent {
@@ -227,8 +294,13 @@ impl Post {
 					})
 					.node_id();
 				ids.insert(comment.id, node_id);
+				if first_comment.is_none() {
+					first_comment = Some(node_id);
+				}
 			}
 		}
+
+		let comments = Comments { tree };
 
 		Some(Post {
 			id,
@@ -242,7 +314,7 @@ impl Post {
 			like_count: post.like_count.unwrap_or(0),
 			authors,
 			dependencies: Some(deps),
-			comments: Some(tree),
+			comments: Some(comments),
 		})
 	}
 

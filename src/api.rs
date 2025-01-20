@@ -30,8 +30,9 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/posts/edit", post(edit))
 		.route("/api/v1/posts/upload_image", get(upload_image))
 		.route("/api/v1/posts/upload", get(upload_ws))
-		.route("/api/v1/posts/download/:id", get(download))
-		.route("/api/v1/posts/like/:id", post(like))
+		.route("/api/v1/posts/:id/download", get(download))
+		.route("/api/v1/posts/:id/like", post(like))
+		.route("/api/v1/posts/:id/delete", delete(delete_post))
 		.with_state(state)
 }
 
@@ -399,7 +400,7 @@ async fn search_posts(
 	for id in posts {
 		if let Some(mut post) = Post::get_full(id, &state.db).await {
 			post.file = format!(
-				"https://divamodarchive.com/api/v1/posts/download/{}",
+				"https://divamodarchive.com/api/v1/posts/{}/download",
 				post.id
 			);
 			vec.push(post);
@@ -407,4 +408,24 @@ async fn search_posts(
 	}
 
 	Ok(Json(vec))
+}
+
+async fn delete_post(
+	Path(id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+) -> Result<(), StatusCode> {
+	let Some(post) = Post::get_short(id, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	if !post.authors.iter().any(|u| u.id == user.id) {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+
+	_ = sqlx::query!("DELETE FROM posts WHERE id = $1", post.id)
+		.execute(&state.db)
+		.await;
+
+	Ok(())
 }

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+{% import "post_helpers.html" as post_helpers %}
+
+{% block head %}
+{% call base::draw_embed("", "{{ post.name }}", "") %}
+{% endblock head %}
+
+{% block content %}
+{% if let Some(jwt) = jwt %}
+<script>
+	var liked = {{ has_liked }};
+
+	function onLike() {
+		if (liked) {
+			document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) - 1 + "👍";
+			document.getElementById('likedradiobtn').checked = false;
+			liked = false;
+		} else {
+			document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) + 1 + "👍";
+			document.getElementById('likedradiobtn').checked = true;
+			liked = true;
+		}
+
+		options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			}
+		}
+		fetch('/api/v1/posts/like/{{ post.id }}', options).catch(error => console.error(error));
+	}
+</script>
+{% endif %}
+
+{% for (i, image) in post.images.iter().enumerate() %}
+<div class="modal modal-xl fade" id="imgModal{{ i }}" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered ratio ratio-16x9">
+		<img src="{{ image }}" class="flat-image" loading="lazy" alt="Preview of {{ post.name }}">
+	</div>
+</div>
+{% endfor %}
+
+<div class="row align-items-md-stretch gap-3">
+	<div class="col-md-7 card card-body">
+		<h2 class="text card-title" style="text-align: center">{{ post.name }} </h2>
+		<div class="row d-flex align-items-center">
+			<div class="col-md">
+				{% for author in post.authors %}
+				<h5>
+					<a href=" /user/{{ author.id }}" class="card-subtitle text">{{ author.name }}</a>
+				</h5>
+				{% endfor %}
+			</div>
+			<div class="col-md">
+				<h5 class="card-subtitle text-align-right-md text">Downloads: {{ post.download_count }}</h5>
+			</div>
+			<h5 class="card-subtitle text">Last updated: {{ post.time.date() }}</h5>
+		</div>
+		<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal"
+			data-bs-target="#imgModal0">
+			<img src="{{ post.images.first().unwrap() }}" class="card-img-top flat-image" loading="lazy"
+				alt="Preview of {{ post.name }}">
+		</button>
+	</div>
+	<div class="col-md-3 card card-body gap-3">
+		<div class="btn-group">
+			{% if let Some(user) = user %}
+			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" {% if has_liked
+				%} checked="true" {% endif %} onclick="onLike()">
+			<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ post.like_count }}👍</label>
+			{% else %}
+			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
+			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ post.like_count
+				}}👍</label>
+			{% endif %}
+		</div>
+		<a href="/api/v1/posts/download/{{ post.id }}" class="btn btn-sm btn-outline-success btn-success" download>
+			<button type="button" class="btn text-light">Download</button>
+		</a>
+		<a href="divamodmanager:dma/{{ post.id }}" class="btn btn-sm btn-outline-info btn-info" download>
+			<button type="button" class="btn text-light">One Click Install</button>
+		</a>
+		{% if let Some(user) = user %}
+		{% if is_author %}
+		<a href="/post/{{ post.id }}/edit" class="btn btn-sm btn-outline-warning btn-warning">
+			<button type="button" class="btn text-light">Edit</button>
+		</a>
+		<a href="/post/{{ post.id }}/dependency" class="btn btn-sm btn-outline-danger btn-danger">
+			<button type="button" class="btn text-light">Add dependency</button>
+		</a>
+		<div class="btn btn-sm btn-outline-danger btn-danger" onclick="deletePost()">
+			<button type="button" class="btn text-light">Delete</button>
+		</div>
+		{% endif %}
+		<a href="/post/{{ post.id }}/report" class="btn btn-sm btn-outline-danger btn-danger">
+			<button type="button" class="btn text-light">Report</button>
+		</a>
+		{% endif %}
+	</div>
+
+	<div class="card card-body text">
+		{{ post.text }}
+	</div>
+
+	{% if post.images.len() > 1 %}
+	<div class="card card-body">
+		<h4>Additional screenshots:</h4>
+		<div class="row row-cols-2 row-cols-lg-4 gy-3">
+			{% for (i, image) in post.images.iter().enumerate().skip(1) %}
+			<div class="col">
+				<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal"
+					data-bs-target="#imgModal{{ i }}">
+					<img src="{{ image }}" class="card-img-top flat-image" loading="lazy"
+						alt="Preview of {{ post.name }}">
+				</button>
+			</div>
+			{% endfor %}
+		</div>
+	</div>
+	{% endif %}
+
+	{% if let Some(dependencies) = post.dependencies %}
+	{% if dependencies.len() > 0 %}
+	<div class="card card-body">
+		<h4>This mod requires: </h4>
+		{% call post_helpers::draw_post_list(dependencies) %}
+	</div>
+	{% endif %}
+	{% endif %}
+</div><br>
+
+{% endblock content %}

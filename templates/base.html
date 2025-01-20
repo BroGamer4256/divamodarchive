@@ -1,0 +1,126 @@
+{% macro draw_embed(title, description, image) %}
+{% if title != "" %}
+<title>{{ title }} - DIVA Mod Archive</title>
+<meta property="og:title" content="{{ title }}">
+{% else %}
+<title>DIVA Mod Archive</title>
+<meta property="og:title" content="DIVA Mod Archive">
+{% endif %}
+
+{% if description != "" %}
+<meta name="description" content="{{ description }}">
+<meta property="og:description" content="{{ description }}">
+{% endif %}
+
+{% if image != "" %}
+<meta property="og:image" content="{{ image }}">
+<meta name="twitter:card" content="summary_large_image">
+{% endif %}
+<meta property="og:site_name" content="DIVA Mod Archive">
+{% endmacro %}
+
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="utf8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	{% block head %}{% endblock %}
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/5.2.1/zephyr/bootstrap.min.css" rel="stylesheet">
+	<link rel="shortcut icon" href="https://divamodarchive.com/favicon.ico" />
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js" async></script>
+
+	<style>
+		.text {
+			color: var(--bs-body-color) !important;
+		}
+
+		.nav-link:hover {
+			color: var(--bs-secondary) !important;
+		}
+
+		.nav-link {
+			color: rgba(var(--bs-secondary-rgb), 0.75) !important;
+		}
+
+		.rounded-image {
+			border-radius: var(--bs-card-border-radius) var(--bs-card-border-radius) 0 0;
+			object-fit: contain;
+		}
+
+		.flat-image {
+			border-radius: 0;
+			object-fit: contain;
+		}
+
+		::placeholder {
+			color: var(--bs-dark) !important;
+		}
+
+		.fit {
+			width: fit-content;
+			block-size: fit-content;
+		}
+
+		.line {
+			width: 2px;
+			height: 100%;
+			background-color: var(--bs-card-cap-bg) !important;
+		}
+
+		.col-small {
+			flex: 0 0 auto;
+			width: 1%;
+		}
+
+		@media (min-width: 768px) {
+			.text-align-right-md {
+				text-align: right;
+			}
+		}
+
+		.text-align-right {
+			text-align: right;
+		}
+
+		.bg-clear {
+			background-color: transparent !important;
+		}
+
+		.border-none {
+			border: none !important;
+		}
+	</style>
+</head>
+
+<body>
+	<br>
+	<div id="content" class="container">
+		<main>
+			{% block content %}{% endblock %}
+		</main>
+	</div>
+	<br><br><br><br><br>
+	<footer>
+		<nav class="navbar navbar-dark bg-dark fixed-bottom d-flex justify-content-around shadow">
+			<a class="nav-link p-0 nav-text" href="/">Mods</a>
+			<a class="nav-link p-0 nav-text" href="/search">Search</a>
+			{% if let Some(user) = user %}
+			<a class="nav-link p-0 nav-text" href="/liked/{{ user.id }}">Liked Mods</a>
+			<a class="nav-link p-0 nav-text" href="/upload">Upload</a>
+			{% if user.is_admin(config) %}
+			<a class="nav-link p-0 nav-text" href="/admin">Admin</a>
+			{% endif %}
+			{% else %}
+			{% let discord_link =
+			format!("https://discord.com/api/oauth2/authorize?client_id=995951474959990824&redirect_uri={}&response_type=code&scope=identify",
+			url::form_urlencoded::byte_serialize("https://divamodarchive.com/login".as_bytes()).collect::<String>()) %}
+				<a class="nav-link p-0 nav-text" href="{{ discord_link }}">Login</a>
+				{% endif %}
+				<a class="nav-link p-0 nav-text" href="/about">About</a>
+		</nav>
+	</footer>
+</body>
+
+</html>

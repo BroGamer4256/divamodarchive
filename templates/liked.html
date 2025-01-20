@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+{% import "post_helpers.html" as post_helpers %}
+
+{% block head %}
+{% let owner_name = owner.name.clone() %}
+{% let description = format!("{owner_name}'s liked mods") %}
+{% call base::draw_embed("", description, "") %}
+<meta name="twitter:card" content="summary_small_image">
+{% endblock head %}
+
+{% block content %}
+{% call post_helpers::draw_post_list(posts) %}
+{% endblock content %}

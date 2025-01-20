@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+{% import "post_helpers.html" as post_helpers %}
+
+{% block head %}
+{% call base::draw_embed("", "The latest DIVA mods", "") %}
+{% endblock head %}
+
+{% block content %}
+{% call post_helpers::draw_post_list(posts) %}
+{% endblock content %}

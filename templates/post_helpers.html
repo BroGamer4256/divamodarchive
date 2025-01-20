@@ -1,0 +1,34 @@
+{% macro draw_post_short(post) %}
+<div class="col">
+	<div class="card shadow-sm">
+		<a style="text-decoration: none;" href="/post/{{ post.id }}">
+			<div class="card-img-top ratio ratio-16x9 bg-clear border-none" loading="lazy">
+				{% if let Some(image) = post.images.first() %}
+				<img src="{{ image }}" class="rounded-image" width="100%" loading="lazy">
+				{% endif %}
+			</div>
+			<div class="card-body">
+				<h5 class="text">{{ format!("{:.20}", post.name) }}{% if post.name.len() > 20 %}...{% endif %}</h5>
+				<div class="row">
+					<div class="col-md-8 text">{{ post.like_count }}👍 DLs: {{ post.download_count }}</div>
+					<div class="col-md-4 text text-align-right-md">
+						{{ post.post_type }}
+					</div>
+				</div>
+			</div>
+		</a>
+	</div>
+</div>
+{% endmacro %}
+
+{% macro draw_post_long() %}
+
+{% endmacro %}
+
+{% macro draw_post_list(posts) %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3">
+	{% for post in posts %}
+	{% call draw_post_short(post) %}
+	{% endfor %}
+</div>
+{% endmacro %}

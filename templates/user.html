@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+{% import "post_helpers.html" as post_helpers %}
+
+{% block head %}
+{% let owner_name = owner.name.clone() %}
+{% let total_likes = total_likes %}
+{% let total_downloads = total_downloads %}
+{% let description = format!("{owner_name}'s mods\n {total_likes}👍\nDownloads: {total_downloads}") %}
+{% call base::draw_embed(owner.name, description, owner.avatar) %}
+{% endblock head %}
+
+{% block content %}
+<div class="container card">
+	<div class="row border border-dark">
+		<div class="col-2 card-img-left">
+			<div class="ratio ratio-1x1">
+				<img src="{{ owner.avatar }}" crossorigin="anonymous">
+			</div>
+		</div>
+		<div class="col-10 card-body">
+			<h1 class="text">{{ owner.name }}</h1>
+			<h5 class="text">{{ total_likes }}👍</h5>
+			<h5 class="text">Downloads: {{ total_downloads }}</h5>
+            <a class="text" href="/liked/{{ owner.id }}">{{ owner.name }}'s Liked Mods</a>
+		</div>
+	</div>
+</div>
+{% call post_helpers::draw_post_list(posts) %}
+{% endblock content %}

@@ -8,6 +8,7 @@
 
 {% block content %}
 {% if let Some(jwt) = jwt %}
+{% if let Some(user) = user %}
 <script>
 	var liked = {{ has_liked }};
 
@@ -22,7 +23,7 @@
 			liked = true;
 		}
 
-		options = {
+		var options = {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -34,7 +35,7 @@
 
 	{% if is_author %}
 	function deletePost() {
-		const options = {
+		var options = {
 			method: 'DELETE',
 			headers: {
 				'Content-Type': 'application/json',
@@ -48,7 +49,64 @@
 			.catch(error => console.error(error))
 	}
 	{% endif %}
+
+	async function submitComment(text, parent) {
+		var data = {
+			'text': text,
+		}
+		if (parent != -1) {
+			data.parent = parent;
+		}
+
+		var options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify(data),
+		};
+
+		await fetch('/api/v1/posts/{{ post.id }}/comment', options).catch(error => console.error(error));
+
+		document.getElementById("startCommentButton" + parent).hidden = true;
+		var d = new Date();
+		var date = d.getUTCFullYear() + "-" + (d.getUTCMonth() + 1).toString().padStart(2, '0') + "-" + d.getUTCDate();
+		document.getElementById("submitCommentButton" + parent).outerHTML = '<a href="/user/{{ user.id }}" class="card-subtitle text-muted"> {{ user.name }}</a> ' + date;
+		document.getElementById("comment_text" + parent).outerHTML = text;
+		document.getElementById("newComment" + parent).classList.add("fit");
+	}
+
+	{% if let Some(comments) = post.comments %}
+	async function deleteComment(id) {
+		var options = {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			}
+		}
+
+		await fetch("/api/v1/posts/{{ post.id }}/comment/" + id, options).catch(error => console.error(error));
+
+		document.getElementById("comment" + id).hidden = true;
+
+		var minDepth = 0;
+		var deletingChildren = false;
+		{% for (depth, comment) in comments.iter() %}
+		if (deletingChildren && {{ depth }} <= minDepth) {
+			deletingChildren = false;
+		} else if (deletingChildren) {
+			document.getElementById("comment" + {{ comment.id }}).hidden = true;
+		} else if ({{ comment.id }} == id) {
+			minDepth = {{ depth }};
+			deletingChildren = true;
+		}
+		{% endfor %}
+	}
+	{% endif %}
 </script>
+{% endif %}
 {% endif %}
 
 {% for (i, image) in post.images.iter().enumerate() %}
@@ -75,11 +133,29 @@
 			</div>
 			<h5 class="card-subtitle text">Last updated: {{ post.time.date() }}</h5>
 		</div>
-		<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal"
-			data-bs-target="#imgModal0">
-			<img src="{{ post.images.first().unwrap() }}" class="card-img-top flat-image" loading="lazy"
-				alt="Preview of {{ post.name }}">
-		</button>
+		<div id="imageCarousel" class="carousel slide" data-bs-ride="carousel">
+			{% for (i, image) in post.images.iter().enumerate() %}
+			<div class="carousel-inner">
+				<div class="carousel-item {% if i == 0 %}active{% endif %}">
+					<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal"
+						data-bs-target="#imgModal{{ i }}">
+						<img src="{{ image }}" class="card-img-top flat-image" loading="lazy"
+							alt="Preview of {{ post.name }}">
+					</button>
+				</div>
+			</div>
+			{% endfor %}
+			{% if post.images.len() > 1 %}
+			<button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev">
+				<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+				<span class="visually-hidden">Previous</span>
+			</button>
+			<button class="carousel-control-next" type="button" data-bs-target="#imageCarousel" data-bs-slide="next">
+				<span class="carousel-control-next-icon" aria-hidden="true"></span>
+				<span class="visually-hidden">Next</span>
+			</button>
+			{% endif %}
+		</div>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
 		<div class="btn-group">
@@ -123,9 +199,9 @@
 
 	{% if post.images.len() > 1 %}
 	<div class="card card-body">
-		<h4>Additional screenshots:</h4>
+		<h4>Screenshots:</h4>
 		<div class="row row-cols-2 row-cols-lg-4 gy-3">
-			{% for (i, image) in post.images.iter().enumerate().skip(1) %}
+			{% for (i, image) in post.images.iter().enumerate() %}
 			<div class="col">
 				<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal"
 					data-bs-target="#imgModal{{ i }}">
@@ -147,9 +223,31 @@
 	{% endif %}
 	{% endif %}
 
+	{% if let Some(user) = user %}
+	<button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#commentInput-1"
+		aria-expanded="false" aria-controls="commentInput-1" id="startCommentButton-1">Comment</button>
+	<div class="collapse row g-1 m-0" id="commentInput-1">
+		<div class="col-small me-1">
+			<div class="card line"></div>
+		</div>
+		<div class="col row g-1">
+			<div class="row-cols-1 card p-0" id="newComment-1">
+				<div class="card-body card-text text p-2">
+					<textarea class="form-control" id="comment_text-1" rows="3"></textarea>
+				</div>
+				<div class="card-footer text-muted p-2">
+					<button class="btn btn-sm btn-primary" type="button" id="submitCommentButton-1"
+						onclick="submitComment(document.getElementById('comment_text-1').value, -1)">Submit
+						comment</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	{% endif %}
+
 	{% if let Some(comments) = post.comments %}
 	{% for (depth, comment) in comments.iter() %}
-	<div class="row g-1 m-0">
+	<div class="row g-1 m-0" id="comment{{ comment.id }}">
 		{% for _ in 0..=depth %}
 		<div class="col-small me-1">
 			<div class="card line"></div>
@@ -161,16 +259,35 @@
 					{{ comment.text }}
 				</div>
 				<div class="card-footer text-muted p-2">
-					<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{comment.user.name }}</a>
+					<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{ comment.user.name }}</a>
 					{{ comment.time.date() }}
 					{% if let Some(user) = user %}
+					<button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#commentInput{{comment.id}}" aria-expanded="false" aria-controls="commentInput{{comment.id}}" id="startCommentButton{{comment.id}}">Reply</button>
 					{% if user.id == comment.user.id %}
-					<!--Delete Button-->
+					<button class="btn btn-sm btn-danger" type="button" onclick="deleteComment({{ comment.id }})">Delete</button>
 					{% endif %}
-					<!--Reply button modal-->
 					{% endif %}
 				</div>
 			</div>
+			{% if let Some(user) = user %}
+			<div class="collapse row g-1 m-0" id="commentInput{{comment.id}}">
+				<div class="col-small me-1">
+					<div class="card line"></div>
+				</div>
+				<div class="col row g-1">
+					<div class="row-cols-1 card p-0" id="newComment{{comment.id}}">
+						<div class="card-body card-text text p-2">
+							<textarea class="form-control" id="comment_text{{comment.id}}" rows="3"></textarea>
+						</div>
+						<div class="card-footer text-muted p-2">
+							<button class="btn btn-sm btn-primary" type="button" id="submitCommentButton{{comment.id}}"
+								onclick="submitComment(document.getElementById('comment_text{{comment.id}}').value, {{comment.id}})">Submit
+								reply</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			{% endif %}
 		</div>
 	</div>
 	{% endfor %}

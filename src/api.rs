@@ -26,13 +26,17 @@ struct CloudflareDirectUpload {
 pub fn route(state: AppState) -> Router {
 	Router::new()
 		.route("/api/v1/posts", get(search_posts))
-		.route("/api/v1/posts/:id", get(get_post))
+		.route("/api/v1/posts/:id", get(get_post).delete(delete_post))
 		.route("/api/v1/posts/edit", post(edit))
 		.route("/api/v1/posts/upload_image", get(upload_image))
 		.route("/api/v1/posts/upload", get(upload_ws))
 		.route("/api/v1/posts/:id/download", get(download))
 		.route("/api/v1/posts/:id/like", post(like))
-		.route("/api/v1/posts/:id/delete", delete(delete_post))
+		.route("/api/v1/posts/:id/comment", post(comment))
+		.route(
+			"/api/v1/posts/:post/comment/:comment",
+			delete(delete_comment),
+		)
 		.with_state(state)
 }
 
@@ -426,6 +430,50 @@ async fn delete_post(
 	_ = sqlx::query!("DELETE FROM posts WHERE id = $1", post.id)
 		.execute(&state.db)
 		.await;
+
+	Ok(())
+}
+
+#[derive(Serialize, Deserialize)]
+struct CommentRequest {
+	text: String,
+	parent: Option<i32>,
+}
+
+async fn comment(
+	Path(id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+	Json(comment): Json<CommentRequest>,
+) -> Result<(), StatusCode> {
+	if Post::get_short(id, &state.db).await.is_none() {
+		return Err(StatusCode::NOT_FOUND);
+	}
+	let now = time::OffsetDateTime::now_utc();
+	let time = time::PrimitiveDateTime::new(now.date(), now.time());
+
+	_ = sqlx::query!("INSERT INTO post_comments (post_id, user_id, text, parent, time) VALUES ($1, $2, $3, $4, $5)", id, user.id, comment.text, comment.parent, time).execute(&state.db).await;
+
+	Ok(())
+}
+
+async fn delete_comment(
+	Path((post, comment)): Path<(i32, i32)>,
+	user: User,
+	State(state): State<AppState>,
+) -> Result<(), StatusCode> {
+	if Post::get_short(post, &state.db).await.is_none() {
+		return Err(StatusCode::NOT_FOUND);
+	}
+
+	_ = sqlx::query!(
+		"DELETE FROM post_comments WHERE id = $1 AND post_id = $2 AND user_id = $3",
+		comment,
+		post,
+		user.id
+	)
+	.execute(&state.db)
+	.await;
 
 	Ok(())
 }

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+{% import "post_helpers.html" as post_helpers %}
+
+{% block head %}
+{% call base::draw_embed("", "Search DIVA mods", "") %}
+{% endblock head %}
+
+{% block content %}
+<script>
+	async function search() {
+		document.getElementById("posts").innerHTML = "";
+
+		var query = document.getElementById("searchQuery").value;
+		var sort = document.getElementById("searchSort").value;
+		var filter = document.getElementById("searchFilter").value;
+
+		var params = new URLSearchParams();
+		params.append("query", query);
+		params.append("sort", sort);
+		params.append("filter", filter);
+
+		var posts = await fetch("https://divamodarchive.com/api/v1/posts?" + params.toString()).then(req => req.json());
+
+		for (var post of posts) {
+			var div = document.createElement('div');
+			div.classList = ["col"];
+			div.innerHTML = `
+<div class="card shadow-sm">
+	<a style="text-decoration: none;" href="/post/${post.id}">
+		<div class="card-img-top ratio ratio-16x9 bg-clear border-none" loading="lazy">
+			<img src="${post.images[0]}" class="rounded-image" width="100%" loading="lazy">
+		</div>
+		<div class="card-body">
+			<h5 class="text">${post.name.substring(0, 20)}${post.name > 20 ? "..." : ""}</h5>
+			<div class="row">
+				<div class="col-md-8 text">${post.like_count}👍 DLs: ${post.download_count}</div>
+				<div class="col-md-4 text text-align-right-md">
+					${post.post_type}
+				</div>
+			</div>
+		</div>
+	</a>
+</div>
+			`;
+			document.getElementById("posts").append(div);
+		}
+	}
+</script>
+<div style="display: flex; justify-content: center;">
+	<div class="row row-cols-2 row-cols-md-4">
+		<div class="col flex-md-grow-1">
+			<input class="form-control list-text" type="text" placeholder="Query" name="query" id="searchQuery"
+				autocomplete="off">
+		</div>
+		<div class="col flex-md-grow-1">
+			<select name="sort" id="searchSort" class="form-control list-text">
+				<option value="time:desc">Newest</option>
+				<option value="time:asc">Oldest</option>
+				<option value="download_count:desc">Downloads</option>
+				<option value="like_count:desc">Likes</option>
+			</select>
+		</div>
+		<div class="col flex-md-grow-1">
+			<select name="filter" id="searchFilter" class="form-control list-text">
+				<option value="">Any</option>
+				<option value="post_type=Song">Song</option>
+				<option value="post_type=Module">Module</option>
+				<option value="post_type=UI">UI</option>
+				<option value="post_type=Plugin">Plugin</option>
+				<option value="post_type=Other">Other</option>
+			</select>
+		</div>
+		<div class="col-1">
+			<button class="btn btn-secondary" onclick="search()">Search</button>
+		</div>
+	</div>
+</div>
+<br>
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
+</div>
+{% endblock content %}

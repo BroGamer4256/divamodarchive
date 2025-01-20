@@ -8,7 +8,6 @@ use axum::{
 	Router,
 };
 use axum_extra::extract::CookieJar;
-use meilisearch_sdk::search::*;
 use serde::Deserialize;
 
 pub fn route(state: AppState) -> Router {
@@ -19,7 +18,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/liked/:id", get(liked))
 		.route("/user/:id", get(user))
 		.route("/upload", get(upload))
-		//.route("/search", get(search))
+		.route("/search", get(search))
 		//.route("/admin", get(admin))
 		//.route(/post/:id/edit, get(edit))
 		//.route(/post/:id/add_dependency, get(add_dependency))
@@ -29,7 +28,7 @@ pub fn route(state: AppState) -> Router {
 
 #[derive(Template)]
 #[template(path = "root.html")]
-pub struct RootTemplate {
+struct RootTemplate {
 	user: Option<User>,
 	config: Config,
 	posts: Vec<Post>,
@@ -59,7 +58,7 @@ async fn root(
 
 #[derive(Template)]
 #[template(path = "about.html")]
-pub struct AboutTemplate {
+struct AboutTemplate {
 	user: Option<User>,
 	config: Config,
 }
@@ -73,7 +72,7 @@ async fn about(user: Option<User>, State(state): State<AppState>) -> AboutTempla
 
 #[derive(Template)]
 #[template(path = "liked.html")]
-pub struct LikedTemplate {
+struct LikedTemplate {
 	user: Option<User>,
 	config: Config,
 	posts: Vec<Post>,
@@ -111,7 +110,7 @@ async fn liked(
 
 #[derive(Template)]
 #[template(path = "user.html")]
-pub struct UserTemplate {
+struct UserTemplate {
 	user: Option<User>,
 	config: Config,
 	posts: Vec<Post>,
@@ -162,7 +161,7 @@ struct UploadRequestParams {
 
 #[derive(Template)]
 #[template(path = "upload.html")]
-pub struct UploadTemplate {
+struct UploadTemplate {
 	user: Option<User>,
 	config: Config,
 	update: Option<Post>,
@@ -211,7 +210,7 @@ async fn upload(
 
 #[derive(Template)]
 #[template(path = "post.html")]
-pub struct PostTemplate {
+struct PostTemplate {
 	user: Option<User>,
 	jwt: Option<String>,
 	has_liked: bool,
@@ -280,25 +279,19 @@ async fn post_detail(
 	})
 }
 
+#[derive(Template)]
+#[template(path = "search.html")]
+struct SearchTemplate {
+	user: Option<User>,
+	config: Config,
+}
+
 async fn search(
 	user: Option<User>,
 	State(state): State<AppState>,
-) -> Result<RootTemplate, StatusCode> {
-	let posts = SearchQuery::new(&state.meilisearch)
-		.with_query("coolchar")
-		.with_sort(&["download_count"])
-		.with_limit(2048)
-		.execute()
-		.await
-		.map_err(|_| StatusCode::NOT_FOUND)?
-		.hits
-		.into_iter()
-		.map(|p| p.result)
-		.collect();
-
-	Ok(RootTemplate {
+) -> Result<SearchTemplate, StatusCode> {
+	Ok(SearchTemplate {
 		user,
 		config: state.config,
-		posts,
 	})
 }

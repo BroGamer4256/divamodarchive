@@ -307,6 +307,10 @@ async fn download(
 	.execute(&state.db)
 	.await;
 
+	if let Some(post) = Post::get_short(id, &state.db).await {
+		_ = state.meilisearch.add_or_update(&[post], None).await;
+	};
+
 	Ok(Redirect::to(&format!("{path}?download")))
 }
 
@@ -343,6 +347,10 @@ async fn like(Path(id): Path<i32>, user: User, State(state): State<AppState>) ->
 		.execute(&state.db)
 		.await;
 	}
+
+	if let Some(post) = Post::get_short(id, &state.db).await {
+		_ = state.meilisearch.add_or_update(&[post], None).await;
+	};
 
 	StatusCode::OK
 }

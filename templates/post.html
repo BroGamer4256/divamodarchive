@@ -33,7 +33,7 @@
 		fetch('/api/v1/posts/{{ post.id }}/like', options).catch(error => console.error(error));
 	}
 
-	{% if is_author %}
+	{% if is_author || user.is_admin(config) %}
 	function deletePost() {
 		var options = {
 			method: 'DELETE',

@@ -56,7 +56,7 @@ pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String
 
 	let lastmod = if let Ok(latest_date) = latest_date {
 		Some(Lastmod {
-			lastmod: latest_date.time.to_string(),
+			lastmod: latest_date.time.date().to_string(),
 		})
 	} else {
 		None
@@ -106,14 +106,14 @@ pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String
 					priority: String::from("1.0"),
 				},
 				lastmod: Some(Lastmod {
-					lastmod: post.time.to_string(),
+					lastmod: post.time.date().to_string(),
 				}),
 			};
 			urls.push(url);
 		}
 	};
 
-	let users = sqlx::query!("SELECT id FROM users ORDER BY id")
+	let users = sqlx::query!("SELECT DISTINCT u.id FROM users u LEFT JOIN post_authors pa ON pa.user_id = u.id WHERE pa.post_id IS NOT NULL ORDER BY id;")
 		.fetch_all(&state.db)
 		.await;
 	if let Ok(users) = users {

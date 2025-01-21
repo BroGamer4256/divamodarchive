@@ -313,7 +313,7 @@ async fn download(
 		_ = state.meilisearch.add_or_update(&[post], None).await;
 	};
 
-	Ok(Redirect::permanent(&post.file))
+	Ok(Redirect::to(&post.file))
 }
 
 async fn like(Path(id): Path<i32>, user: User, State(state): State<AppState>) -> StatusCode {

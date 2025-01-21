@@ -394,6 +394,8 @@ pub struct SearchParams {
 	pub query: Option<String>,
 	pub sort: Option<Vec<String>>,
 	pub filter: Option<String>,
+	pub limit: Option<usize>,
+	pub offset: Option<usize>,
 }
 
 async fn search_posts(
@@ -408,6 +410,9 @@ async fn search_posts(
 		.as_ref()
 		.map(|filter| meilisearch_sdk::search::Filter::new(sqlx::Either::Left(filter.as_str())));
 
+	search.limit = query.limit;
+	search.offset = query.offset;
+
 	let mut sort = vec![];
 	if let Some(qsort) = &query.sort {
 		for qsort in qsort {
@@ -416,11 +421,7 @@ async fn search_posts(
 	}
 	search.sort = Some(&sort);
 
-	let posts = search
-		.with_limit(2048)
-		.execute::<Post>()
-		.await
-		.map_err(|e| e.to_string())?;
+	let posts = search.execute::<Post>().await.map_err(|e| e.to_string())?;
 
 	let posts = posts
 		.hits

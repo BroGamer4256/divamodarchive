@@ -19,31 +19,12 @@
 		params.append("query", query);
 		params.append("sort", sort);
 		params.append("filter", filter);
+		params.append("limit", "40");
 
 		var posts = await fetch("https://divamodarchive.com/api/v1/posts?" + params.toString()).then(req => req.json());
 
 		for (var post of posts) {
-			var div = document.createElement('div');
-			div.classList = ["col"];
-			div.innerHTML = `
-<div class="card shadow-sm">
-	<a style="text-decoration: none;" href="/post/${post.id}">
-		<div class="card-img-top ratio ratio-16x9 bg-clear border-none" loading="lazy">
-			<img src="${post.images[0]}" class="rounded-image" width="100%" loading="lazy">
-		</div>
-		<div class="card-body">
-			<h5 class="text">${post.name.substring(0, 20)}${post.name.length > 20 ? "..." : ""}</h5>
-			<div class="row">
-				<div class="col-md-7 text">${post.like_count}👍 DLs: ${post.download_count}</div>
-				<div class="col-md-5 text text-align-right-md">
-					${post.post_type}
-				</div>
-			</div>
-		</div>
-	</a>
-</div>
-			`;
-			document.getElementById("posts").append(div);
+			document.getElementById("posts").append(getPostHtml(post));
 		}
 	}
 </script>
@@ -65,6 +46,7 @@
 			<select onchange="search()" name="filter" id="searchFilter" class="form-control list-text">
 				<option value="">Any</option>
 				<option value="post_type=Song">Song</option>
+				<option value="post_type=Cover">Cover</option>
 				<option value="post_type=Module">Module</option>
 				<option value="post_type=UI">UI</option>
 				<option value="post_type=Plugin">Plugin</option>

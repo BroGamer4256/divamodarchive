@@ -27,8 +27,9 @@ pub enum PostType {
 	Plugin = 0,
 	Module = 1,
 	Song = 2,
-	Ui = 3,
-	Other = 4,
+	Cover = 3,
+	Ui = 4,
+	Other = 5,
 }
 
 impl From<i32> for PostType {
@@ -37,7 +38,8 @@ impl From<i32> for PostType {
 			0 => Self::Plugin,
 			1 => Self::Module,
 			2 => Self::Song,
-			3 => Self::Ui,
+			3 => Self::Cover,
+			4 => Self::Ui,
 			_ => Self::Other,
 		}
 	}
@@ -49,6 +51,7 @@ impl std::fmt::Display for PostType {
 			PostType::Plugin => "Plugin",
 			PostType::Module => "Module",
 			PostType::Song => "Song",
+			PostType::Cover => "Cover",
 			PostType::Ui => "UI",
 			PostType::Other => "Other",
 		})

@@ -36,7 +36,7 @@ async fn root(
 	user: Option<User>,
 	State(state): State<AppState>,
 ) -> Result<RootTemplate, StatusCode> {
-	let latest_posts = sqlx::query!("SELECT id FROM posts ORDER BY time DESC")
+	let latest_posts = sqlx::query!("SELECT id FROM posts ORDER BY time DESC LIMIT 40")
 		.fetch_all(&state.db)
 		.await
 		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

@@ -70,27 +70,7 @@
 
 		var post = await res.json();
 
-		var div = document.createElement('div');
-		div.classList = ["col"];
-		div.innerHTML = `
-<div class="card shadow-sm">
-	<a style="text-decoration: none;" href="/post/${post.id}">
-		<div class="card-img-top ratio ratio-16x9 bg-clear border-none" loading="lazy">
-			<img src="${post.images[0]}" class="rounded-image" width="100%" loading="lazy">
-		</div>
-		<div class="card-body">
-			<h5 class="text">${post.name.substring(0, 20)}${post.name.length > 20 ? "..." : ""}</h5>
-			<div class="row">
-				<div class="col-md-7 text">${post.like_count}👍 DLs: ${post.download_count}</div>
-				<div class="col-md-5 text text-align-right-md">
-					${post.post_type}
-				</div>
-			</div>
-		</div>
-	</a>
-</div>
-		`;
-		document.getElementById("posts").append(div);
+		document.getElementById("posts").append(getPostHtml(post));
 		document.getElementById("postsCard").hidden = false;
 	}
 

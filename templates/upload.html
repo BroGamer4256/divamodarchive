@@ -32,18 +32,17 @@
 		options = {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'text/plain',
+				'Content-Type': 'application/json',
 				'Authorization': 'Bearer {{ jwt }}'
 			},
 			body: JSON.stringify(post_data)
 		}
 
 		fetch('/api/v1/posts/edit', options)
-			.then(response => response.json())
-			.then(data => {
-				window.location.href = "/posts/" + data['id']
+			.then(() => {
+				window.location.href = "/post/" + {{ old_post.id }}
 			})
-			.catch(error => alert("Unknown error when updating"))
+			.catch (error => alert("Unknown error when updating"))
 	}
 	{% endif %}
 
@@ -247,10 +246,13 @@
 
 		<h2 class="card-text text"><label for="title">Title: </label><input type="text" id="title" name="title"
 				autocomplete="off" {% if let Some(old_post)=update %}value="{{ old_post.name }}" {% endif %}></h2>
-		<h5>
-			<a href="/user/{{ user.as_ref().unwrap().id }}" class="card-subtitle text">{{ user.as_ref().unwrap().name
-				}}</a>
-		</h5>
+		{% if let Some(old_post) = update %}
+		{% for author in old_post.authors %}
+		<h5><a href="/user/{{ author.id }}" class="card-subtitle text">{{ author.name }}</a></h5>
+		{% endfor %}
+		{% else %}
+		<h5><a href="/user/{{ user.as_ref().unwrap().id }}" class="card-subtitle text">{{ user.as_ref().unwrap().name }}</a></h5>
+		{% endif %}
 
 		<label for="imagePicker" class="form-label mt-4">Image</label>
 		<input class="form-control" accept="image/*" type="file" id="imagePicker">

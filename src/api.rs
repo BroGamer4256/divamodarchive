@@ -433,7 +433,7 @@ async fn delete_post(
 		return Err(StatusCode::NOT_FOUND);
 	};
 
-	if !post.authors.iter().any(|u| u.id == user.id) {
+	if !post.authors.iter().any(|u| u.id == user.id) && !user.is_admin(&state.config) {
 		return Err(StatusCode::UNAUTHORIZED);
 	}
 
@@ -509,11 +509,23 @@ async fn delete_comment(
 		return Err(StatusCode::NOT_FOUND);
 	}
 
+	let comment_user = sqlx::query!(
+		"SELECT user_id from post_comments WHERE id = $1 AND post_id = $2",
+		comment,
+		post
+	)
+	.fetch_one(&state.db)
+	.await
+	.map_err(|_| StatusCode::NOT_FOUND)?;
+
+	if user.id != comment_user.user_id && !user.is_admin(&state.config) {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+
 	_ = sqlx::query!(
-		"DELETE FROM post_comments WHERE id = $1 AND post_id = $2 AND user_id = $3",
+		"DELETE FROM post_comments WHERE id = $1 AND post_id = $2",
 		comment,
 		post,
-		user.id
 	)
 	.execute(&state.db)
 	.await;

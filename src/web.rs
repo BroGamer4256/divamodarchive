@@ -8,21 +8,20 @@ use axum::{
 	Router,
 };
 use axum_extra::extract::CookieJar;
-use serde::Deserialize;
 
 pub fn route(state: AppState) -> Router {
 	Router::new()
 		.route("/", get(root))
 		.route("/about", get(about))
 		.route("/post/:id", get(post_detail))
+		.route("/post/:id/edit", get(upload))
 		.route("/liked/:id", get(liked))
 		.route("/user/:id", get(user))
 		.route("/upload", get(upload))
 		.route("/search", get(search))
 		//.route("/admin", get(admin))
-		//.route(/post/:id/edit, get(edit))
-		//.route(/post/:id/add_dependency, get(add_dependency))
-		//.route(/post/:id/report, get(report))
+		//.route("/post/:id/add_dependency", get(add_dependency))
+		//.route("/post/:id/report", get(report))
 		.with_state(state)
 }
 
@@ -154,11 +153,6 @@ async fn user(
 	})
 }
 
-#[derive(Deserialize, Clone)]
-struct UploadRequestParams {
-	update: i32,
-}
-
 #[derive(Template)]
 #[template(path = "upload.html")]
 struct UploadTemplate {
@@ -169,7 +163,7 @@ struct UploadTemplate {
 }
 
 async fn upload(
-	params: Option<Query<UploadRequestParams>>,
+	update_id: Option<Path<i32>>,
 	user: User,
 	State(state): State<AppState>,
 	cookies: CookieJar,
@@ -186,8 +180,8 @@ async fn upload(
 		}
 	};
 
-	let post = if let Some(params) = params {
-		if let Some(post) = Post::get_full(params.update, &state.db).await {
+	let post = if let Some(Path(id)) = update_id {
+		if let Some(post) = Post::get_full(id, &state.db).await {
 			if post.authors.contains(&user) {
 				Some(post)
 			} else {

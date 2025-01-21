@@ -226,13 +226,15 @@
 				</div>
 			</div>
 		</div>
-		<div class="btn btn-sm btn-outline-danger btn-danger" onclick="deletePost()">
-			<button type="button" class="btn text-light">Delete</button>
-		</div>
 		{% else %}
 		<a href="/post/{{ post.id }}/report" class="btn btn-sm btn-outline-danger btn-danger">
 			<button type="button" class="btn text-light">Report</button>
 		</a>
+		{% endif %}
+		{% if is_author || user.is_admin(config) %}
+		<div class="btn btn-sm btn-outline-danger btn-danger" onclick="deletePost()">
+			<button type="button" class="btn text-light">Delete</button>
+		</div>
 		{% endif %}
 		{% endif %}
 	</div>
@@ -309,7 +311,7 @@
 					<button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse"
 						data-bs-target="#commentInput{{comment.id}}" aria-expanded="false"
 						aria-controls="commentInput{{comment.id}}" id="startCommentButton{{comment.id}}">Reply</button>
-					{% if user.id == comment.user.id %}
+					{% if user.id == comment.user.id || user.is_admin(config) %}
 					<button class="btn btn-sm btn-danger" type="button"
 						onclick="deleteComment({{ comment.id }})">Delete</button>
 					{% endif %}

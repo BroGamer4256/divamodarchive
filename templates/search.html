@@ -8,8 +8,13 @@
 
 {% block content %}
 <script>
-	async function search() {
+	async function new_search() {
 		document.getElementById("posts").innerHTML = "";
+		search();
+	}
+
+	async function search() {
+		document.getElementById("loadMore").hidden = true;
 
 		var query = document.getElementById("searchQuery").value;
 		var sort = document.getElementById("searchSort").value;
@@ -20,11 +25,16 @@
 		params.append("sort", sort);
 		params.append("filter", filter);
 		params.append("limit", "40");
+		params.append("offset", document.getElementById("posts").children.length);
 
 		var posts = await fetch("https://divamodarchive.com/api/v1/posts?" + params.toString()).then(req => req.json());
 
 		for (var post of posts) {
 			document.getElementById("posts").append(getPostHtml(post));
+		}
+
+		if (document.getElementById("posts").children.length % 40 == 0) {
+			document.getElementById("loadMore").hidden = false;
 		}
 	}
 </script>
@@ -58,4 +68,6 @@
 <br>
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
 </div>
+<button class="btn btn-sm btn-primary" type="button" id="loadMore" onClick="search" hidden>Load more</button>
+<script>search();</script>
 {% endblock content %}

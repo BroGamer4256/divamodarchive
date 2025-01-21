@@ -7,5 +7,27 @@
 {% endblock head %}
 
 {% block content %}
+<script>
+    async function search() {
+        document.getElementById("loadMore").hidden = true;
+
+        var params = new URLSearchParams();
+        params.append("sort", "time:desc");
+        params.append("limit", "40");
+        params.append("offset", document.getElementById("posts").children.length);
+
+        var posts = await fetch("https://divamodarchive.com/api/v1/posts?" + params.toString()).then(req => req.json());
+
+        for (var post of posts) {
+            document.getElementById("posts").append(getPostHtml(post));
+        }
+
+        if (document.getElementById("posts").children.length % 40 == 0) {
+            document.getElementById("loadMore").hidden = false;
+        }
+    }
+</script>
 {% call post_helpers::draw_post_list(posts) %}
+<button class="btn btn-sm btn-primary" type="button" id="loadMore" onClick="search" {% if posts.len() !=40 %}hidden{%
+    endif %}>Load more</button>
 {% endblock content %}

@@ -86,17 +86,34 @@ async fn liked(
 		return Err(StatusCode::BAD_REQUEST);
 	};
 
-	let liked_posts = sqlx::query!("SELECT post_id FROM liked_posts WHERE user_id = $1", id)
+	let liked_posts = sqlx::query!(r#"
+	SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, like_count.like_count
+	FROM liked_posts lp
+	LEFT JOIN posts p ON lp.post_id = p.id
+	LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
+	WHERE lp.user_id = $1
+	"#, id)
 		.fetch_all(&state.db)
 		.await
 		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-	let mut posts = Vec::new();
-	for post in liked_posts {
-		if let Some(post) = Post::get_short(post.post_id, &state.db).await {
-			posts.push(post);
-		}
-	}
+	let posts = liked_posts
+		.into_iter()
+		.map(|post| Post {
+			id: post.id,
+			name: post.name,
+			text: post.text,
+			images: post.images,
+			file: post.file,
+			time: post.time,
+			post_type: post.post_type.into(),
+			download_count: post.download_count,
+			like_count: post.like_count.unwrap_or(0),
+			authors: vec![],
+			dependencies: None,
+			comments: None,
+		})
+		.collect();
 
 	Ok(LikedTemplate {
 		user,

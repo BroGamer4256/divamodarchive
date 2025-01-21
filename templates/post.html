@@ -48,6 +48,33 @@
 			})
 			.catch(error => console.error(error))
 	}
+
+	async function addAuthor() {
+		var options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: document.getElementById("authorId").value,
+		};
+
+		var res = await fetch("/api/v1/posts/{{ post.id }}/author", options);
+		if (res.status == 404) {
+			document.getElementById("authorTxt").innerText = "Could not find author, have they logged into DMA before?";
+			return;
+		} else if (!res.ok) {
+			document.getElementById("authorTxt").innerText = "Could not add author";
+			return;
+		}
+
+		var user = await res.json();
+		var h5 = document.createElement("h5");
+		h5.innerHTML = `<a href="/user/${user.id}" class="card-subtitle text">${user.name}</a>`;
+		document.getElementById("authors").append(h5);
+
+		document.getElementById("authorTxt").innerText = `Sucessfully added author ${user.name}`;
+	}
 	{% endif %}
 
 	async function submitComment(text, parent) {
@@ -121,7 +148,7 @@
 	<div class="col-md-7 card card-body">
 		<h2 class="text card-title" style="text-align: center">{{ post.name }} </h2>
 		<div class="row d-flex align-items-center">
-			<div class="col-md">
+			<div class="col-md" id="authors">
 				{% for author in post.authors %}
 				<h5>
 					<a href=" /user/{{ author.id }}" class="card-subtitle text">{{ author.name }}</a>
@@ -135,7 +162,7 @@
 		</div>
 		<div id="imageCarousel" class="carousel slide" data-bs-ride="carousel">
 			<div class="carousel-inner">
-			{% for (i, image) in post.images.iter().enumerate() %}
+				{% for (i, image) in post.images.iter().enumerate() %}
 				<div class="carousel-item {% if i == 0 %}active{% endif %}">
 					<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal"
 						data-bs-target="#imgModal{{ i }}">
@@ -143,7 +170,7 @@
 							alt="Preview of {{ post.name }}">
 					</button>
 				</div>
-			{% endfor %}
+				{% endfor %}
 			</div>
 			{% if post.images.len() > 1 %}
 			<button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev">
@@ -169,10 +196,10 @@
 				}}👍</label>
 			{% endif %}
 		</div>
-		<a href="/api/v1/posts/{{ post.id }}/download" class="btn btn-sm btn-outline-success btn-success" download>
+		<a href="/api/v1/posts/{{ post.id }}/download" class="btn btn-sm btn-outline-success btn-success">
 			<button type="button" class="btn text-light">Download</button>
 		</a>
-		<a href="divamodmanager:dma/{{ post.id }}" class="btn btn-sm btn-outline-info btn-info" download>
+		<a href="divamodmanager:dma/{{ post.id }}" class="btn btn-sm btn-outline-info btn-info">
 			<button type="button" class="btn text-light">One Click Install</button>
 		</a>
 		{% if let Some(user) = user %}
@@ -183,13 +210,30 @@
 		<a href="/post/{{ post.id }}/dependency" class="btn btn-sm btn-outline-warning btn-warning">
 			<button type="button" class="btn text-light">Add dependency</button>
 		</a>
+		<div class="btn btn-sm btn-outline-warning btn-warning">
+			<button class="btn text-light" type="button" data-bs-toggle="collapse" data-bs-target="#authorAdd"
+				aria-expanded="false" aria-controls="authorAdd">Add author</button>
+		</div>
+		<div class="collapse collapse" id="authorAdd">
+			<div class="card card-body">
+				<p id="authorTxt">
+					Any authors get full access to editing this mod.<br>
+					They cannot be removed without contacting the admins.<br>
+				</p>
+				<input class="form-control" id="authorId" type="text" autocomplete="off" placeholder="Discord ID">
+				<div class="btn btn-sm btn-outline-danger btn-danger" onclick="addAuthor()">
+					<button type="button" class="btn text-light">Confirm</button>
+				</div>
+			</div>
+		</div>
 		<div class="btn btn-sm btn-outline-danger btn-danger" onclick="deletePost()">
 			<button type="button" class="btn text-light">Delete</button>
 		</div>
-		{% endif %}
+		{% else %}
 		<a href="/post/{{ post.id }}/report" class="btn btn-sm btn-outline-danger btn-danger">
 			<button type="button" class="btn text-light">Report</button>
 		</a>
+		{% endif %}
 		{% endif %}
 	</div>
 
@@ -262,9 +306,12 @@
 					<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{ comment.user.name }}</a>
 					{{ comment.time.date() }}
 					{% if let Some(user) = user %}
-					<button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#commentInput{{comment.id}}" aria-expanded="false" aria-controls="commentInput{{comment.id}}" id="startCommentButton{{comment.id}}">Reply</button>
+					<button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse"
+						data-bs-target="#commentInput{{comment.id}}" aria-expanded="false"
+						aria-controls="commentInput{{comment.id}}" id="startCommentButton{{comment.id}}">Reply</button>
 					{% if user.id == comment.user.id %}
-					<button class="btn btn-sm btn-danger" type="button" onclick="deleteComment({{ comment.id }})">Delete</button>
+					<button class="btn btn-sm btn-danger" type="button"
+						onclick="deleteComment({{ comment.id }})">Delete</button>
 					{% endif %}
 					{% endif %}
 				</div>

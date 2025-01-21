@@ -79,10 +79,10 @@
 			<img src="${post.images[0]}" class="rounded-image" width="100%" loading="lazy">
 		</div>
 		<div class="card-body">
-			<h5 class="text">${post.name.substring(0, 20)}${post.name > 20 ? "..." : ""}</h5>
+			<h5 class="text">${post.name.substring(0, 20)}${post.name.length > 20 ? "..." : ""}</h5>
 			<div class="row">
-				<div class="col-md-8 text">${post.like_count}👍 DLs: ${post.download_count}</div>
-				<div class="col-md-4 text text-align-right-md">
+				<div class="col-md-7 text">${post.like_count}👍 DLs: ${post.download_count}</div>
+				<div class="col-md-5 text text-align-right-md">
 					${post.post_type}
 				</div>
 			</div>
@@ -296,9 +296,7 @@
 		{% endif %}
 	</div>
 
-	<div class="card card-body text">
-		{{ post.text }}
-	</div>
+	<div class="card card-body text" style="white-space: pre-wrap">{{ post.text }}</div>
 
 	{% if post.images.len() > 1 %}
 	<div class="card card-body">

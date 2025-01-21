@@ -220,6 +220,9 @@
 				window.location.href = event.data;
 			}
 		});
+
+		socket.addEventListener("close", async (event) => console.log(event));
+		socket.addEventListener("error", async (event) => alert("Websocket error: " + event));
 	}
 </script>
 <form id="form" class="row align-items-md-stretch gap-3" enctype="application/x-www-form-urlencoded">
@@ -230,7 +233,6 @@
 		</p>
 		<ul class="mb-0">
 			<li class="text">Copyright infringement</li>
-			<li class="text">Duplicate post</li>
 			<li class="text">Unreasonably low quality</li>
 		</ul>
 	</div>
@@ -262,7 +264,6 @@
 		<label for="imagesExtra" class="form-label mt-4">Optional: Extra images</label>
 		<input class="form-control" accept="image/*" type="file" id="imagesExtra" multiple>
 		<div id="imagesExtraPreview" class="row row-cols-2 row-cols-lg-4 gy-3" style="display: none;">
-
 			<!--
 			<div class="col">
 				<img src="" class="card-img-top flat-image">

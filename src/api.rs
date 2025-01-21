@@ -124,6 +124,33 @@ async fn edit(
 	Ok(())
 }
 
+async fn get_download_link(filepath: &str) -> Option<String> {
+	let command = tokio::process::Command::new("rclone")
+		.arg("link")
+		.arg(format!("pixeldrainfs:/divamodarchive/{}", filepath))
+		.output()
+		.await;
+	let Ok(command) = command else {
+		return None;
+	};
+	if !command.status.success() {
+		return None;
+	}
+	let Ok(path) = String::from_utf8(command.stdout) else {
+		return None;
+	};
+
+	if !path.starts_with("https://pixeldrain.com/d/") {
+		return None;
+	}
+
+	let download = path.trim().replace(
+		"https://pixeldrain.com/d/",
+		"https://pixeldrain.com/api/filesystem/",
+	);
+	Some(format!("{download}?download"))
+}
+
 async fn upload_ws(ws: ws::WebSocketUpgrade, State(state): State<AppState>) -> Response {
 	ws.on_upgrade(move |socket| real_upload_ws(socket, state))
 }
@@ -226,30 +253,19 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 	let now = time::OffsetDateTime::now_utc();
 	let time = time::PrimitiveDateTime::new(now.date(), now.time());
 
-	let command = tokio::process::Command::new("rclone")
-		.arg("link")
-		.arg(format!("pixeldrainfs:/divamodarchive/{}", filepath))
-		.output()
-		.await;
-	let Ok(command) = command else {
-		return;
-	};
-	if !command.status.success() {
-		return;
-	}
-	let Ok(path) = String::from_utf8(command.stdout) else {
-		return;
-	};
-
-	if !path.starts_with("https://pixeldrain.com/d/") {
-		return;
+	// pixeldrain occassionaly, seemingly randomly, errors here
+	let mut download = None;
+	for _ in 1..=3 {
+		download = get_download_link(&filepath).await;
+		if download.is_some() {
+			break;
+		}
 	}
 
-	let download = path.trim().replace(
-		"https://pixeldrain.com/d/",
-		"https://pixeldrain.com/api/filesystem/",
-	);
-	let download = format!("{download}?download");
+	let Some(download) = download else {
+		println!("Failed to get public link for {filepath}");
+		return;
+	};
 
 	let post_id = if let Some(post_id) = params.id {
 		_ = sqlx::query!(
@@ -270,6 +286,7 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, file, time, type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ID", params.name, params.text, &images, download, time, params.post_type)
 			.fetch_one(&state.db)
 			.await else {
+				println!("Failed to insert into database {} {} {:?} {} {} {}", params.name, params.text, &images, download, time, params.post_type);
 				return;
 			};
 

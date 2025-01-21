@@ -161,14 +161,6 @@
 {% endif %}
 {% endif %}
 
-{% for (i, image) in post.images.iter().enumerate() %}
-<div class="modal modal-xl fade" id="imgModal{{ i }}" tabindex="-1" aria-hidden="true">
-	<div class="modal-dialog modal-dialog-centered ratio ratio-16x9">
-		<img src="{{ image }}" class="flat-image" loading="lazy" alt="Preview of {{ post.name }}">
-	</div>
-</div>
-{% endfor %}
-
 <div class="row align-items-md-stretch gap-3">
 	<div class="col-md-7 card card-body">
 		<h2 class="text card-title" style="text-align: center">{{ post.name }} </h2>
@@ -189,8 +181,7 @@
 			<div class="carousel-inner">
 				{% for (i, image) in post.images.iter().enumerate() %}
 				<div class="carousel-item {% if i == 0 %}active{% endif %}">
-					<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal"
-						data-bs-target="#imgModal{{ i }}">
+					<button type="button" class="ratio ratio-16x9 bg-clear border-none">
 						<img src="{{ image }}" class="card-img-top flat-image" loading="lazy"
 							alt="Preview of {{ post.name }}">
 					</button>
@@ -284,8 +275,7 @@
 		<div class="row row-cols-2 row-cols-lg-4 gy-3">
 			{% for (i, image) in post.images.iter().enumerate() %}
 			<div class="col">
-				<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal"
-					data-bs-target="#imgModal{{ i }}">
+				<button type="button" class="ratio ratio-16x9 bg-clear border-none">
 					<img src="{{ image }}" class="card-img-top flat-image" loading="lazy"
 						alt="Preview of {{ post.name }}">
 				</button>

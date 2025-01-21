@@ -49,6 +49,51 @@
 			.catch(error => console.error(error))
 	}
 
+	async function addDependency() {
+		var options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: document.getElementById("dependencyId").value,
+		};
+
+		var res = await fetch("/api/v1/posts/{{ post.id }}/dependency", options);
+		if (res.status == 404) {
+			document.getElementById("dependencyTxt").innerText = "Could not find dependency";
+			return;
+		} else if (!res.ok) {
+			document.getElementById("dependencyTxt").innerText = "Could not add dependency";
+			return;
+		}
+
+		var post = await res.json();
+
+		var div = document.createElement('div');
+		div.classList = ["col"];
+		div.innerHTML = `
+<div class="card shadow-sm">
+	<a style="text-decoration: none;" href="/post/${post.id}">
+		<div class="card-img-top ratio ratio-16x9 bg-clear border-none" loading="lazy">
+			<img src="${post.images[0]}" class="rounded-image" width="100%" loading="lazy">
+		</div>
+		<div class="card-body">
+			<h5 class="text">${post.name.substring(0, 20)}${post.name > 20 ? "..." : ""}</h5>
+			<div class="row">
+				<div class="col-md-8 text">${post.like_count}👍 DLs: ${post.download_count}</div>
+				<div class="col-md-4 text text-align-right-md">
+					${post.post_type}
+				</div>
+			</div>
+		</div>
+	</a>
+</div>
+		`;
+		document.getElementById("posts").append(div);
+		document.getElementById("postsCard").hidden = false;
+	}
+
 	async function addAuthor() {
 		var options = {
 			method: 'POST',
@@ -207,9 +252,21 @@
 		<a href="/post/{{ post.id }}/edit" class="btn btn-sm btn-outline-warning btn-warning">
 			<button type="button" class="btn text-light">Edit</button>
 		</a>
-		<a href="/post/{{ post.id }}/dependency" class="btn btn-sm btn-outline-warning btn-warning">
-			<button type="button" class="btn text-light">Add dependency</button>
-		</a>
+		<div class="btn btn-sm btn-outline-warning btn-warning">
+			<button class="btn text-light" type="button" data-bs-toggle="collapse" data-bs-target="#dependencyAdd"
+				aria-expanded="false" aria-controls="dependencyAdd">Add dependency</button>
+		</div>
+		<div class="collapse collapse" id="dependencyAdd">
+			<div class="card card-body">
+				<p id="dependencyTxt">
+					Get the id from a post by looking at the URL.
+				</p>
+				<input class="form-control" id="dependencyId" type="text" autocomplete="off" placeholder="Post ID">
+				<div class="btn btn-sm btn-outline-danger btn-danger" onclick="addDependency()">
+					<button type="button" class="btn text-light">Confirm</button>
+				</div>
+			</div>
+		</div>
 		<div class="btn btn-sm btn-outline-warning btn-warning">
 			<button class="btn text-light" type="button" data-bs-toggle="collapse" data-bs-target="#authorAdd"
 				aria-expanded="false" aria-controls="authorAdd">Add author</button>
@@ -265,6 +322,16 @@
 	<div class="card card-body">
 		<h4>This mod requires: </h4>
 		{% call post_helpers::draw_post_list(dependencies) %}
+	</div>
+	{% endif %}
+	{% endif %}
+
+	{% if post.dependencies.is_none() || post.dependencies.as_ref().unwrap().len() == 0 %}
+	{% if is_author %}
+	<div class="card card-body" id="postsCard" hidden>
+		<h4>This mod requires: </h4>
+		<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
+		</div>
 	</div>
 	{% endif %}
 	{% endif %}

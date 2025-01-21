@@ -20,7 +20,6 @@ pub fn route(state: AppState) -> Router {
 		.route("/upload", get(upload))
 		.route("/search", get(search))
 		//.route("/admin", get(admin))
-		//.route("/post/:id/add_dependency", get(add_dependency))
 		//.route("/post/:id/report", get(report))
 		.with_state(state)
 }

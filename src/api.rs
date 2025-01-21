@@ -34,6 +34,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/posts/:id/like", post(like))
 		.route("/api/v1/posts/:id/comment", post(comment))
 		.route("/api/v1/posts/:id/author", post(add_author))
+		.route("/api/v1/posts/:id/dependency", post(add_dependency))
 		.route(
 			"/api/v1/posts/:post/comment/:comment",
 			delete(delete_comment),
@@ -475,6 +476,40 @@ async fn add_author(
 	.await;
 
 	Ok(Json(new_author))
+}
+
+async fn add_dependency(
+	Path(id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+	Json(dependency): Json<i32>,
+) -> Result<Json<Post>, StatusCode> {
+	let Some(post) = Post::get_full(id, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	let Some(dependency) = Post::get_full(dependency, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	if !post.authors.iter().any(|u| u.id == user.id) {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+	if let Some(dependencies) = post.dependencies {
+		if dependencies.iter().any(|p| p.id == dependency.id) {
+			return Err(StatusCode::BAD_REQUEST);
+		}
+	}
+
+	_ = sqlx::query!(
+		"INSERT INTO post_dependencies (post_id, dependency_id) VALUES ($1, $2)",
+		post.id,
+		dependency.id
+	)
+	.execute(&state.db)
+	.await;
+
+	Ok(Json(dependency))
 }
 
 #[derive(Serialize, Deserialize)]

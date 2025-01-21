@@ -22,7 +22,7 @@
 {% endmacro %}
 
 {% macro draw_post_list(posts) %}
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3">
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
 	{% for post in posts %}
 	{% call draw_post_short(post) %}
 	{% endfor %}

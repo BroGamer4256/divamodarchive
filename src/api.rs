@@ -33,6 +33,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/posts/:id/download", get(download))
 		.route("/api/v1/posts/:id/like", post(like))
 		.route("/api/v1/posts/:id/comment", post(comment))
+		.route("/api/v1/posts/:id/author", post(add_author))
 		.route(
 			"/api/v1/posts/:post/comment/:comment",
 			delete(delete_comment),
@@ -441,6 +442,39 @@ async fn delete_post(
 		.await;
 
 	Ok(())
+}
+
+async fn add_author(
+	Path(id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+	Json(new_author): Json<i64>,
+) -> Result<Json<User>, StatusCode> {
+	let Some(post) = Post::get_short(id, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	if !post.authors.iter().any(|u| u.id == user.id) {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+	if post.authors.iter().any(|u| u.id == new_author) {
+		return Err(StatusCode::BAD_REQUEST);
+	}
+
+	let new_author = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", new_author)
+		.fetch_one(&state.db)
+		.await
+		.map_err(|_| StatusCode::NOT_FOUND)?;
+
+	_ = sqlx::query!(
+		"INSERT INTO post_authors (post_id, user_id) VALUES ($1, $2)",
+		post.id,
+		new_author.id
+	)
+	.execute(&state.db)
+	.await;
+
+	Ok(Json(new_author))
 }
 
 #[derive(Serialize, Deserialize)]

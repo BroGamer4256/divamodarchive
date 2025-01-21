@@ -81,7 +81,7 @@
 				'Content-Type': 'application/json',
 				'Authorization': 'Bearer {{ jwt }}'
 			},
-			body: document.getElementById("authorId").value,
+			body: JSON.stringify(document.getElementById("authorId").value),
 		};
 
 		var res = await fetch("/api/v1/posts/{{ post.id }}/author", options);

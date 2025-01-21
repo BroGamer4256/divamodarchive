@@ -450,7 +450,7 @@ pub async fn login(
 	#[derive(Serialize, Deserialize)]
 	struct DiscordUser {
 		id: String,
-		global_name: String,
+		username: String,
 		discriminator: String,
 		avatar: Option<String>,
 	}
@@ -508,7 +508,7 @@ pub async fn login(
 	sqlx::query!(
 		"INSERT INTO users VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET avatar = excluded.avatar, name = excluded.name",
 		id,
-		response.global_name,
+		response.username,
 		avatar
 	)
 	.execute(&state.db)

@@ -449,7 +449,7 @@ async fn add_author(
 	Path(id): Path<i32>,
 	user: User,
 	State(state): State<AppState>,
-	Json(new_author): Json<i64>,
+	Json(new_author): Json<String>,
 ) -> Result<Json<User>, StatusCode> {
 	let Some(post) = Post::get_short(id, &state.db).await else {
 		return Err(StatusCode::NOT_FOUND);
@@ -458,11 +458,11 @@ async fn add_author(
 	if !post.authors.iter().any(|u| u.id == user.id) {
 		return Err(StatusCode::UNAUTHORIZED);
 	}
-	if post.authors.iter().any(|u| u.id == new_author) {
+	if post.authors.iter().any(|u| u.name == new_author) {
 		return Err(StatusCode::BAD_REQUEST);
 	}
 
-	let new_author = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", new_author)
+	let new_author = sqlx::query_as!(User, "SELECT * FROM users WHERE name = $1", new_author)
 		.fetch_one(&state.db)
 		.await
 		.map_err(|_| StatusCode::NOT_FOUND)?;

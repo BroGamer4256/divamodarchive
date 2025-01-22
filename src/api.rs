@@ -26,7 +26,9 @@ struct CloudflareDirectUpload {
 pub fn route(state: AppState) -> Router {
 	Router::new()
 		.route("/api/v1/posts", get(search_posts))
+		.route("/api/v1/posts/count", get(count_posts))
 		.route("/api/v1/posts/:id", get(get_post).delete(delete_post))
+		.route("/api/v1/posts/posts", get(get_multiple_posts))
 		.route("/api/v1/posts/edit", post(edit))
 		.route("/api/v1/posts/upload_image", get(upload_image))
 		.route("/api/v1/posts/upload", get(upload_ws))
@@ -399,7 +401,7 @@ async fn get_post(
 	};
 	for i in 0..post.files.len() {
 		post.files[i] = format!(
-			"https://divamodarchive.com/api/v1/posts/download/{}/{i}",
+			"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
 			post.id
 		);
 		post.local_files[i] = post.local_files[i]
@@ -409,6 +411,32 @@ async fn get_post(
 			.unwrap_or(String::new());
 	}
 	Ok(Json(post))
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MultiplePostsParams {
+	pub post_id: Vec<i32>,
+}
+
+async fn get_multiple_posts(
+	axum_extra::extract::Query(posts): axum_extra::extract::Query<MultiplePostsParams>,
+	user: Option<User>,
+	State(state): State<AppState>,
+) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
+	let filter = posts
+		.post_id
+		.iter()
+		.map(|id| format!("id={id}"))
+		.collect::<Vec<_>>()
+		.join(" OR ");
+	let params = SearchParams {
+		query: None,
+		sort: None,
+		filter: Some(filter),
+		limit: Some(posts.post_id.len()),
+		offset: None,
+	};
+	search_posts(axum_extra::extract::Query(params), user, State(state)).await
 }
 
 #[derive(Serialize, Deserialize)]
@@ -424,7 +452,7 @@ async fn search_posts(
 	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
 	user: Option<User>,
 	State(state): State<AppState>,
-) -> Result<Json<Vec<Post>>, String> {
+) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
 	let mut search = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch);
 
 	search.query = query.query.as_ref().map(|query| query.as_str());
@@ -464,7 +492,10 @@ async fn search_posts(
 	}
 	search.sort = Some(&sort);
 
-	let posts = search.execute::<Post>().await.map_err(|e| e.to_string())?;
+	let posts = search
+		.execute::<Post>()
+		.await
+		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
 	let posts = posts
 		.hits
@@ -477,7 +508,7 @@ async fn search_posts(
 		if let Some(mut post) = Post::get_full(id, &state.db).await {
 			for i in 0..post.files.len() {
 				post.files[i] = format!(
-					"https://divamodarchive.com/api/v1/posts/download/{}/{i}",
+					"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
 					post.id
 				);
 				post.local_files[i] = post.local_files[i]
@@ -491,6 +522,58 @@ async fn search_posts(
 	}
 
 	Ok(Json(vec))
+}
+
+async fn count_posts(
+	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
+	user: Option<User>,
+	State(state): State<AppState>,
+) -> Result<Json<usize>, (StatusCode, String)> {
+	let mut search = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch);
+
+	search.query = query.query.as_ref().map(|query| query.as_str());
+
+	let show_explicit = if let Some(user) = user {
+		user.show_explicit
+	} else {
+		false
+	};
+
+	let filter = if !show_explicit {
+		if let Some(filter) = &query.filter {
+			format!("explicit={show_explicit} AND {filter}")
+		} else {
+			format!("explicit={show_explicit}")
+		}
+	} else {
+		if let Some(filter) = &query.filter {
+			format!("{filter}")
+		} else {
+			String::new()
+		}
+	};
+
+	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
+		filter.as_str(),
+	)));
+
+	search.limit = query.limit;
+	search.offset = query.offset;
+
+	let mut sort = vec![];
+	if let Some(qsort) = &query.sort {
+		for qsort in qsort {
+			sort.push(qsort.as_str());
+		}
+	}
+	search.sort = Some(&sort);
+
+	let posts = search
+		.execute::<Post>()
+		.await
+		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+	Ok(Json(posts.estimated_total_hits.unwrap_or(0)))
 }
 
 async fn delete_post(

@@ -70,7 +70,8 @@ pub struct Post {
 	pub text: String,
 	pub images: Vec<String>,
 	pub files: Vec<String>,
-	pub time: time::PrimitiveDateTime,
+	#[serde(with = "time::serde::rfc3339")]
+	pub time: time::OffsetDateTime,
 	pub post_type: PostType,
 	pub download_count: i64,
 	pub like_count: i64,
@@ -88,7 +89,7 @@ pub struct Comment {
 	pub id: i32,
 	pub user: User,
 	pub text: String,
-	pub time: time::PrimitiveDateTime,
+	pub time: time::OffsetDateTime,
 }
 
 impl PartialEq for Comment {
@@ -232,7 +233,7 @@ impl Post {
 				text: dep.text,
 				images: dep.images,
 				files: dep.files,
-				time: dep.time,
+				time: dep.time.assume_offset(time::UtcOffset::UTC),
 				post_type: dep.post_type.into(),
 				download_count: dep.download_count,
 				like_count: dep.like_count,
@@ -270,7 +271,7 @@ impl Post {
 					show_explicit: false,
 				},
 				text: String::new(),
-				time: time::PrimitiveDateTime::MIN,
+				time: time::OffsetDateTime::now_utc(),
 			})
 			.build();
 		let root = tree.root_id()?;
@@ -293,7 +294,7 @@ impl Post {
 								show_explicit: comment.show_explicit,
 							},
 							text: comment.text.clone(),
-							time: comment.time,
+							time: comment.time.assume_offset(time::UtcOffset::UTC),
 						})
 						.node_id();
 					ids.insert(comment.id, node_id);
@@ -312,7 +313,7 @@ impl Post {
 							show_explicit: comment.show_explicit,
 						},
 						text: comment.text.clone(),
-						time: comment.time,
+						time: comment.time.assume_offset(time::UtcOffset::UTC),
 					})
 					.node_id();
 				ids.insert(comment.id, node_id);
@@ -330,7 +331,7 @@ impl Post {
 			text: post.text,
 			images: post.images,
 			files: post.files,
-			time: post.time,
+			time: post.time.assume_offset(time::UtcOffset::UTC),
 			post_type: post.post_type.into(),
 			download_count: post.download_count,
 			like_count: post.like_count.unwrap_or(0),
@@ -377,7 +378,7 @@ impl Post {
 			text: post.text,
 			images: post.images,
 			files: post.files,
-			time: post.time,
+			time: post.time.assume_offset(time::UtcOffset::UTC),
 			post_type: post.post_type.into(),
 			download_count: post.download_count,
 			like_count: post.like_count.unwrap_or(0),

@@ -3,7 +3,7 @@
 {% import "post_helpers.html" as post_helpers %}
 
 {% block head %}
-{% call base::draw_embed("", "{{ post.name }}", "") %}
+{% call base::draw_embed("", post.name, post.images[0]) %}
 {% endblock head %}
 
 {% block content %}
@@ -280,7 +280,7 @@
 		{% endif %}
 	</div>
 
-	<div class="card card-body text" style="white-space: pre-wrap">{{ post.text }}</div>
+	<div class="card card-body text">{{ post.text|markdown }}</div>
 
 	{% if post.images.len() > 1 %}
 	<div class="card card-body">

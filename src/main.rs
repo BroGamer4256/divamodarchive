@@ -81,7 +81,7 @@ async fn main() {
 			};
 			vec.push(post);
 		}
-		meilisearch.add_documents(&vec, None).await.unwrap();
+		meilisearch.add_or_update(&vec, None).await.unwrap();
 	}
 
 	meilisearch

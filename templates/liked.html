@@ -3,7 +3,7 @@
 {% import "post_helpers.html" as post_helpers %}
 
 {% block head %}
-{% let owner_name = owner.name() %}
+{% let owner_name = owner.display_name.as_str() %}
 {% let description = format!("{owner_name}'s liked mods") %}
 {% call base::draw_embed("", description, "") %}
 <meta name="twitter:card" content="summary_small_image">

@@ -13,8 +13,10 @@ pub struct User {
 	pub id: i64,
 	pub name: String,
 	pub avatar: String,
-	pub display_name: Option<String>,
+	pub display_name: String,
+	#[serde(skip)]
 	pub public_likes: bool,
+	#[serde(skip)]
 	pub show_explicit: bool,
 }
 
@@ -67,7 +69,7 @@ pub struct Post {
 	pub name: String,
 	pub text: String,
 	pub images: Vec<String>,
-	pub file: String,
+	pub files: Vec<String>,
 	pub time: time::PrimitiveDateTime,
 	pub post_type: PostType,
 	pub download_count: i64,
@@ -77,6 +79,8 @@ pub struct Post {
 	#[serde(skip)]
 	pub comments: Option<Comments>,
 	pub explicit: bool,
+	#[serde(rename = "file_names")]
+	pub local_files: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -162,7 +166,7 @@ impl Post {
 	pub async fn get_full(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.explicit, p.local_files, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -190,7 +194,7 @@ impl Post {
 
 		let dependencies = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, COALESCE(like_count.count, 0) AS "like_count!"
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.explicit, p.local_files, COALESCE(like_count.count, 0) AS "like_count!"
 			FROM post_dependencies pd
 			LEFT JOIN posts p ON pd.dependency_id = p.id
 			LEFT JOIN (SELECT post_id, COUNT(*) as count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -227,7 +231,7 @@ impl Post {
 				name: dep.name,
 				text: dep.text,
 				images: dep.images,
-				file: dep.file,
+				files: dep.files,
 				time: dep.time,
 				post_type: dep.post_type.into(),
 				download_count: dep.download_count,
@@ -236,6 +240,7 @@ impl Post {
 				dependencies: None,
 				comments: None,
 				explicit: dep.explicit,
+				local_files: dep.local_files,
 			});
 		}
 
@@ -260,7 +265,7 @@ impl Post {
 					id: -1,
 					name: String::new(),
 					avatar: String::new(),
-					display_name: None,
+					display_name: String::new(),
 					public_likes: true,
 					show_explicit: false,
 				},
@@ -324,7 +329,7 @@ impl Post {
 			name: post.name,
 			text: post.text,
 			images: post.images,
-			file: post.file,
+			files: post.files,
 			time: post.time,
 			post_type: post.post_type.into(),
 			download_count: post.download_count,
@@ -333,13 +338,14 @@ impl Post {
 			dependencies: Some(deps),
 			comments: Some(comments),
 			explicit: post.explicit,
+			local_files: post.local_files,
 		})
 	}
 
 	pub async fn get_short(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.explicit, p.local_files, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -370,7 +376,7 @@ impl Post {
 			name: post.name,
 			text: post.text,
 			images: post.images,
-			file: post.file,
+			files: post.files,
 			time: post.time,
 			post_type: post.post_type.into(),
 			download_count: post.download_count,
@@ -379,6 +385,7 @@ impl Post {
 			dependencies: None,
 			comments: None,
 			explicit: post.explicit,
+			local_files: post.local_files,
 		})
 	}
 }
@@ -411,14 +418,6 @@ impl User {
 			.fetch_one(db)
 			.await
 			.ok()
-	}
-
-	pub fn name<'a>(&'a self) -> &'a str {
-		if let Some(display_name) = &self.display_name {
-			display_name.as_str()
-		} else {
-			self.name.as_str()
-		}
 	}
 }
 

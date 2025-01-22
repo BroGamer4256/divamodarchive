@@ -30,7 +30,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/posts/edit", post(edit))
 		.route("/api/v1/posts/upload_image", get(upload_image))
 		.route("/api/v1/posts/upload", get(upload_ws))
-		.route("/api/v1/posts/:id/download", get(download))
+		.route("/api/v1/posts/:id/download/:variant", get(download))
 		.route("/api/v1/posts/:id/like", post(like))
 		.route("/api/v1/posts/:id/comment", post(comment))
 		.route("/api/v1/posts/:id/author", post(add_author))
@@ -82,7 +82,7 @@ pub struct PostUploadData {
 	pub name: String,
 	pub text: String,
 	pub post_type: i32,
-	pub filename: Option<String>,
+	pub filenames: Option<Vec<String>>,
 	pub image: Option<String>,
 	pub images_extra: Option<Vec<String>>,
 }
@@ -181,7 +181,7 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 		return;
 	};
 
-	let Some(filename) = params.filename else {
+	let Some(filenames) = params.filenames else {
 		return;
 	};
 	let Some(image) = params.image else {
@@ -224,23 +224,36 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 		if !post.authors.iter().any(|u| u.id == user.id) {
 			return;
 		}
-		_ = tokio::fs::remove_file(format!("pixeldrain/{}", post.file)).await;
+		for file in post.local_files {
+			_ = tokio::process::Command::new("rclone")
+				.arg("delete")
+				.arg(format!("pixeldrainfs:/divamodarchive/{}", file))
+				.arg("--config=/etc/rclone-mnt.conf")
+				.output()
+				.await;
+		}
 	}
 
-	let filepath = format!("{}/{}", user.id, filename);
-	_ = tokio::fs::create_dir(format!("/pixeldrain/{}", user.id)).await;
-	let Ok(mut file) = tokio::fs::File::create(&format!("/pixeldrain/{}", filepath)).await else {
-		return;
-	};
-	_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
+	let mut filepaths = Vec::new();
+	for filename in &filenames {
+		let filepath = format!("{}/{}", user.id, filename);
+		_ = tokio::fs::create_dir(format!("/pixeldrain/{}", user.id)).await;
+		let Ok(mut file) = tokio::fs::File::create(&format!("/pixeldrain/{}", &filepath)).await
+		else {
+			return;
+		};
+		_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
 
-	while let Some(Ok(message)) = socket.recv().await {
-		if let ws::Message::Binary(chunk) = message {
-			_ = file.write_all(&chunk).await;
-			_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
-		} else {
-			break;
+		while let Some(Ok(message)) = socket.recv().await {
+			if let ws::Message::Binary(chunk) = message {
+				_ = file.write_all(&chunk).await;
+				_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
+			} else {
+				break;
+			}
 		}
+
+		filepaths.push(filepath);
 	}
 
 	let mut images = Vec::new();
@@ -254,33 +267,37 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 	let now = time::OffsetDateTime::now_utc();
 	let time = time::PrimitiveDateTime::new(now.date(), now.time());
 
-	let download = get_download_link(&filepath).await;
+	let mut downloads = Vec::new();
 
-	let Some(download) = download else {
-		println!("Failed to get public link for {filepath}");
-		return;
-	};
+	for filepath in &filepaths {
+		let download = get_download_link(filepath).await;
+		let Some(download) = download else {
+			println!("Failed to get public link for {filepath}");
+			return;
+		};
+		downloads.push(download);
+	}
 
 	let post_id = if let Some(post_id) = params.id {
 		_ = sqlx::query!(
-			"UPDATE posts SET name = $2, text = $3, type = $4, file = $5, images = $6, time = $7 WHERE id = $1",
+			"UPDATE posts SET name = $2, text = $3, type = $4, files = $5, images = $6, time = $7, local_files = $8 WHERE id = $1",
 			post_id,
 			params.name,
 			params.text,
 			params.post_type,
-			download,
+			&downloads,
 			&images,
-			time
+			time,
+			&filepaths,
 		)
 		.execute(&state.db)
 		.await;
 
 		post_id
 	} else {
-		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, file, time, type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ID", params.name, params.text, &images, download, time, params.post_type)
+		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, files, time, type, local_files) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ID", params.name, params.text, &images, &downloads, time, params.post_type, &filepaths)
 			.fetch_one(&state.db)
 			.await else {
-				println!("Failed to insert into database {} {} {:?} {} {} {}", params.name, params.text, &images, download, time, params.post_type);
 				return;
 			};
 
@@ -307,7 +324,7 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 }
 
 async fn download(
-	Path(id): Path<i32>,
+	Path((id, variant)): Path<(i32, i32)>,
 	State(state): State<AppState>,
 ) -> Result<Redirect, StatusCode> {
 	let Some(post) = Post::get_short(id, &state.db).await else {
@@ -325,7 +342,11 @@ async fn download(
 		_ = state.meilisearch.add_or_update(&[post], None).await;
 	};
 
-	Ok(Redirect::to(&post.file))
+	let Some(file) = post.files.get(variant as usize) else {
+		return Err(StatusCode::BAD_REQUEST);
+	};
+
+	Ok(Redirect::to(file))
 }
 
 async fn like(Path(id): Path<i32>, user: User, State(state): State<AppState>) -> StatusCode {
@@ -376,10 +397,18 @@ async fn get_post(
 	let Some(mut post) = Post::get_full(id, &state.db).await else {
 		return Err(StatusCode::NOT_FOUND);
 	};
-	post.file = format!(
-		"https://divamodarchive.com/api/v1/posts/download/{}",
-		post.id
-	);
+	for i in 0..post.files.len() {
+		post.files[i] = format!(
+			"https://divamodarchive.com/api/v1/posts/download/{}/{i}",
+			post.id
+		);
+		post.local_files[i] = post.local_files[i]
+			.split("/")
+			.skip(1)
+			.next()
+			.map(|s| String::from(s))
+			.unwrap_or(String::new());
+	}
 	Ok(Json(post))
 }
 
@@ -407,11 +436,11 @@ async fn search_posts(
 		false
 	};
 
-	let filter = if show_explicit {
+	let filter = if !show_explicit {
 		if let Some(filter) = &query.filter {
-			format!("explicit = {show_explicit} AND {filter}")
+			format!("explicit={show_explicit} AND {filter}")
 		} else {
-			format!("explicit = {show_explicit}")
+			format!("explicit={show_explicit}")
 		}
 	} else {
 		if let Some(filter) = &query.filter {
@@ -447,10 +476,18 @@ async fn search_posts(
 	let mut vec = Vec::with_capacity(posts.len());
 	for id in posts {
 		if let Some(mut post) = Post::get_full(id, &state.db).await {
-			post.file = format!(
-				"https://divamodarchive.com/api/v1/posts/{}/download",
-				post.id
-			);
+			for i in 0..post.files.len() {
+				post.files[i] = format!(
+					"https://divamodarchive.com/api/v1/posts/download/{}/{i}",
+					post.id
+				);
+				post.local_files[i] = post.local_files[i]
+					.split("/")
+					.skip(1)
+					.next()
+					.map(|s| String::from(s))
+					.unwrap_or(String::new());
+			}
 			vec.push(post);
 		}
 	}

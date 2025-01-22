@@ -93,7 +93,7 @@ async fn root(
 ) -> Result<RootTemplate, StatusCode> {
 	let latest_posts = sqlx::query!(
 		r#"
-		SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, like_count.like_count
+		SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.explicit, p.local_files, like_count.like_count
 		FROM posts p
 		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
 		WHERE explicit = $1 OR explicit = false
@@ -113,7 +113,7 @@ async fn root(
 			name: post.name,
 			text: post.text,
 			images: post.images,
-			file: post.file,
+			files: post.files,
 			time: post.time,
 			post_type: post.post_type.into(),
 			download_count: post.download_count,
@@ -122,6 +122,7 @@ async fn root(
 			dependencies: None,
 			comments: None,
 			explicit: post.explicit,
+			local_files: post.local_files,
 		})
 		.collect();
 
@@ -161,7 +162,7 @@ async fn liked(
 
 	let liked_posts = sqlx::query!(
 		r#"
-		SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, like_count.like_count
+		SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.explicit, p.local_files, like_count.like_count
 		FROM liked_posts lp
 		LEFT JOIN posts p ON lp.post_id = p.id
 		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -182,7 +183,7 @@ async fn liked(
 			name: post.name,
 			text: post.text,
 			images: post.images,
-			file: post.file,
+			files: post.files,
 			time: post.time,
 			post_type: post.post_type.into(),
 			download_count: post.download_count,
@@ -191,6 +192,7 @@ async fn liked(
 			dependencies: None,
 			comments: None,
 			explicit: post.explicit,
+			local_files: post.local_files,
 		})
 		.collect();
 
@@ -218,7 +220,7 @@ async fn user(
 
 	let user_posts = sqlx::query!(
 		r#"
-		SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, like_count.like_count
+		SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.explicit, p.local_files, like_count.like_count
 		FROM post_authors pa
 		LEFT JOIN posts p ON pa.post_id = p.id
 		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -239,7 +241,7 @@ async fn user(
 			name: post.name,
 			text: post.text,
 			images: post.images,
-			file: post.file,
+			files: post.files,
 			time: post.time,
 			post_type: post.post_type.into(),
 			download_count: post.download_count,
@@ -248,6 +250,7 @@ async fn user(
 			dependencies: None,
 			comments: None,
 			explicit: post.explicit,
+			local_files: post.local_files,
 		})
 		.collect();
 

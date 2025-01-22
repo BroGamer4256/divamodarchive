@@ -9,7 +9,7 @@ CREATE TABLE posts (
 	name text not null,
 	text text not null,
 	images text[] not null default '{}',
-	file text not null,
+	files text[] not null,
 	time timestamp not null,
 	type int not null,
 	download_count bigint not null default 0

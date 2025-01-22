@@ -130,7 +130,7 @@
 		document.getElementById("startCommentButton" + parent).hidden = true;
 		var d = new Date();
 		var date = d.getUTCFullYear() + "-" + (d.getUTCMonth() + 1).toString().padStart(2, '0') + "-" + d.getUTCDate();
-		document.getElementById("submitCommentButton" + parent).outerHTML = '<a href="/user/{{ user.id }}" class="card-subtitle text-muted"> {{ user.name() }}</a> ' + date;
+		document.getElementById("submitCommentButton" + parent).outerHTML = '<a href="/user/{{ user.id }}" class="card-subtitle text-muted"> {{ user.display_name }}</a> ' + date;
 		document.getElementById("comment_text" + parent).outerHTML = text;
 		document.getElementById("newComment" + parent).classList.add("fit");
 	}
@@ -174,7 +174,7 @@
 			<div class="col-md" id="authors">
 				{% for author in post.authors %}
 				<h5>
-					<a href=" /user/{{ author.id }}" class="card-subtitle text">{{ author.name() }}</a>
+					<a href=" /user/{{ author.id }}" class="card-subtitle text">{{ author.display_name }}</a>
 				</h5>
 				{% endfor %}
 			</div>
@@ -207,18 +207,28 @@
 		</div>
 	</div>
 	<div class="col-md-3 card card-body gap-3">
-		<div class="btn-group">
-			{% if let Some(user) = user %}
-			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" {% if has_liked %} checked="true" {% endif %} onclick="onLike()">
-			<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></label>
-			{% else %}
-			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
-			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></label>
-			{% endif %}
-		</div>
-		<a href="/api/v1/posts/{{ post.id }}/download" class="btn btn-sm btn-outline-success btn-success">
+		{% if let Some(user) = user %}
+		<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" {% if has_liked %} checked="true" {% endif %} onclick="onLike()">
+		<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></label>
+		{% else %}
+		<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
+		<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></label>
+		{% endif %}
+		{% if post.files.len() == 1 %}
+		<a href="/api/v1/posts/{{ post.id }}/download/0" class="btn btn-sm btn-outline-success btn-success">
 			<button type="button" class="btn text-light">Download</button>
 		</a>
+		{% else %}
+		<button class="btn btn-lg btn-outline-success btn-success text-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Download</button>
+		<ul class="dropdown-menu" style="width: 89%">
+			{% for (i, file) in post.local_files.iter().enumerate() %}
+				{% let file = file.split("/").skip(1).next() %}
+				{% if let Some(file) = file %}
+					<li><a class="dropdown-item btn btn-sm btn-outline-success btn-success" href="/api/v1/posts/{{ post.id }}/download/{{ i }}">{{ file }}</a></li>
+				{% endif %}
+			{% endfor %}
+		</ul>
+		{% endif %}
 		<a href="divamodmanager:dma/{{ post.id }}" class="btn btn-sm btn-outline-info btn-info">
 			<button type="button" class="btn text-light">One Click Install</button>
 		</a>
@@ -344,7 +354,7 @@
 					{{ comment.text }}
 				</div>
 				<div class="card-footer text-muted p-2">
-					<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{ comment.user.name() }}</a>
+					<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{ comment.user.display_name }}</a>
 					{{ comment.time.date() }}
 					{% if let Some(user) = user %}
 					<button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse"

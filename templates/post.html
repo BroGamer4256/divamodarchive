@@ -222,8 +222,7 @@
 		<button class="btn btn-lg btn-outline-success btn-success text-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Download</button>
 		<ul class="dropdown-menu" style="width: 89%">
 			{% for (i, file) in post.local_files.iter().enumerate() %}
-				{% let file = file.split("/").skip(1).next() %}
-				{% if let Some(file) = file %}
+				{% if let Some(file) = file.split("/").last() %}
 					<li><a class="dropdown-item btn btn-sm btn-outline-success btn-success" href="/api/v1/posts/{{ post.id }}/download/{{ i }}">{{ file }}</a></li>
 				{% endif %}
 			{% endfor %}

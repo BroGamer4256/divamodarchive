@@ -404,8 +404,7 @@ async fn get_post(
 		);
 		post.local_files[i] = post.local_files[i]
 			.split("/")
-			.skip(1)
-			.next()
+			.last()
 			.map(|s| String::from(s))
 			.unwrap_or(String::new());
 	}
@@ -483,8 +482,7 @@ async fn search_posts(
 				);
 				post.local_files[i] = post.local_files[i]
 					.split("/")
-					.skip(1)
-					.next()
+					.last()
 					.map(|s| String::from(s))
 					.unwrap_or(String::new());
 			}

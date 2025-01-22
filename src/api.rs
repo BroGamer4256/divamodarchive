@@ -128,6 +128,7 @@ async fn get_download_link(filepath: &str) -> Option<String> {
 	let command = tokio::process::Command::new("rclone")
 		.arg("link")
 		.arg(format!("pixeldrainfs:/divamodarchive/{}", filepath))
+		.arg("--config=/etc/rclone-mnt.conf")
 		.output()
 		.await;
 	let Ok(command) = command else {
@@ -253,14 +254,7 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 	let now = time::OffsetDateTime::now_utc();
 	let time = time::PrimitiveDateTime::new(now.date(), now.time());
 
-	// pixeldrain occassionaly, seemingly randomly, errors here
-	let mut download = None;
-	for _ in 1..=3 {
-		download = get_download_link(&filepath).await;
-		if download.is_some() {
-			break;
-		}
-	}
+	let download = get_download_link(&filepath).await;
 
 	let Some(download) = download else {
 		println!("Failed to get public link for {filepath}");
@@ -400,15 +394,36 @@ pub struct SearchParams {
 
 async fn search_posts(
 	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
+	user: Option<User>,
 	State(state): State<AppState>,
 ) -> Result<Json<Vec<Post>>, String> {
 	let mut search = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch);
 
 	search.query = query.query.as_ref().map(|query| query.as_str());
-	search.filter = query
-		.filter
-		.as_ref()
-		.map(|filter| meilisearch_sdk::search::Filter::new(sqlx::Either::Left(filter.as_str())));
+
+	let show_explicit = if let Some(user) = user {
+		user.show_explicit
+	} else {
+		false
+	};
+
+	let filter = if show_explicit {
+		if let Some(filter) = &query.filter {
+			format!("explicit = {show_explicit} AND {filter}")
+		} else {
+			format!("explicit = {show_explicit}")
+		}
+	} else {
+		if let Some(filter) = &query.filter {
+			format!("{filter}")
+		} else {
+			String::new()
+		}
+	};
+
+	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
+		filter.as_str(),
+	)));
 
 	search.limit = query.limit;
 	search.offset = query.offset;

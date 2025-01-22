@@ -3,9 +3,9 @@ use crate::{AppState, Config};
 use askama::Template;
 use axum::{
 	extract::*,
-	http::{header::*, HeaderMap, StatusCode},
+	http::{header::*, StatusCode},
 	routing::*,
-	Router,
+	RequestPartsExt, Router,
 };
 use axum_extra::extract::CookieJar;
 
@@ -24,77 +24,152 @@ pub fn route(state: AppState) -> Router {
 		.with_state(state)
 }
 
+pub struct BaseTemplate {
+	user: Option<User>,
+	config: Config,
+	jwt: Option<String>,
+}
+
+#[axum::async_trait]
+impl<S> FromRequestParts<S> for BaseTemplate
+where
+	S: Send + Sync,
+	AppState: FromRef<S>,
+{
+	type Rejection = StatusCode;
+
+	async fn from_request_parts(
+		parts: &mut axum::http::request::Parts,
+		state: &S,
+	) -> Result<Self, Self::Rejection> {
+		let cookies = parts
+			.extract::<CookieJar>()
+			.await
+			.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+		let cookie = cookies.get(&AUTHORIZATION.to_string());
+		let jwt = match cookie {
+			Some(cookie) => Some(String::from(cookie.value())),
+			None => {
+				if let Some(auth) = parts.headers.get(AUTHORIZATION) {
+					if let Ok(auth) = auth.to_str() {
+						Some(String::from(auth.replace("Bearer ", "")))
+					} else {
+						None
+					}
+				} else {
+					None
+				}
+			}
+		};
+
+		let user = User::from_request_parts(parts, state).await.ok();
+		let state: AppState = AppState::from_ref(state);
+
+		Ok(Self {
+			user,
+			config: state.config,
+			jwt,
+		})
+	}
+}
+
+impl BaseTemplate {
+	fn show_explicit(&self) -> bool {
+		let Some(user) = &self.user else { return false };
+		user.show_explicit
+	}
+}
+
 #[derive(Template)]
 #[template(path = "root.html")]
 struct RootTemplate {
-	user: Option<User>,
-	config: Config,
+	base: BaseTemplate,
 	posts: Vec<Post>,
 }
 
 async fn root(
-	user: Option<User>,
+	base: BaseTemplate,
 	State(state): State<AppState>,
 ) -> Result<RootTemplate, StatusCode> {
-	let latest_posts = sqlx::query!("SELECT id FROM posts ORDER BY time DESC LIMIT 40")
-		.fetch_all(&state.db)
-		.await
-		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-	let mut posts = Vec::new();
-	for post in latest_posts {
-		if let Some(post) = Post::get_short(post.id, &state.db).await {
-			posts.push(post);
-		}
-	}
+	let latest_posts = sqlx::query!(
+		r#"
+		SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, like_count.like_count
+		FROM posts p
+		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
+		WHERE explicit = $1 OR explicit = false
+		ORDER BY time DESC
+		LIMIT 40
+		"#,
+		base.show_explicit()
+	)
+	.fetch_all(&state.db)
+	.await
+	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-	Ok(RootTemplate {
-		user,
-		config: state.config,
-		posts,
-	})
+	let posts = latest_posts
+		.into_iter()
+		.map(|post| Post {
+			id: post.id,
+			name: post.name,
+			text: post.text,
+			images: post.images,
+			file: post.file,
+			time: post.time,
+			post_type: post.post_type.into(),
+			download_count: post.download_count,
+			like_count: post.like_count.unwrap_or(0),
+			authors: vec![],
+			dependencies: None,
+			comments: None,
+			explicit: post.explicit,
+		})
+		.collect();
+
+	Ok(RootTemplate { posts, base })
 }
 
 #[derive(Template)]
 #[template(path = "about.html")]
 struct AboutTemplate {
-	user: Option<User>,
-	config: Config,
+	base: BaseTemplate,
 }
 
-async fn about(user: Option<User>, State(state): State<AppState>) -> AboutTemplate {
-	AboutTemplate {
-		user,
-		config: state.config,
-	}
+async fn about(base: BaseTemplate) -> AboutTemplate {
+	AboutTemplate { base }
 }
 
 #[derive(Template)]
 #[template(path = "liked.html")]
 struct LikedTemplate {
-	user: Option<User>,
-	config: Config,
+	base: BaseTemplate,
 	posts: Vec<Post>,
 	owner: User,
 }
 
 async fn liked(
 	Path(id): Path<i64>,
-	user: Option<User>,
+	base: BaseTemplate,
 	State(state): State<AppState>,
 ) -> Result<LikedTemplate, StatusCode> {
 	let Some(owner) = User::get(id, &state.db).await else {
 		return Err(StatusCode::BAD_REQUEST);
 	};
 
+	if !owner.public_likes && !base.user.as_ref().map_or(false, |user| user.id == owner.id) {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+
 	let liked_posts = sqlx::query!(
 		r#"
-		SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, like_count.like_count
+		SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, like_count.like_count
 		FROM liked_posts lp
 		LEFT JOIN posts p ON lp.post_id = p.id
 		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
 		WHERE lp.user_id = $1
+		AND (p.explicit = $2 OR p.explicit = false)
 		"#,
-		id
+		id,
+		base.show_explicit(),
 	)
 	.fetch_all(&state.db)
 	.await
@@ -115,22 +190,17 @@ async fn liked(
 			authors: vec![],
 			dependencies: None,
 			comments: None,
+			explicit: post.explicit,
 		})
 		.collect();
 
-	Ok(LikedTemplate {
-		user,
-		config: state.config,
-		posts,
-		owner,
-	})
+	Ok(LikedTemplate { base, posts, owner })
 }
 
 #[derive(Template)]
 #[template(path = "user.html")]
 struct UserTemplate {
-	user: Option<User>,
-	config: Config,
+	base: BaseTemplate,
 	posts: Vec<Post>,
 	owner: User,
 	total_likes: i64,
@@ -139,32 +209,54 @@ struct UserTemplate {
 
 async fn user(
 	Path(id): Path<i64>,
-	user: Option<User>,
+	base: BaseTemplate,
 	State(state): State<AppState>,
 ) -> Result<UserTemplate, StatusCode> {
 	let Some(owner) = User::get(id, &state.db).await else {
 		return Err(StatusCode::BAD_REQUEST);
 	};
 
-	let user_posts = sqlx::query!("SELECT post_id FROM post_authors WHERE user_id = $1", id)
-		.fetch_all(&state.db)
-		.await
-		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+	let user_posts = sqlx::query!(
+		r#"
+		SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, like_count.like_count
+		FROM post_authors pa
+		LEFT JOIN posts p ON pa.post_id = p.id
+		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
+		WHERE pa.user_id = $1
+		AND (p.explicit = $2 OR p.explicit = false)
+		"#,
+		id,
+		base.show_explicit()
+	)
+	.fetch_all(&state.db)
+	.await
+	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-	let mut posts = Vec::new();
-	for post in user_posts {
-		if let Some(post) = Post::get_short(post.post_id, &state.db).await {
-			posts.push(post);
-		}
-	}
+	let posts: Vec<Post> = user_posts
+		.into_iter()
+		.map(|post| Post {
+			id: post.id,
+			name: post.name,
+			text: post.text,
+			images: post.images,
+			file: post.file,
+			time: post.time,
+			post_type: post.post_type.into(),
+			download_count: post.download_count,
+			like_count: post.like_count.unwrap_or(0),
+			authors: vec![],
+			dependencies: None,
+			comments: None,
+			explicit: post.explicit,
+		})
+		.collect();
 
 	let (total_likes, total_downloads) = posts.iter().fold((0, 0), |acc, post| {
 		(acc.0 + post.like_count, acc.1 + post.download_count)
 	});
 
 	Ok(UserTemplate {
-		user,
-		config: state.config,
+		base,
 		posts,
 		owner,
 		total_likes,
@@ -175,28 +267,22 @@ async fn user(
 #[derive(Template)]
 #[template(path = "upload.html")]
 struct UploadTemplate {
-	user: Option<User>,
-	config: Config,
+	base: BaseTemplate,
 	update: Option<Post>,
 	jwt: String,
+	user: User,
 }
 
 async fn upload(
 	update_id: Option<Path<i32>>,
-	user: User,
 	State(state): State<AppState>,
-	cookies: CookieJar,
-	headers: HeaderMap,
+	base: BaseTemplate,
 ) -> Result<UploadTemplate, StatusCode> {
-	let cookie = cookies.get(&AUTHORIZATION.to_string());
-	let token = match cookie {
-		Some(cookie) => String::from(cookie.value()),
-		None => {
-			let auth = headers.get(AUTHORIZATION).ok_or(StatusCode::UNAUTHORIZED)?;
-			auth.to_str()
-				.map_err(|_| StatusCode::BAD_REQUEST)?
-				.replace("Bearer ", "")
-		}
+	let Some(jwt) = base.jwt.clone() else {
+		return Err(StatusCode::UNAUTHORIZED);
+	};
+	let Some(user) = base.user.clone() else {
+		return Err(StatusCode::UNAUTHORIZED);
 	};
 
 	let post = if let Some(Path(id)) = update_id {
@@ -204,60 +290,48 @@ async fn upload(
 			if post.authors.contains(&user) {
 				Some(post)
 			} else {
-				None
+				return Err(StatusCode::UNAUTHORIZED);
 			}
 		} else {
-			None
+			return Err(StatusCode::UNAUTHORIZED);
 		}
 	} else {
 		None
 	};
 
 	Ok(UploadTemplate {
-		user: Some(user),
-		config: state.config,
+		base,
 		update: post,
-		jwt: token,
+		jwt,
+		user,
 	})
 }
 
 #[derive(Template)]
 #[template(path = "post.html")]
 struct PostTemplate {
+	base: BaseTemplate,
 	user: Option<User>,
 	jwt: Option<String>,
 	has_liked: bool,
 	is_author: bool,
-	config: Config,
 	post: Post,
+	config: Config,
 }
 
 async fn post_detail(
 	Path(id): Path<i32>,
 	user: Option<User>,
 	State(state): State<AppState>,
-	cookies: CookieJar,
-	headers: HeaderMap,
+	base: BaseTemplate,
 ) -> Result<PostTemplate, StatusCode> {
 	let Some(post) = Post::get_full(id, &state.db).await else {
 		return Err(StatusCode::NOT_FOUND);
 	};
 
-	let jwt = if let Some(_) = &user {
-		let cookie = cookies.get(&AUTHORIZATION.to_string());
-		let token = match cookie {
-			Some(cookie) => String::from(cookie.value()),
-			None => {
-				let auth = headers.get(AUTHORIZATION).ok_or(StatusCode::UNAUTHORIZED)?;
-				auth.to_str()
-					.map_err(|_| StatusCode::BAD_REQUEST)?
-					.replace("Bearer ", "")
-			}
-		};
-		Some(token)
-	} else {
-		None
-	};
+	if post.explicit && !base.show_explicit() {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
 
 	let has_liked = if let Some(user) = &user {
 		let Ok(has_liked) = sqlx::query!(
@@ -284,27 +358,21 @@ async fn post_detail(
 
 	Ok(PostTemplate {
 		user,
-		jwt,
+		jwt: base.jwt.clone(),
 		has_liked,
 		is_author,
-		config: state.config,
+		base,
 		post,
+		config: state.config,
 	})
 }
 
 #[derive(Template)]
 #[template(path = "search.html")]
 struct SearchTemplate {
-	user: Option<User>,
-	config: Config,
+	base: BaseTemplate,
 }
 
-async fn search(
-	user: Option<User>,
-	State(state): State<AppState>,
-) -> Result<SearchTemplate, StatusCode> {
-	Ok(SearchTemplate {
-		user,
-		config: state.config,
-	})
+async fn search(base: BaseTemplate) -> Result<SearchTemplate, StatusCode> {
+	Ok(SearchTemplate { base })
 }

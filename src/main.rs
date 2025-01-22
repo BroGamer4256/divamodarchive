@@ -90,7 +90,7 @@ async fn main() {
 		.unwrap();
 
 	meilisearch
-		.set_filterable_attributes(&["post_type"])
+		.set_filterable_attributes(&["post_type", "explicit"])
 		.await
 		.unwrap();
 

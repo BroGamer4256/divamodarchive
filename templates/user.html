@@ -3,11 +3,11 @@
 {% import "post_helpers.html" as post_helpers %}
 
 {% block head %}
-{% let owner_name = owner.name.clone() %}
+{% let owner_name = owner.name() %}
 {% let total_likes = total_likes %}
 {% let total_downloads = total_downloads %}
 {% let description = format!("{owner_name}'s mods\n {total_likes}👍\nDownloads: {total_downloads}") %}
-{% call base::draw_embed(owner.name, description, owner.avatar) %}
+{% call base::draw_embed(owner.name(), description, owner.avatar) %}
 {% endblock head %}
 
 {% block content %}
@@ -19,10 +19,10 @@
 			</div>
 		</div>
 		<div class="col-10 card-body">
-			<h1 class="text">{{ owner.name }}</h1>
+			<h1 class="text">{{ owner.name() }}</h1>
 			<h5 class="text">{{ total_likes }}👍</h5>
 			<h5 class="text">Downloads: {{ total_downloads }}</h5>
-            <a class="text" href="/liked/{{ owner.id }}">{{ owner.name }}'s Liked Mods</a>
+            <a class="text" href="/liked/{{ owner.id }}">{{ owner.name() }}'s Liked Mods</a>
 		</div>
 	</div>
 </div>

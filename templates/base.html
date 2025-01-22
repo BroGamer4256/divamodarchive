@@ -57,6 +57,26 @@
 			`;
 			return div;
 		}
+
+		async function search(query, sort, filter, offset) {
+			var params = new URLSearchParams();
+			if (query != null) params.append("query", query);
+			if (sort != null) params.append("sort", sort);
+			if (filter != null) params.append("filter", filter);
+			if (offset != null) params.append("offset", offset);
+			params.append("limit", "40");
+
+			var options = {
+				method: 'GET',
+				{% if let Some(jwt) = base.jwt %}
+				headers: {
+					'Authorization': 'Bearer {{ jwt }}'
+				}
+				{% endif %}
+			}
+
+			return await fetch("https://divamodarchive.com/api/v1/posts?" + params.toString(), options).then(req => req.json());
+		}
 	</script>
 
 	<style>
@@ -134,10 +154,10 @@
 		<nav class="navbar navbar-dark bg-dark fixed-bottom d-flex justify-content-around shadow">
 			<a class="nav-link p-0 nav-text" href="/">Mods</a>
 			<a class="nav-link p-0 nav-text" href="/search">Search</a>
-			{% if let Some(user) = user %}
+			{% if let Some(user) = base.user %}
 			<a class="nav-link p-0 nav-text" href="/liked/{{ user.id }}">Liked Mods</a>
 			<a class="nav-link p-0 nav-text" href="/upload">Upload</a>
-			{% if user.is_admin(config) %}
+			{% if user.is_admin(base.config) %}
 			<a class="nav-link p-0 nav-text" href="/admin">Admin</a>
 			{% endif %}
 			{% else %}

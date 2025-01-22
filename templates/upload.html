@@ -251,10 +251,10 @@
 				autocomplete="off" {% if let Some(old_post)=update %}value="{{ old_post.name }}" {% endif %}></h2>
 		{% if let Some(old_post) = update %}
 		{% for author in old_post.authors %}
-		<h5><a href="/user/{{ author.id }}" class="card-subtitle text">{{ author.name }}</a></h5>
+		<h5><a href="/user/{{ author.id }}" class="card-subtitle text">{{ author.name() }}</a></h5>
 		{% endfor %}
 		{% else %}
-		<h5><a href="/user/{{ user.as_ref().unwrap().id }}" class="card-subtitle text">{{ user.as_ref().unwrap().name }}</a></h5>
+		<h5><a href="/user/{{ user.id }}" class="card-subtitle text">{{ user.name() }}</a></h5>
 		{% endif %}
 
 		<label for="imagePicker" class="form-label mt-4">Image</label>

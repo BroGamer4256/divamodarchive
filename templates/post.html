@@ -13,17 +13,21 @@
 	var liked = {{ has_liked }};
 
 	function onLike() {
-		var span = document.createElement("span");
-		span.outerHTML = '<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span>';
 		if (liked) {
-			document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) - 1 + span;
+			document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerText.slice(0, -8)) - 1;
 			document.getElementById('likedradiobtn').checked = false;
 			liked = false;
 		} else {
-			document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) + 1 + span;
+			document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerText.slice(0, -8)) + 1;
 			document.getElementById('likedradiobtn').checked = true;
 			liked = true;
 		}
+
+		var span = document.createElement("span");
+		span.classList = "material-symbols-outlined";
+		span.style = "font-size: 0.8rem";
+		span.innerHTML = "favorite";
+		document.getElementById('likes').append(span);
 
 		var options = {
 			method: 'POST',
@@ -126,7 +130,7 @@
 		document.getElementById("startCommentButton" + parent).hidden = true;
 		var d = new Date();
 		var date = d.getUTCFullYear() + "-" + (d.getUTCMonth() + 1).toString().padStart(2, '0') + "-" + d.getUTCDate();
-		document.getElementById("submitCommentButton" + parent).outerHTML = '<a href="/user/{{ user.id }}" class="card-subtitle text-muted"> {{ user.name }}</a> ' + date;
+		document.getElementById("submitCommentButton" + parent).outerHTML = '<a href="/user/{{ user.id }}" class="card-subtitle text-muted"> {{ user.name() }}</a> ' + date;
 		document.getElementById("comment_text" + parent).outerHTML = text;
 		document.getElementById("newComment" + parent).classList.add("fit");
 	}
@@ -170,7 +174,7 @@
 			<div class="col-md" id="authors">
 				{% for author in post.authors %}
 				<h5>
-					<a href=" /user/{{ author.id }}" class="card-subtitle text">{{ author.name }}</a>
+					<a href=" /user/{{ author.id }}" class="card-subtitle text">{{ author.name() }}</a>
 				</h5>
 				{% endfor %}
 			</div>
@@ -340,7 +344,7 @@
 					{{ comment.text }}
 				</div>
 				<div class="card-footer text-muted p-2">
-					<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{ comment.user.name }}</a>
+					<a href="/user/{{ comment.user.id }}" class="card-subtitle text-muted">{{ comment.user.name() }}</a>
 					{{ comment.time.date() }}
 					{% if let Some(user) = user %}
 					<button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse"
@@ -376,6 +380,5 @@
 	</div>
 	{% endfor %}
 	{% endif %}
-</div><br>
-
+</div>
 {% endblock content %}

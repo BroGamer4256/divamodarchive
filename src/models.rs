@@ -13,6 +13,9 @@ pub struct User {
 	pub id: i64,
 	pub name: String,
 	pub avatar: String,
+	pub display_name: Option<String>,
+	pub public_likes: bool,
+	pub show_explicit: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -73,6 +76,7 @@ pub struct Post {
 	pub dependencies: Option<Vec<Post>>,
 	#[serde(skip)]
 	pub comments: Option<Comments>,
+	pub explicit: bool,
 }
 
 #[derive(Clone)]
@@ -158,7 +162,7 @@ impl Post {
 	pub async fn get_full(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -173,7 +177,7 @@ impl Post {
 		let authors = sqlx::query_as!(
 			User,
 			r#"
-			SELECT u.id, u.name, u.avatar
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.show_explicit
 			FROM post_authors pa
 			JOIN users u ON pa.user_id = u.id
 			WHERE pa.post_id = $1
@@ -186,7 +190,7 @@ impl Post {
 
 		let dependencies = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, COALESCE(like_count.count, 0) AS "like_count!"
+			SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, COALESCE(like_count.count, 0) AS "like_count!"
 			FROM post_dependencies pd
 			LEFT JOIN posts p ON pd.dependency_id = p.id
 			LEFT JOIN (SELECT post_id, COUNT(*) as count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -205,7 +209,7 @@ impl Post {
 			let Ok(authors) = sqlx::query_as!(
 				User,
 				r#"
-				SELECT u.id, u.name, u.avatar
+				SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.show_explicit
 				FROM post_authors pa
 				LEFT JOIN users u ON pa.user_id = u.id
 				WHERE pa.post_id = $1
@@ -231,12 +235,13 @@ impl Post {
 				authors,
 				dependencies: None,
 				comments: None,
+				explicit: dep.explicit,
 			});
 		}
 
 		let comments = sqlx::query!(
 			r#"
-			SELECT c.id, c.text, c.parent, c.time, u.id as user_id, u.name as user_name, u.avatar as user_avatar
+			SELECT c.id, c.text, c.parent, c.time, u.id as user_id, u.name as user_name, u.avatar as user_avatar, u.display_name, u.public_likes, u.show_explicit
 			FROM post_comments c
 			LEFT JOIN users u ON c.user_id = u.id
 			WHERE c.post_id = $1
@@ -255,6 +260,9 @@ impl Post {
 					id: -1,
 					name: String::new(),
 					avatar: String::new(),
+					display_name: None,
+					public_likes: true,
+					show_explicit: false,
 				},
 				text: String::new(),
 				time: time::PrimitiveDateTime::MIN,
@@ -275,6 +283,9 @@ impl Post {
 								id: comment.user_id,
 								name: comment.user_name.clone(),
 								avatar: comment.user_avatar.clone(),
+								display_name: comment.display_name.clone(),
+								public_likes: comment.public_likes,
+								show_explicit: comment.show_explicit,
 							},
 							text: comment.text.clone(),
 							time: comment.time,
@@ -291,6 +302,9 @@ impl Post {
 							id: comment.user_id,
 							name: comment.user_name.clone(),
 							avatar: comment.user_avatar.clone(),
+							display_name: comment.display_name.clone(),
+							public_likes: comment.public_likes,
+							show_explicit: comment.show_explicit,
 						},
 						text: comment.text.clone(),
 						time: comment.time,
@@ -318,13 +332,14 @@ impl Post {
 			authors,
 			dependencies: Some(deps),
 			comments: Some(comments),
+			explicit: post.explicit,
 		})
 	}
 
 	pub async fn get_short(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.file, p.time, p.type as post_type, p.download_count, p.explicit, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -339,7 +354,7 @@ impl Post {
 		let authors = sqlx::query_as!(
 			User,
 			r#"
-			SELECT u.id, u.name, u.avatar
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.show_explicit
 			FROM post_authors pa
 			LEFT JOIN users u ON pa.user_id = u.id
 			WHERE pa.post_id = $1
@@ -363,6 +378,7 @@ impl Post {
 			authors,
 			dependencies: None,
 			comments: None,
+			explicit: post.explicit,
 		})
 	}
 }
@@ -395,6 +411,14 @@ impl User {
 			.fetch_one(db)
 			.await
 			.ok()
+	}
+
+	pub fn name<'a>(&'a self) -> &'a str {
+		if let Some(display_name) = &self.display_name {
+			display_name.as_str()
+		} else {
+			self.name.as_str()
+		}
 	}
 }
 
@@ -454,6 +478,7 @@ pub async fn login(
 	struct DiscordUser {
 		id: String,
 		username: String,
+		global_name: String,
 		discriminator: String,
 		avatar: Option<String>,
 	}
@@ -509,10 +534,11 @@ pub async fn login(
 		)
 	};
 	sqlx::query!(
-		"INSERT INTO users VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET avatar = excluded.avatar, name = excluded.name",
+		"INSERT INTO users VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET avatar = excluded.avatar, name = excluded.name",
 		id,
 		response.username,
-		avatar
+		avatar,
+		response.global_name
 	)
 	.execute(&state.db)
 	.await

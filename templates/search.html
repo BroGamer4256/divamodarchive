@@ -8,27 +8,15 @@
 
 {% block content %}
 <script>
-	async function new_search() {
+	async function newLoad() {
 		document.getElementById("posts").innerHTML = "";
-		search();
+		loadMore();
 	}
 
-	async function search() {
+	async function loadMore() {
 		document.getElementById("loadMore").hidden = true;
 
-		var query = document.getElementById("searchQuery").value;
-		var sort = document.getElementById("searchSort").value;
-		var filter = document.getElementById("searchFilter").value;
-
-		var params = new URLSearchParams();
-		params.append("query", query);
-		params.append("sort", sort);
-		params.append("filter", filter);
-		params.append("limit", "40");
-		params.append("offset", document.getElementById("posts").children.length);
-
-		var posts = await fetch("https://divamodarchive.com/api/v1/posts?" + params.toString()).then(req => req.json());
-
+		var posts = await search(document.getElementById("searchQuery").value, document.getElementById("searchSort").value, document.getElementById("searchFilter").value, document.getElementById("posts").children.length);
 		for (var post of posts) {
 			document.getElementById("posts").append(getPostHtml(post));
 		}
@@ -39,13 +27,13 @@
 	}
 </script>
 <div style="display: flex; justify-content: center;">
-	<div class="row row-cols-2 row-cols-md-4 gx-2 gy-1">
+	<div class="row row-cols-2 row-cols-md-4 gx-3 gy-1">
 		<div class="col flex-md-grow-1">
-			<input onchange="new_search()" class="form-control list-text" type="text" placeholder="Search" name="query"
+			<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query"
 				id="searchQuery" autocomplete="off">
 		</div>
 		<div class="col flex-md-grow-2">
-			<select onchange="new_search()" name="sort" id="searchSort" class="form-control list-text">
+			<select onchange="newLoad()" name="sort" id="searchSort" class="form-control list-text">
 				<option value="time:desc">Newest</option>
 				<option value="time:asc">Oldest</option>
 				<option value="download_count:desc">Downloads</option>
@@ -53,7 +41,7 @@
 			</select>
 		</div>
 		<div class="col flex-md-grow-2">
-			<select onchange="new_search()" name="filter" id="searchFilter" class="form-control list-text">
+			<select onchange="newLoad()" name="filter" id="searchFilter" class="form-control list-text">
 				<option value="">Any</option>
 				<option value="post_type=Song">Song</option>
 				<option value="post_type=Cover">Cover</option>
@@ -68,6 +56,6 @@
 <br>
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
 </div>
-<button class="btn btn-sm btn-primary" type="button" id="loadMore" onClick="search" hidden>Load more</button>
-<script>new_search();</script>
+<button class="btn btn-sm btn-primary" type="button" id="loadMore" onClick="loadMore()" hidden>Load more</button>
+<script>newLoad();</script>
 {% endblock content %}

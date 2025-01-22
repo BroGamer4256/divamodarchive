@@ -6,7 +6,7 @@
 {% let owner_name = owner.display_name.as_str() %}
 {% let total_likes = total_likes %}
 {% let total_downloads = total_downloads %}
-{% let description = format!("{owner_name}'s mods\n {total_likes}👍\nDownloads: {total_downloads}") %}
+{% let description = format!("{owner_name}'s mods") %}
 {% call base::draw_embed(owner.display_name, description, owner.avatar) %}
 {% endblock head %}
 
@@ -20,9 +20,11 @@
 		</div>
 		<div class="col-10 card-body">
 			<h1 class="text">{{ owner.display_name }}</h1>
-			<h5 class="text">{{ total_likes }}👍</h5>
-			<h5 class="text">Downloads: {{ total_downloads }}</h5>
+			<h5 class="text">{{ total_likes }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></h5>
+			<h5 class="text">{{ total_downloads }}<span class="material-symbols-outlined" style="font-size: 0.8rem">download</span></h5>
+			{% if owner.public_likes %}
 			<a class="text" href="/liked/{{ owner.id }}">{{ owner.display_name }}'s Liked Mods</a>
+			{% endif %}
 		</div>
 	</div>
 </div>

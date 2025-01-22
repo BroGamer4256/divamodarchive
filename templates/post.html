@@ -13,12 +13,14 @@
 	var liked = {{ has_liked }};
 
 	function onLike() {
+		var span = document.createElement("span");
+		span.outerHTML = '<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span>';
 		if (liked) {
-			document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) - 1 + "👍";
+			document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) - 1 + span;
 			document.getElementById('likedradiobtn').checked = false;
 			liked = false;
 		} else {
-			document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) + 1 + "👍";
+			document.getElementById('likes').innerHTML = Number(document.getElementById('likes').innerHTML.slice(0, -2)) + 1 + span;
 			document.getElementById('likedradiobtn').checked = true;
 			liked = true;
 		}
@@ -173,7 +175,7 @@
 				{% endfor %}
 			</div>
 			<div class="col-md">
-				<h5 class="card-subtitle text-align-right-md text">Downloads: {{ post.download_count }}</h5>
+				<h5 class="card-subtitle text-align-right-md text">{{ post.download_count }}<span class="material-symbols-outlined" style="font-size: 1rem">download</span></h5>
 			</div>
 			<h5 class="card-subtitle text">Last updated: {{ post.time.date() }}</h5>
 		</div>
@@ -203,13 +205,11 @@
 	<div class="col-md-3 card card-body gap-3">
 		<div class="btn-group">
 			{% if let Some(user) = user %}
-			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" {% if has_liked
-				%} checked="true" {% endif %} onclick="onLike()">
-			<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ post.like_count }}👍</label>
+			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" {% if has_liked %} checked="true" {% endif %} onclick="onLike()">
+			<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></label>
 			{% else %}
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
-			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ post.like_count
-				}}👍</label>
+			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></label>
 			{% endif %}
 		</div>
 		<a href="/api/v1/posts/{{ post.id }}/download" class="btn btn-sm btn-outline-success btn-success">

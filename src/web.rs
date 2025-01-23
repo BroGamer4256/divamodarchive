@@ -11,16 +11,16 @@ use axum_extra::extract::CookieJar;
 
 pub fn route(state: AppState) -> Router {
 	Router::new()
-		.route("/", get(root))
+		.route("/", get(search))
 		.route("/about", get(about))
 		.route("/post/:id", get(post_detail))
 		.route("/post/:id/edit", get(upload))
+		//.route("/post/:id/report", get(report))
 		.route("/liked/:id", get(liked))
 		.route("/user/:id", get(user))
 		.route("/upload", get(upload))
-		.route("/search", get(search))
+		.route("/settings", get(settings))
 		//.route("/admin", get(admin))
-		//.route("/post/:id/report", get(report))
 		.with_state(state)
 }
 
@@ -78,55 +78,6 @@ impl BaseTemplate {
 		let Some(user) = &self.user else { return false };
 		user.show_explicit
 	}
-}
-
-#[derive(Template)]
-#[template(path = "root.html")]
-struct RootTemplate {
-	base: BaseTemplate,
-	posts: Vec<Post>,
-}
-
-async fn root(
-	base: BaseTemplate,
-	State(state): State<AppState>,
-) -> Result<RootTemplate, StatusCode> {
-	let latest_posts = sqlx::query!(
-		r#"
-		SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.explicit, p.local_files, like_count.like_count
-		FROM posts p
-		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
-		WHERE explicit = $1 OR explicit = false
-		ORDER BY time DESC
-		LIMIT 40
-		"#,
-		base.show_explicit()
-	)
-	.fetch_all(&state.db)
-	.await
-	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-	let posts = latest_posts
-		.into_iter()
-		.map(|post| Post {
-			id: post.id,
-			name: post.name,
-			text: post.text,
-			images: post.images,
-			files: post.files,
-			time: post.time.assume_offset(time::UtcOffset::UTC),
-			post_type: post.post_type.into(),
-			download_count: post.download_count,
-			like_count: post.like_count.unwrap_or(0),
-			authors: vec![],
-			dependencies: None,
-			comments: None,
-			explicit: post.explicit,
-			local_files: post.local_files,
-		})
-		.collect();
-
-	Ok(RootTemplate { posts, base })
 }
 
 #[derive(Template)]
@@ -374,8 +325,58 @@ async fn post_detail(
 #[template(path = "search.html")]
 struct SearchTemplate {
 	base: BaseTemplate,
+	posts: Vec<Post>,
 }
 
-async fn search(base: BaseTemplate) -> Result<SearchTemplate, StatusCode> {
-	Ok(SearchTemplate { base })
+async fn search(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> Result<SearchTemplate, StatusCode> {
+	let latest_posts = sqlx::query!(
+		r#"
+		SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.explicit, p.local_files, like_count.like_count
+		FROM posts p
+		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
+		WHERE explicit = $1 OR explicit = false
+		ORDER BY time DESC
+		LIMIT 40
+		"#,
+		base.show_explicit()
+	)
+	.fetch_all(&state.db)
+	.await
+	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+	let posts = latest_posts
+		.into_iter()
+		.map(|post| Post {
+			id: post.id,
+			name: post.name,
+			text: post.text,
+			images: post.images,
+			files: post.files,
+			time: post.time.assume_offset(time::UtcOffset::UTC),
+			post_type: post.post_type.into(),
+			download_count: post.download_count,
+			like_count: post.like_count.unwrap_or(0),
+			authors: vec![],
+			dependencies: None,
+			comments: None,
+			explicit: post.explicit,
+			local_files: post.local_files,
+		})
+		.collect();
+
+	Ok(SearchTemplate { base, posts })
+}
+
+#[derive(Template)]
+#[template(path = "settings.html")]
+struct SettingsTemplate {
+	base: BaseTemplate,
+	user: User,
+}
+
+async fn settings(base: BaseTemplate, user: User) -> SettingsTemplate {
+	SettingsTemplate { base, user }
 }

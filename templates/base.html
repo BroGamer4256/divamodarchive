@@ -153,10 +153,10 @@
 	<footer>
 		<nav class="navbar navbar-dark bg-dark fixed-bottom d-flex justify-content-around shadow">
 			<a class="nav-link p-0 nav-text" href="/">Mods</a>
-			<a class="nav-link p-0 nav-text" href="/search">Search</a>
 			{% if let Some(user) = base.user %}
 			<a class="nav-link p-0 nav-text" href="/liked/{{ user.id }}">Liked Mods</a>
 			<a class="nav-link p-0 nav-text" href="/upload">Upload</a>
+			<a class="nav-link p-0 nav-text" href="/settings">Settings</a>
 			{% if user.is_admin(base.config) %}
 			<a class="nav-link p-0 nav-text" href="/admin">Admin</a>
 			{% endif %}

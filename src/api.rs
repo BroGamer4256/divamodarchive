@@ -41,6 +41,7 @@ pub fn route(state: AppState) -> Router {
 			"/api/v1/posts/:post/comment/:comment",
 			delete(delete_comment),
 		)
+		.route("/api/v1/users/settings", post(user_settings))
 		.with_state(state)
 }
 
@@ -87,6 +88,7 @@ pub struct PostUploadData {
 	pub filenames: Option<Vec<String>>,
 	pub image: Option<String>,
 	pub images_extra: Option<Vec<String>>,
+	pub explicit: Option<bool>,
 }
 
 async fn edit(
@@ -113,7 +115,7 @@ async fn edit(
 		post_id,
 		post.name,
 		post.text,
-		post.post_type
+		post.post_type,
 	)
 	.execute(&state.db)
 	.await
@@ -300,7 +302,7 @@ async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 
 		post_id
 	} else {
-		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, files, time, type, local_files) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ID", params.name, params.text, &images, &downloads, time, params.post_type, &filepaths)
+		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, files, time, type, local_files, explicit) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ID", params.name, params.text, &images, &downloads, time, params.post_type, &filepaths, params.explicit.unwrap_or(false))
 			.fetch_one(&state.db)
 			.await else {
 				return;
@@ -720,4 +722,27 @@ async fn delete_comment(
 	.await;
 
 	Ok(())
+}
+
+#[derive(Serialize, Deserialize)]
+struct UserSettings {
+	display_name: String,
+	public_likes: bool,
+	show_explicit: bool,
+}
+
+async fn user_settings(
+	user: User,
+	State(state): State<AppState>,
+	Json(settings): Json<UserSettings>,
+) {
+	_ = sqlx::query!(
+		"UPDATE users SET display_name = $1, public_likes = $2, show_explicit = $3 WHERE id = $4",
+		settings.display_name,
+		settings.public_likes,
+		settings.show_explicit,
+		user.id
+	)
+	.execute(&state.db)
+	.await;
 }

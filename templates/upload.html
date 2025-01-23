@@ -199,6 +199,9 @@
 		{% else %}
 		post_data.image = image_url;
 		post_data.images_extra = images_extra_urls;
+		{% if user.show_explicit %}
+		post_data.explicit = form['explicit'].checked
+		{% endif %}
 		{% endif %}
 
 		var socket = new WebSocket('wss://divamodarchive.com/api/v1/posts/upload');
@@ -277,7 +280,6 @@
 		<label for="imagesExtra" class="form-label mt-4">Optional: Extra images</label>
 		<input class="form-control" accept="image/*" type="file" id="imagesExtra" multiple>
 		<div id="imagesExtraPreview" class="row row-cols-2 row-cols-lg-4 gy-3" style="display: none;">
-
 		</div>
 
 		{% if update.is_some() %}
@@ -288,14 +290,17 @@
 			<input class="btn-check" type="checkbox" id="skip-images-extra" name="skip-images-extra">
 			<label for="skip-images-extra" class="btn btn-primary">Use previously uploaded images extra</label>
 		</div>
+		{% else if user.show_explicit %}
+		<br>
+		<input class="btn-check" type="checkbox" id="explicit" name="explicit">
+		<label for="explicit" class="btn btn-danger">Explicit</label>
 		{% endif %}
 	</div>
 	<div class="col-md-3 card card-body gap-3">
 		<div class="btn-group">
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
 			{% if let Some(old_post) = update %}
-			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ old_post.like_count
-				}}👍</label>
+			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ old_post.like_count }}👍</label>
 			{% else %}
 			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">0👍</label>
 			{% endif %}

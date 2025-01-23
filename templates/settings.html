@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+
+{% block head %}
+{% endblock head %}
+
+{% block content %}
+<script>
+	{% if let Some(jwt) = base.jwt %}
+	async function update() {
+		var data = {
+			'display_name': document.getElementById("name").value,
+			'public_likes': document.getElementById("public_likes").checked,
+			'show_explicit': document.getElementById("show_explicit").checked,
+		};
+
+		var options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify(data)
+		}
+
+		await fetch('/api/v1/users/settings', options);
+
+		window.location.href = "/";
+	}
+	{% endif %}
+
+	function onAccept() {
+		document.getElementById("show_explicit").checked = true;
+	}
+
+	function onDeny() {
+		document.getElementById("show_explicit").checked = false;
+	}
+</script>
+<div class="modal fade" id="explicitModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h1 class="modal-title fs-5">Adults only.</h1>
+			</div>
+			<div class="modal-body">
+				The content this will show is only intended for adults.<br>You must be 18 or older to see this content<br>
+				Some explicit content may involve lewd or otherwise graphic depictions of fictional characters that some people may perceive to be minors.<br>
+				Viewer discretion is advised.<br>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="onAccept()">Accept</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="onDeny()">Deny</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="card card-body">
+	<h5 class="card-text text">
+		<label for="name">Display name: </label>
+		<input type="text" id="name" name="name" autocomplete="off" value="{{ user.display_name }}">
+	</h5>
+	<div class="form-check">
+		<label class="form-check-label" for="public_likes">Show liked mods publicly?</label>
+		<input class="form-check-input" type="checkbox" id="public_likes" autocomplete="off" {% if user.public_likes %}checked=""{% endif %}>
+	</div>
+	<div class="form-check">
+		<label class="form-check-label" for="show_explicit">Show explicit content?</label>
+		<input class="form-check-input" type="checkbox" id="show_explicit" autocomplete="off" {% if user.show_explicit %}checked=""{% endif %} data-bs-toggle="modal" data-bs-target="#explicitModal">
+	</div>
+
+	<div class="btn btn-sm btn-outline-info btn-info" onclick="update()">
+		<button type="button" style="box-shadow: none" class="btn text-light">Update</button>
+	</div>
+</div>
+{% endblock content %}

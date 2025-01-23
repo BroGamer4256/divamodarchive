@@ -54,8 +54,6 @@
 	</div>
 </div>
 <br>
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
-</div>
+{% call post_helpers::draw_post_list(posts) %}
 <button class="btn btn-sm btn-primary" type="button" id="loadMore" onClick="loadMore()" hidden>Load more</button>
-<script>newLoad();</script>
 {% endblock content %}

@@ -67,7 +67,7 @@
 	</div>
 	<div class="form-check">
 		<label class="form-check-label" for="show_explicit">Show explicit content?</label>
-		<input class="form-check-input" type="checkbox" id="show_explicit" autocomplete="off" {% if user.show_explicit %}checked=""{% endif %} data-bs-toggle="modal" data-bs-target="#explicitModal">
+		<input class="form-check-input" type="checkbox" id="show_explicit" autocomplete="off" {% if user.show_explicit %}checked=""{% else %}data-bs-toggle="modal" data-bs-target="#explicitModal"{% endif %}>
 	</div>
 
 	<div class="btn btn-sm btn-outline-info btn-info" onclick="update()">

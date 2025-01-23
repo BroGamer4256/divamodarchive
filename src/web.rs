@@ -15,7 +15,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/about", get(about))
 		.route("/post/:id", get(post_detail))
 		.route("/post/:id/edit", get(upload))
-		//.route("/post/:id/report", get(report))
+		.route("/post/:id/report", get(report))
 		.route("/liked/:id", get(liked))
 		.route("/user/:id", get(user))
 		.route("/upload", get(upload))
@@ -28,6 +28,7 @@ pub struct BaseTemplate {
 	user: Option<User>,
 	config: Config,
 	jwt: Option<String>,
+	report_count: Option<i64>,
 }
 
 #[axum::async_trait]
@@ -65,10 +66,25 @@ where
 		let user = User::from_request_parts(parts, state).await.ok();
 		let state: AppState = AppState::from_ref(state);
 
+		let report_count = if let Some(user) = &user {
+			if user.is_admin(&state.config) {
+				sqlx::query!("SELECT COUNT(*) FROM reports WHERE admin_handled IS NULL")
+					.fetch_one(&state.db)
+					.await
+					.ok()
+					.map(|count| count.count.unwrap_or(0))
+			} else {
+				None
+			}
+		} else {
+			None
+		};
+
 		Ok(Self {
 			user,
 			config: state.config,
 			jwt,
+			report_count,
 		})
 	}
 }
@@ -379,4 +395,24 @@ struct SettingsTemplate {
 
 async fn settings(base: BaseTemplate, user: User) -> SettingsTemplate {
 	SettingsTemplate { base, user }
+}
+
+#[derive(Template)]
+#[template(path = "report.html")]
+struct ReportTemplate {
+	base: BaseTemplate,
+	post: Post,
+}
+
+async fn report(
+	Path(id): Path<i32>,
+	base: BaseTemplate,
+	_: User,
+	State(state): State<AppState>,
+) -> Result<ReportTemplate, StatusCode> {
+	let Some(post) = Post::get_short(id, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	Ok(ReportTemplate { base, post })
 }

@@ -37,6 +37,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/posts/:id/comment", post(comment))
 		.route("/api/v1/posts/:id/author", post(add_author))
 		.route("/api/v1/posts/:id/dependency", post(add_dependency))
+		.route("/api/v1/posts/:id/report", post(report))
 		.route(
 			"/api/v1/posts/:post/comment/:comment",
 			delete(delete_comment),
@@ -666,6 +667,26 @@ async fn add_dependency(
 	.await;
 
 	Ok(Json(dependency))
+}
+
+async fn report(
+	Path(id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+	Json(complaint): Json<String>,
+) {
+	let now = time::OffsetDateTime::now_utc();
+	let time = time::PrimitiveDateTime::new(now.date(), now.time());
+
+	_ = sqlx::query!(
+		"INSERT INTO reports (post_id, user_id, text, time) VALUES ($1, $2, $3, $4)",
+		id,
+		user.id,
+		complaint,
+		time
+	)
+	.execute(&state.db)
+	.await;
 }
 
 #[derive(Serialize, Deserialize)]

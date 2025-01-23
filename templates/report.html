@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+
+{% block head %}
+{% endblock head %}
+
+{% block content %}
+<script>
+    {% if let Some(jwt) = base.jwt %}
+    async function sendReport() {
+        var options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer {{ jwt }}'
+            },
+            body: JSON.stringify(document.getElementById("reportText").value)
+        }
+
+        await fetch('/api/v1/posts/{{ post.id }}/report', options);
+
+        window.location.href = "/";
+    }
+    {% endif %}
+</script>
+<div class="card card-body">
+    <div class="card-text text">
+        <label for="reportText">What is the problem with {{ post.name }}?</label>
+        <textarea class="form-control" id="reportText" rows="5"></textarea>
+    </div>
+
+    <div class="btn btn-sm btn-outline-danger btn-danger" onclick="sendReport()">
+        <button type="button" style="box-shadow: none" class="btn text-light">Send report</button>
+    </div>
+</div>
+{% endblock content %}

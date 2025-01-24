@@ -422,19 +422,23 @@ impl User {
 	}
 }
 
+#[derive(askama::Template)]
+#[template(path = "unauthorized.html")]
+pub struct UnauthorizedTemplate {}
+
 #[axum::async_trait]
 impl<S> FromRequestParts<S> for User
 where
 	S: Send + Sync,
 	AppState: FromRef<S>,
 {
-	type Rejection = StatusCode;
+	type Rejection = UnauthorizedTemplate;
 
 	async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
 		let cookies = parts
 			.extract::<CookieJar>()
 			.await
-			.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+			.map_err(|_| UnauthorizedTemplate {})?;
 		let cookie = cookies.get(&AUTHORIZATION.to_string());
 		let token = match cookie {
 			Some(cookie) => String::from(cookie.value()),
@@ -442,14 +446,16 @@ where
 				let auth = parts
 					.headers
 					.get(AUTHORIZATION)
-					.ok_or(StatusCode::UNAUTHORIZED)?;
+					.ok_or(UnauthorizedTemplate {})?;
 				auth.to_str()
-					.map_err(|_| StatusCode::BAD_REQUEST)?
+					.map_err(|_| UnauthorizedTemplate {})?
 					.replace("Bearer ", "")
 			}
 		};
 		let state: AppState = AppState::from_ref(state);
-		Self::parse(&token, &state).await
+		Ok(Self::parse(&token, &state)
+			.await
+			.map_err(|_| UnauthorizedTemplate {})?)
 	}
 }
 

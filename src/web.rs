@@ -24,6 +24,7 @@ pub fn route(state: AppState) -> Router {
 		.with_state(state)
 }
 
+#[derive(Clone)]
 pub struct BaseTemplate {
 	user: Option<User>,
 	config: Config,
@@ -294,13 +295,13 @@ async fn post_detail(
 	user: Option<User>,
 	State(state): State<AppState>,
 	base: BaseTemplate,
-) -> Result<PostTemplate, StatusCode> {
+) -> Result<PostTemplate, Result<UnauthorizedTemplate, StatusCode>> {
 	let Some(post) = Post::get_full(id, &state.db).await else {
-		return Err(StatusCode::NOT_FOUND);
+		return Err(Err(StatusCode::NOT_FOUND));
 	};
 
 	if post.explicit && !base.show_explicit() {
-		return Err(StatusCode::UNAUTHORIZED);
+		return Err(Ok(UnauthorizedTemplate {}));
 	}
 
 	let has_liked = if let Some(user) = &user {
@@ -312,7 +313,7 @@ async fn post_detail(
 		.fetch_one(&state.db)
 		.await
 		else {
-			return Err(StatusCode::INTERNAL_SERVER_ERROR);
+			return Err(Err(StatusCode::INTERNAL_SERVER_ERROR));
 		};
 
 		has_liked.count.unwrap_or(0) > 0

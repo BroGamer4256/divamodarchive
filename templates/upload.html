@@ -195,7 +195,7 @@
 		if (!skipImagesExtra) {
 			post_data.images_extra = images_extra_urls;
 		}
-		post_data.id = old_post.id
+		post_data.id = {{ old_post.id }}
 		{% else %}
 		post_data.image = image_url;
 		post_data.images_extra = images_extra_urls;
@@ -292,8 +292,10 @@
 		</div>
 		{% else if user.show_explicit %}
 		<br>
-		<input class="btn-check" type="checkbox" id="explicit" name="explicit">
-		<label for="explicit" class="btn btn-danger">Explicit</label>
+		<div class="form-check">
+			<label for="explicit" class="form-check-label">Explicit</label>
+			<input class="form-check-input" type="checkbox" id="explicit" name="explicit">
+		</div>
 		{% endif %}
 	</div>
 	<div class="col-md-3 card card-body gap-3">

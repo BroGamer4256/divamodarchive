@@ -111,6 +111,13 @@ async fn main() {
 		.route("/sitemap.xml", get(sitemap::sitemap))
 		.route("/login", get(login))
 		.layer(axum::extract::DefaultBodyLimit::disable())
+		.layer(
+			tower_http::compression::CompressionLayer::new()
+				.gzip(true)
+				.deflate(true)
+				.br(true)
+				.zstd(true),
+		)
 		.with_state(state.clone())
 		.merge(web::route(state.clone()))
 		.merge(api::route(state.clone()));
@@ -118,6 +125,10 @@ async fn main() {
 		.await
 		.expect("Unable to bind on port {}");
 	axum::serve(listener, router).await.unwrap();
+}
+
+pub async fn fallback() -> &'static str {
+	"TEST!"
 }
 
 pub async fn robots() -> &'static str {

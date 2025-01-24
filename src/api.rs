@@ -43,6 +43,7 @@ pub fn route(state: AppState) -> Router {
 			delete(delete_comment),
 		)
 		.route("/api/v1/users/settings", post(user_settings))
+		.layer(tower_http::cors::CorsLayer::permissive())
 		.with_state(state)
 }
 

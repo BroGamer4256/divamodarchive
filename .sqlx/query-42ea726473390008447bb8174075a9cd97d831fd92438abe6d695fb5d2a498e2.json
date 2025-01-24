@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\t\tSELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.explicit, p.local_files, COALESCE(like_count.count, 0) AS \"like_count!\"\n\t\t\tFROM post_dependencies pd\n\t\t\tLEFT JOIN posts p ON pd.dependency_id = p.id\n\t\t\tLEFT JOIN (SELECT post_id, COUNT(*) as count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id\n\t\t\tLEFT JOIN post_authors pa ON pa.post_id = p.id\n\t\t\tLEFT JOIN users u ON pa.user_id = u.id\n\t\t\tWHERE pd.post_id = $1\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "text",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "images",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "files",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "time",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "post_type",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "download_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "explicit",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "local_files",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 10,
+        "name": "like_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "42ea726473390008447bb8174075a9cd97d831fd92438abe6d695fb5d2a498e2"
+}

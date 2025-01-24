@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\tSELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.explicit, p.local_files, like_count.like_count\n\t\tFROM post_authors pa\n\t\tLEFT JOIN posts p ON pa.post_id = p.id\n\t\tLEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id\n\t\tWHERE pa.user_id = $1\n\t\tAND (p.explicit = $2 OR p.explicit = false)\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "text",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "images",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "files",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "time",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "post_type",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "download_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "explicit",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "local_files",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 10,
+        "name": "like_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "78fac3a4c966f81ac1aacc99df8711f817553eeef15dbb4a04db0f23c309a396"
+}

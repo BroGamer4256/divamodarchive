@@ -339,8 +339,9 @@
 				<option value="0" {% if PostType::Plugin==old_post.post_type %}selected{% endif %}>Plugin</option>
 				<option value="1" {% if PostType::Module==old_post.post_type %}selected{% endif %}>Module</option>
 				<option value="2" {% if PostType::Song==old_post.post_type %}selected{% endif %}>Song</option>
-				<option value="3" {% if PostType::Ui==old_post.post_type %}selected{% endif %}>Ui</option>
-				<option value="4" {% if PostType::Other==old_post.post_type %}selected{% endif %}>Other</option>
+				<option value="3" {% if PostType::Cover==old_post.post_type %}selected{% endif %}>Cover</option>
+				<option value="4" {% if PostType::Ui==old_post.post_type %}selected{% endif %}>UI</option>
+				<option value="5" {% if PostType::Other==old_post.post_type %}selected{% endif %}>Other</option>
 			</select>
 			{% else %}
 			<select class="form-control list-text" id="type_tag" name="type_tag">

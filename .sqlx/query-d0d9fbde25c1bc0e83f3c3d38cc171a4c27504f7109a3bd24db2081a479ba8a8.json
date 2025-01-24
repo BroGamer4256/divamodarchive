@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT time FROM posts WHERE explicit = false ORDER BY time",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "time",
+        "type_info": "Timestamp"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d0d9fbde25c1bc0e83f3c3d38cc171a4c27504f7109a3bd24db2081a479ba8a8"
+}

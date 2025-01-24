@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\t\t\tSELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.show_explicit\n\t\t\t\tFROM post_authors pa\n\t\t\t\tLEFT JOIN users u ON pa.user_id = u.id\n\t\t\t\tWHERE pa.post_id = $1\n\t\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "avatar",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "public_likes",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "show_explicit",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2a103bc7097d2e23a66814cd5ddc37c5a5415e8e2d01bee56c97d1dafc8f5c1a"
+}

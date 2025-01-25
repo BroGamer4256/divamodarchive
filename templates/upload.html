@@ -4,6 +4,7 @@
 
 {% block head %}
 {% call base::draw_embed("Upload", "Upload a DIVA mod", "") %}
+<script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js" async></script>
 {% endblock head %}
 
 {% block content %}
@@ -239,6 +240,17 @@
 		socket.addEventListener("close", async (event) => console.log(event));
 		socket.addEventListener("error", async (event) => alert("Websocket error: " + event));
 	}
+
+	function descriptionUpdate() {
+		if (document.getElementById("btnEdit").checked) {
+			document.getElementById("text").hidden = false;
+			document.getElementById("descriptionPreview").hidden = true;
+		} else {
+			document.getElementById("text").hidden = true;
+			document.getElementById("descriptionPreview").hidden = false;
+			document.getElementById("descriptionPreview").innerHTML = marked.parse(document.getElementById("text").value);
+		}
+	}
 </script>
 <form id="form" class="row align-items-md-stretch gap-3" enctype="application/x-www-form-urlencoded">
 	<div class="card card-body">
@@ -248,8 +260,8 @@
 		</p>
 		<ul class="mb-0">
 			<li class="text">Copyright infringement</li>
-			<li class="text">Unreasonably low quality</li>
-			<li class="text">NSFW or otherwise explicit content not fit for minors to view</li>
+			<li class="text">A mod for a game other than Project DIVA Mega Mix+</li>
+			<li class="text">NSFW or otherwise explicit content not fit for minors to view {% if user.show_explicit %}unless marked as explicit{% endif %}</li>
 		</ul>
 	</div>
 
@@ -323,17 +335,8 @@
 		{% endif %}
 		<label for="filePicker" class="form-label mt-4">Mod File</label>
 		<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker" multiple>
-	</div>
-	<div class="card card-body">
-		<h5 class="card-text">
-			<label for="text">Description</label>
-			{% if let Some(old_post) = update %}
-			<textarea class="form-control" id="text" rows="5">{{ old_post.text }}</textarea>
-			{% else %}
-			<textarea class="form-control" id="text" rows="5"></textarea>
-			{% endif %}
 
-			<label for="type_tag">Type</label>
+		<label for="type_tag">Type</label>
 			{% if let Some(old_post) = update %}
 			<select class="form-control list-text" id="type_tag" name="type_tag">
 				<option value="0" {% if PostType::Plugin==old_post.post_type %}selected{% endif %}>Plugin</option>
@@ -353,7 +356,24 @@
 				<option value="5">Other</option>
 			</select>
 			{% endif %}
-		</h5>
+	</div>
+	<div class="card card-body">
+		<div class="card-text">
+			<h5>Description</h5>
+			<div class="btn-group" role="group">
+				<input type="radio" class="btn-check" id="btnEdit" name="description" autocomplete="off" checked="" onchange="descriptionUpdate()">
+				<label class="btn btn-outline-primary" for="btnEdit">Edit</label>
+				<input type="radio" class="btn-check" id="btnPreview" name="description" autocomplete="off" onchange="descriptionUpdate()">
+				<label class="btn btn-outline-primary" for="btnPreview">Preview</label>
+			</div>
+			<br>
+			{% if let Some(old_post) = update %}
+			<textarea class="form-control" id="text" rows="5">{{ old_post.text }}</textarea>
+			{% else %}
+			<textarea class="form-control" id="text" rows="5"></textarea>
+			{% endif %}
+			<div class="text" hidden="" id="descriptionPreview"></div>
+		</div>
 	</div>
 </form>
 <style>

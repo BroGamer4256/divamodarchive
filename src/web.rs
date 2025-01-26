@@ -14,6 +14,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/", get(search))
 		.route("/about", get(about))
 		.route("/post/:id", get(post_detail))
+		.route("/posts/:id", get(post_detail))
 		.route("/post/:id/edit", get(upload))
 		.route("/post/:id/report", get(report))
 		.route("/liked/:id", get(liked))

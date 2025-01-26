@@ -4,7 +4,7 @@
 
 {% block head %}
 {% call base::draw_embed("Upload", "Upload a DIVA mod", "") %}
-<script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js" async></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@15.0.6/lib/marked.umd.min.js" async></script>
 {% endblock head %}
 
 {% block content %}
@@ -360,6 +360,7 @@
 	<div class="card card-body">
 		<div class="card-text">
 			<h5>Description</h5>
+			<p>Descriptions are formatted using markdown, please check the preview that your description will look how you like.</p>
 			<div class="btn-group" role="group">
 				<input type="radio" class="btn-check" id="btnEdit" name="description" autocomplete="off" checked="" onchange="descriptionUpdate()">
 				<label class="btn btn-outline-primary" for="btnEdit">Edit</label>

@@ -187,10 +187,7 @@
 			<div class="carousel-inner">
 				{% for (i, image) in post.images.iter().enumerate() %}
 				<div class="carousel-item {% if i == 0 %}active{% endif %}">
-					<button type="button" class="ratio ratio-16x9 bg-clear border-none">
-						<img src="{{ image }}" class="card-img-top flat-image" loading="lazy"
-							alt="Preview of {{ post.name }}">
-					</button>
+					<img src="{{ image }}" class="card-img-top flat-image ratio ratio-16x9 bg-clear border-none" loading="lazy" alt="Preview of {{ post.name }}">
 				</div>
 				{% endfor %}
 			</div>

@@ -167,6 +167,27 @@
 {% endif %}
 {% endif %}
 
+{% if let Some(user) = user %}
+{% if is_author || user.is_admin(config) %}
+<div class="modal fade" id="deleteModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h1 class="modal-title fs-5">Do you really want to delete {{ post.name }}?</h1>
+			</div>
+			<div class="modal-body">
+				This will permanently delete this post and all associated data.
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="deletePost()">Yes</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+{% endif %}
+
 <div class="row align-items-md-stretch gap-3">
 	<div class="col-md-7 card card-body">
 		<h2 class="text card-title" style="text-align: center">{{ post.name }} </h2>
@@ -270,7 +291,7 @@
 		</a>
 		{% endif %}
 		{% if is_author || user.is_admin(config) %}
-		<div class="btn btn-sm btn-outline-danger btn-danger" onclick="deletePost()">
+		<div class="btn btn-sm btn-outline-danger btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
 			<button type="button" class="btn text-light">Delete</button>
 		</div>
 		{% endif %}

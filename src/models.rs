@@ -18,6 +18,25 @@ pub struct User {
 	pub public_likes: bool,
 	#[serde(skip)]
 	pub show_explicit: bool,
+	#[serde(skip)]
+	pub theme: Theme,
+}
+
+#[repr(i32)]
+#[derive(PartialEq, Serialize, Deserialize, Clone, Copy, Default)]
+pub enum Theme {
+	#[default]
+	Light = 0,
+	Dark = 1,
+}
+
+impl From<i32> for Theme {
+	fn from(value: i32) -> Self {
+		match value {
+			1 => Self::Dark,
+			_ => Self::Light,
+		}
+	}
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -182,7 +201,7 @@ impl Post {
 		let authors = sqlx::query_as!(
 			User,
 			r#"
-			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.show_explicit
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.show_explicit, u.theme
 			FROM post_authors pa
 			JOIN users u ON pa.user_id = u.id
 			WHERE pa.post_id = $1
@@ -214,7 +233,7 @@ impl Post {
 			let Ok(authors) = sqlx::query_as!(
 				User,
 				r#"
-				SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.show_explicit
+				SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.show_explicit, u.theme
 				FROM post_authors pa
 				LEFT JOIN users u ON pa.user_id = u.id
 				WHERE pa.post_id = $1
@@ -247,7 +266,7 @@ impl Post {
 
 		let comments = sqlx::query!(
 			r#"
-			SELECT c.id, c.text, c.parent, c.time, u.id as user_id, u.name as user_name, u.avatar as user_avatar, u.display_name, u.public_likes, u.show_explicit
+			SELECT c.id, c.text, c.parent, c.time, u.id as user_id, u.name as user_name, u.avatar as user_avatar, u.display_name, u.public_likes, u.show_explicit, u.theme
 			FROM post_comments c
 			LEFT JOIN users u ON c.user_id = u.id
 			WHERE c.post_id = $1
@@ -269,6 +288,7 @@ impl Post {
 					display_name: String::new(),
 					public_likes: true,
 					show_explicit: false,
+					theme: Theme::Light,
 				},
 				text: String::new(),
 				time: time::OffsetDateTime::now_utc(),
@@ -292,6 +312,7 @@ impl Post {
 								display_name: comment.display_name.clone(),
 								public_likes: comment.public_likes,
 								show_explicit: comment.show_explicit,
+								theme: comment.theme.into(),
 							},
 							text: comment.text.clone(),
 							time: comment.time.assume_offset(time::UtcOffset::UTC),
@@ -311,6 +332,7 @@ impl Post {
 							display_name: comment.display_name.clone(),
 							public_likes: comment.public_likes,
 							show_explicit: comment.show_explicit,
+							theme: comment.theme.into(),
 						},
 						text: comment.text.clone(),
 						time: comment.time.assume_offset(time::UtcOffset::UTC),
@@ -361,7 +383,7 @@ impl Post {
 		let authors = sqlx::query_as!(
 			User,
 			r#"
-			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.show_explicit
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.show_explicit, u.theme
 			FROM post_authors pa
 			LEFT JOIN users u ON pa.user_id = u.id
 			WHERE pa.post_id = $1

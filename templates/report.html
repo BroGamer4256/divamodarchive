@@ -30,7 +30,7 @@
     </div>
 
     <div class="btn btn-sm btn-outline-danger btn-danger" onclick="sendReport()">
-        <button type="button" style="box-shadow: none" class="btn text-light">Send report</button>
+        <button type="button" style="box-shadow: none" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Send report</button>
     </div>
 </div>
 {% endblock content %}

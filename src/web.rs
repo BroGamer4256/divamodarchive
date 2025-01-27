@@ -96,6 +96,13 @@ impl BaseTemplate {
 		let Some(user) = &self.user else { return false };
 		user.show_explicit
 	}
+
+	fn theme(&self) -> Theme {
+		let Some(user) = &self.user else {
+			return Theme::default();
+		};
+		user.theme
+	}
 }
 
 #[derive(Template)]

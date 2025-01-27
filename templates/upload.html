@@ -322,7 +322,7 @@
 			<input type="radio" class="btn-check" name="btnradio" id="dislikedradiobtn" autocomplete="off">
 		</div>
 		<div class="btn btn-sm btn-outline-success btn-success" id="upload_btn_div" onclick="upload()">
-			<button type="button" id="upload_btn" style="box-shadow: none" class="btn text-light">Upload</button>
+			<button type="button" id="upload_btn" style="box-shadow: none" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Upload</button>
 		</div>
 		<div class="progress">
 			<div id="progressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%;"></div>
@@ -330,7 +330,7 @@
 		{% if update.is_some() %}
 		<div class="btn btn-sm btn-outline-success btn-success" id="upload_metadata_btn_div"
 			onclick="upload_metadata()">
-			<button type="button" id="upload_metadata_btn" style="box-shadow: none" class="btn text-light">Update
+			<button type="button" id="upload_metadata_btn" style="box-shadow: none" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Update
 				metadata</button>
 		</div>
 		{% endif %}
@@ -338,25 +338,25 @@
 		<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker" multiple>
 
 		<label for="type_tag">Type</label>
-			{% if let Some(old_post) = update %}
-			<select class="form-control list-text" id="type_tag" name="type_tag">
-				<option value="0" {% if PostType::Plugin==old_post.post_type %}selected{% endif %}>Plugin</option>
-				<option value="1" {% if PostType::Module==old_post.post_type %}selected{% endif %}>Module</option>
-				<option value="2" {% if PostType::Song==old_post.post_type %}selected{% endif %}>Song</option>
-				<option value="3" {% if PostType::Cover==old_post.post_type %}selected{% endif %}>Cover</option>
-				<option value="4" {% if PostType::Ui==old_post.post_type %}selected{% endif %}>UI</option>
-				<option value="5" {% if PostType::Other==old_post.post_type %}selected{% endif %}>Other</option>
-			</select>
-			{% else %}
-			<select class="form-control list-text" id="type_tag" name="type_tag">
-				<option value="0">Plugin</option>
-				<option value="1">Module</option>
-				<option value="2">Song</option>
-				<option value="3">Cover</option>
-				<option value="4">UI</option>
-				<option value="5">Other</option>
-			</select>
-			{% endif %}
+		{% if let Some(old_post) = update %}
+		<select class="form-control list-text" id="type_tag" name="type_tag">
+			<option value="0" {% if PostType::Plugin==old_post.post_type %}selected{% endif %}>Plugin</option>
+			<option value="1" {% if PostType::Module==old_post.post_type %}selected{% endif %}>Module</option>
+			<option value="2" {% if PostType::Song==old_post.post_type %}selected{% endif %}>Song</option>
+			<option value="3" {% if PostType::Cover==old_post.post_type %}selected{% endif %}>Cover</option>
+			<option value="4" {% if PostType::Ui==old_post.post_type %}selected{% endif %}>UI</option>
+			<option value="5" {% if PostType::Other==old_post.post_type %}selected{% endif %}>Other</option>
+		</select>
+		{% else %}
+		<select class="form-control list-text" id="type_tag" name="type_tag">
+			<option value="0">Plugin</option>
+			<option value="1">Module</option>
+			<option value="2">Song</option>
+			<option value="3">Cover</option>
+			<option value="4">UI</option>
+			<option value="5">Other</option>
+		</select>
+		{% endif %}
 	</div>
 	<div class="card card-body">
 		<div class="card-text">

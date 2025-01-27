@@ -12,6 +12,7 @@
 			'display_name': document.getElementById("name").value,
 			'public_likes': document.getElementById("public_likes").checked,
 			'show_explicit': document.getElementById("show_explicit").checked,
+			'theme': Number(document.getElementById("theme").value),
 		};
 
 		var options = {
@@ -61,6 +62,12 @@
 		<label for="name">Display name: </label>
 		<input type="text" id="name" name="name" autocomplete="off" value="{{ user.display_name }}">
 	</h5>
+	<label for="theme">Theme</label>
+	<select class="form-control list-text" id="theme" name="theme">
+		<option value=0 {% if base.theme() == Theme::Light %}selected{% endif %}>Light</option>
+		<option value=1 {% if base.theme() == Theme::Dark %}selected{% endif %}>Dark</option>
+	</select>
+	<div style="width: 100%; height: 0.5rem"></div>
 	<div class="form-check">
 		<label class="form-check-label" for="public_likes">Show liked mods publicly?</label>
 		<input class="form-check-input" type="checkbox" id="public_likes" autocomplete="off" {% if user.public_likes %}checked=""{% endif %}>
@@ -71,7 +78,7 @@
 	</div>
 
 	<div class="btn btn-sm btn-outline-info btn-info" onclick="update()">
-		<button type="button" style="box-shadow: none" class="btn text-light">Update</button>
+		<button type="button" style="box-shadow: none" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Update</button>
 	</div>
 </div>
 {% endblock content %}

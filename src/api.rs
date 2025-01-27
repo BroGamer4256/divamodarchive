@@ -751,6 +751,7 @@ struct UserSettings {
 	display_name: String,
 	public_likes: bool,
 	show_explicit: bool,
+	theme: i32,
 }
 
 async fn user_settings(
@@ -759,10 +760,11 @@ async fn user_settings(
 	Json(settings): Json<UserSettings>,
 ) {
 	_ = sqlx::query!(
-		"UPDATE users SET display_name = $1, public_likes = $2, show_explicit = $3 WHERE id = $4",
+		"UPDATE users SET display_name = $1, public_likes = $2, show_explicit = $3, theme = $4 WHERE id = $5",
 		settings.display_name,
 		settings.public_likes,
 		settings.show_explicit,
+		settings.theme,
 		user.id
 	)
 	.execute(&state.db)

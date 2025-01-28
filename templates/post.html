@@ -343,8 +343,7 @@
 						<th>Name (EN)</th>
 						<th>Name (JP)</th>
 						<th>ID</th>
-						<th>Source</th>
-						{% for _ in 4..cols %}
+						{% for _ in 3..cols %}
 							<th />
 						{% endfor %}
 					</thead>
@@ -353,14 +352,7 @@
 							<td>{{ pv.name_en }}</td>
 							<td>{{ pv.name }}</td>
 							<td>{{ pv.id }}</td>
-							<td>
-							{% if let Some(post) = pv.post %}
-								<a href="/post/{{ post.id }}" class="nav-link">{{ post.name }}</a>
-							{% else %}
-								MM+
-							{% endif %}
-							</td>
-							{% for _ in 4..cols %}
+							{% for _ in 3..cols %}
 								<td />
 							{% endfor %}
 						</tr>
@@ -477,7 +469,6 @@
 					<th>Name (EN)</th>
 					<th>Name (JP)</th>
 					<th>ID</th>
-					<th>Source</th>
 				</tr>
 			</thead>
 			<tbody id="pvs">
@@ -486,7 +477,6 @@
 					<td>{{ pv.name_en }}</td>
 					<td>{{ pv.name }}</td>
 					<td>{{ pv.id }}</td>
-					<td>{% if let Some(post) = pv.post %}{{ post.name }}{% else %}MM+{% endif %}</td>
 				</tr>
 				{% endfor %}
 			</tbody>

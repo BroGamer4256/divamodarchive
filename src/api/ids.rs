@@ -12,6 +12,18 @@ pub struct SearchParams {
 	pub offset: Option<usize>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct MeilisearchPv {
+	pub uid: u64,
+	pub post: i32,
+	pub pv_id: i32,
+	pub song_name: String,
+	pub song_name_en: String,
+	pub song_info: Option<SongInfo>,
+	pub song_info_en: Option<SongInfo>,
+	pub levels: [Option<Level>; 5],
+}
+
 pub async fn search_pvs(
 	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
 	State(state): State<AppState>,
@@ -35,18 +47,6 @@ pub async fn search_pvs(
 	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
 		filter.as_str(),
 	)));
-
-	#[derive(Serialize, Deserialize)]
-	struct MeilisearchPv {
-		uid: u64,
-		post: i32,
-		pv_id: i32,
-		song_name: String,
-		song_name_en: String,
-		song_info: Option<SongInfo>,
-		song_info_en: Option<SongInfo>,
-		levels: [Option<Level>; 5],
-	}
 
 	let pvs = search
 		.execute::<MeilisearchPv>()

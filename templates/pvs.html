@@ -72,7 +72,7 @@
 		div.tabIndex = -1;
 		div.style = "width: var(--bs-offcanvas-width) * 1.5";
 
-		var html = `<table class="table table-hover">
+		var html = `<table class="table">
 <thead>
 	<th>Name (EN)</th>
 	<th>Name (JP)</th>
@@ -179,11 +179,11 @@
 		html += `
 </thead>
 <tbody class="table-dark">
-	<td>${levelToString(pv.levels[0])}${pv.levels[0] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td>${levelToString(pv.levels[1])}${pv.levels[1] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td>${levelToString(pv.levels[2])}${pv.levels[2] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td>${levelToString(pv.levels[3])}${pv.levels[3] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td>${levelToString(pv.levels[4])}${pv.levels[4] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td style="${pv.levels[0] != null ? 'background-color: var(--diva-easy)' : ''}">${levelToString(pv.levels[0])}${pv.levels[0] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td style="${pv.levels[1] != null ? 'background-color: var(--diva-normal)' : ''}">${levelToString(pv.levels[1])}${pv.levels[1] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td style="${pv.levels[2] != null ? 'background-color: var(--diva-hard)' : ''}">${levelToString(pv.levels[2])}${pv.levels[2] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td style="${pv.levels[3] != null ? 'background-color: var(--diva-extreme)' : ''}">${levelToString(pv.levels[3])}${pv.levels[3] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td style="${pv.levels[4] != null ? 'background-color: var(--diva-exex)' : ''}">${levelToString(pv.levels[4])}${pv.levels[4] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
 		`;
 
 		for (var i = 5; i < maxLen; i++) {
@@ -241,7 +241,7 @@
 	{% let cols = 5 -%}
 	{% endif -%}
 	<div class="offcanvas offcanvas-start" id="offcanvas{{ pv.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
-		<table class="table table-hover">
+		<table class="table">
 			<thead>
 				<th>Name (EN)</th>
 				<th>Name (JP)</th>
@@ -361,7 +361,21 @@
 			<tbody class="table-dark">
 				{% for i in 0..5 %}
 					{% if let Some(level) = pv.levels[i] %}
-					<td>{{ level.to_string() }}<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span></td>
+					{% let color -%}
+					{% if i == 0 -%}
+					{% let color = "--diva-easy" -%}
+					{% else if i == 1 -%}
+					{% let color = "--diva-normal" -%}
+					{% else if i == 2 -%}
+					{% let color = "--diva-hard" -%}
+					{% else if i == 3 -%}
+					{% let color = "--diva-extreme" -%}
+					{% else if i == 4 -%}
+					{% let color = "--diva-exex" -%}
+					{% else -%}
+					{% let color = "--diva-exex" -%}
+					{% endif -%}
+					<td style="background-color: var({{ color }})">{{ level.to_string() }}<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span></td>
 					{% else %}
 					<td />
 					{% endif %}

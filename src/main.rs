@@ -73,7 +73,7 @@ async fn main() {
 
 	let client = meilisearch_sdk::client::Client::new(meilisearch_url, None::<&str>).unwrap();
 	let meilisearch_posts = client.index("posts");
-	let meilisearch_pvs = client.index("posts");
+	let meilisearch_pvs = client.index("pvs");
 
 	let posts = sqlx::query!("SELECT id FROM posts").fetch_all(&db).await;
 	if let Ok(posts) = posts {

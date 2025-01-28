@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct SearchParams {
 	pub query: Option<String>,
+	pub filter: Option<String>,
 	pub limit: Option<usize>,
 	pub offset: Option<usize>,
 }
@@ -24,6 +25,16 @@ pub async fn search_pvs(
 	search.offset = query.offset;
 
 	search.sort = Some(&["pv_id:asc"]);
+
+	let filter = if let Some(filter) = &query.filter {
+		format!("{filter}")
+	} else {
+		String::new()
+	};
+
+	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
+		filter.as_str(),
+	)));
 
 	#[derive(Serialize, Deserialize)]
 	struct MeilisearchPv {

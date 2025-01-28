@@ -297,6 +297,7 @@ struct PostTemplate {
 	is_author: bool,
 	post: Post,
 	config: Config,
+	pvs: Vec<Pv>,
 }
 
 async fn post_detail(
@@ -336,6 +337,18 @@ async fn post_detail(
 		false
 	};
 
+	let Json(pvs) = crate::api::ids::search_pvs(
+		axum_extra::extract::Query(crate::api::ids::SearchParams {
+			query: None,
+			filter: Some(format!("post={}", post.id)),
+			limit: Some(300),
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.map_err(|(status, _)| Err(status))?;
+
 	Ok(PostTemplate {
 		user,
 		jwt: base.jwt.clone(),
@@ -344,6 +357,7 @@ async fn post_detail(
 		base,
 		post,
 		config: state.config,
+		pvs,
 	})
 }
 
@@ -438,6 +452,7 @@ async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTem
 	let Json(pvs) = crate::api::ids::search_pvs(
 		axum_extra::extract::Query(crate::api::ids::SearchParams {
 			query: None,
+			filter: None,
 			limit: Some(40),
 			offset: Some(0),
 		}),

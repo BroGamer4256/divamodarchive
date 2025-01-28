@@ -602,6 +602,125 @@ pub struct Pv {
 	pub levels: [Option<Level>; 5],
 }
 
+impl Pv {
+	pub fn has_music(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(music) = &song_info.music {
+				if !music.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(music) = &song_info.music {
+				if !music.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn has_lyrics(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(lyrics) = &song_info.lyrics {
+				if !lyrics.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(lyrics) = &song_info.lyrics {
+				if !lyrics.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn has_arranger(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(arranger) = &song_info.arranger {
+				if !arranger.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(arranger) = &song_info.arranger {
+				if !arranger.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn has_manipulator(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(manipulator) = &song_info.manipulator {
+				if manipulator.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(manipulator) = &song_info.manipulator {
+				if !manipulator.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn has_editor(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(pv_editor) = &song_info.pv_editor {
+				if !pv_editor.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(pv_editor) = &song_info.pv_editor {
+				if !pv_editor.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn has_guitar(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(guitar_player) = &song_info.guitar_player {
+				if !guitar_player.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(guitar_player) = &song_info.guitar_player {
+				if !guitar_player.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn song_info_count(&self) -> isize {
+		self.has_music() as isize
+			+ self.has_lyrics() as isize
+			+ self.has_arranger() as isize
+			+ self.has_manipulator() as isize
+			+ self.has_editor() as isize
+			+ self.has_guitar() as isize
+	}
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SongInfo {
 	pub music: Option<String>,

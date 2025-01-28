@@ -611,7 +611,7 @@ pub async fn delete_post(
 
 	let pvs = state.meilisearch.index("pvs");
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&pvs)
-		.with_filter(&format!("pv_id={}", post.id))
+		.with_filter(&format!("post={}", post.id))
 		.execute::<crate::api::ids::MeilisearchPv>()
 		.await;
 

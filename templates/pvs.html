@@ -179,11 +179,11 @@
 		html += `
 </thead>
 <tbody class="table-dark">
-	<td style="${pv.levels[0] != null ? 'background-color: var(--diva-easy)' : ''}">${levelToString(pv.levels[0])}${pv.levels[0] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td style="${pv.levels[1] != null ? 'background-color: var(--diva-normal)' : ''}">${levelToString(pv.levels[1])}${pv.levels[1] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td style="${pv.levels[2] != null ? 'background-color: var(--diva-hard)' : ''}">${levelToString(pv.levels[2])}${pv.levels[2] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td style="${pv.levels[3] != null ? 'background-color: var(--diva-extreme)' : ''}">${levelToString(pv.levels[3])}${pv.levels[3] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td style="${pv.levels[4] != null ? 'background-color: var(--diva-exex)' : ''}">${levelToString(pv.levels[4])}${pv.levels[4] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td style="${pv.levels[0] != null ? 'background-color: var(--diva-easy)' : ''}"><b>${levelToString(pv.levels[0])}</b>${pv.levels[0] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td style="${pv.levels[1] != null ? 'background-color: var(--diva-normal)' : ''}"><b>${levelToString(pv.levels[1])}</b>${pv.levels[1] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td style="${pv.levels[2] != null ? 'background-color: var(--diva-hard)' : ''}"><b>${levelToString(pv.levels[2])}</b>${pv.levels[2] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td style="${pv.levels[3] != null ? 'background-color: var(--diva-extreme)' : ''}"><b>${levelToString(pv.levels[3])}</b>${pv.levels[3] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td style="${pv.levels[4] != null ? 'background-color: var(--diva-exex)' : ''}"><b>${levelToString(pv.levels[4])}</b>${pv.levels[4] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
 		`;
 
 		for (var i = 5; i < maxLen; i++) {
@@ -375,7 +375,7 @@
 					{% else -%}
 					{% let color = "--diva-exex" -%}
 					{% endif -%}
-					<td style="background-color: var({{ color }})">{{ level.to_string() }}<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span></td>
+					<td style="background-color: var({{ color }})"><b>{{ level.to_string() }}</b><span class="material-symbols-outlined" style="font-size: 0.8rem">star</span></td>
 					{% else %}
 					<td />
 					{% endif %}

@@ -338,6 +338,9 @@
 			{% let cols = 5 -%}
 			{% endif -%}
 			<div class="offcanvas offcanvas-start" id="offcanvas{{ pv.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
+				<div class="offcanvas-header">
+					<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+				</div>
 				<table class="table">
 					<thead>
 						<th>Name (EN)</th>

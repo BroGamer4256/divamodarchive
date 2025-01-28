@@ -4,7 +4,7 @@ pub mod sitemap;
 pub mod web;
 
 use axum::{http::HeaderMap, routing::*, Router};
-use meilisearch_sdk::indexes::*;
+use meilisearch_sdk::client::*;
 use models::*;
 use sqlx::postgres::PgPoolOptions;
 
@@ -23,7 +23,7 @@ pub struct Config {
 pub struct AppState {
 	pub config: Config,
 	pub db: sqlx::Pool<sqlx::Postgres>,
-	pub meilisearch: Index,
+	pub meilisearch: Client,
 }
 
 #[tokio::main]
@@ -102,7 +102,7 @@ async fn main() {
 	let state = AppState {
 		config,
 		db,
-		meilisearch,
+		meilisearch: client,
 	};
 	let router = Router::new()
 		.route("/robots.txt", get(robots))

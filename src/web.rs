@@ -21,6 +21,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/user/:id", get(user))
 		.route("/upload", get(upload))
 		.route("/settings", get(settings))
+		.route("/pvs", get(pvs))
 		//.route("/admin", get(admin))
 		.with_state(state)
 }
@@ -424,4 +425,25 @@ async fn report(
 	};
 
 	Ok(ReportTemplate { base, post })
+}
+
+#[derive(Template)]
+#[template(path = "pvs.html")]
+struct PvsTemplate {
+	base: BaseTemplate,
+	pvs: Vec<Pv>,
+}
+
+async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTemplate, StatusCode> {
+	let Json(pvs) = crate::api::ids::search_pvs(
+		axum_extra::extract::Query(crate::api::ids::SearchParams {
+			query: None,
+			limit: Some(40),
+			offset: Some(0),
+		}),
+		State(state),
+	)
+	.await
+	.map_err(|(status, _)| status)?;
+	return Ok(PvsTemplate { base, pvs });
 }

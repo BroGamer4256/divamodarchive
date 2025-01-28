@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+
+{% block head %}
+{% endblock head %}
+
+{% block content %}
+<script>
+	function levelToString(level) {
+		switch (level) {
+			case "PV_LV_00_0": return "0";
+			case "PV_LV_00_5": return "0.5";
+			case "PV_LV_01_0": return "1";
+			case "PV_LV_01_5": return "1.5";
+			case "PV_LV_02_0": return "2";
+			case "PV_LV_02_5": return "2.5";
+			case "PV_LV_03_0": return "3";
+			case "PV_LV_03_5": return "3.5";
+			case "PV_LV_04_0": return "4";
+			case "PV_LV_04_5": return "4.5";
+			case "PV_LV_05_0": return "5";
+			case "PV_LV_05_5": return "5.5";
+			case "PV_LV_06_0": return "6";
+			case "PV_LV_06_5": return "6.5";
+			case "PV_LV_07_0": return "7";
+			case "PV_LV_07_5": return "7.5";
+			case "PV_LV_08_0": return "8";
+			case "PV_LV_08_5": return "8.5";
+			case "PV_LV_09_0": return "9";
+			case "PV_LV_09_5": return "9.5";
+			case "PV_LV_10_0": return "10";
+			default: return "";
+		}
+	}
+
+	function someOrNA(data) {
+		if (data == null) {
+			return "";
+		} else {
+			return data;
+		}
+	}
+
+	function getPostHtml(pv) {
+		var tr = document.createElement('tr');
+		tr.classList = [document.getElementById("pvs").children.length % 2 == 0 ? 'table-light' : 'table-dark'];
+		tr.innerHTML = `
+			<td>${pv.name_en}</td>
+			<td>${pv.name}</td>
+			<td>${pv.id}</td>
+			<td>${pv.post == null ? 'MM+' : pv.post.name}</td>
+		`;
+		tr.role = "button";
+		tr.setAttribute("data-bs-toggle", "offcanvas");
+		tr.setAttribute("data-bs-target", `#offcanvas${pv.uid}`);
+
+		document.getElementById("pvs").append(tr);
+
+		var showMusic = (pv.song_info_en != null && pv.song_info_en.music != null) || (pv.song_info != null && pv.song_info.music != null);
+		var showLyrics = (pv.song_info_en != null && pv.song_info_en.lyrics != null) || (pv.song_info != null && pv.song_info.lyrics != null);
+		var showArranger = (pv.song_info_en != null && pv.song_info_en.arranger != null) || (pv.song_info != null && pv.song_info.arranger != null);
+		var showManipulator = (pv.song_info_en != null && pv.song_info_en.manipulator != null) || (pv.song_info != null && pv.song_info.manipulator != null);
+		var showEditor = (pv.song_info_en != null && pv.song_info_en.pv_editor != null) || (pv.song_info != null && pv.song_info.pv_editor != null);
+		var showGuitar = (pv.song_info_en != null && pv.song_info_en.guitar_player != null) || (pv.song_info != null && pv.song_info.guitar_player != null);
+
+		var maxLen = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar;
+		if (maxLen < 5) maxLen = 5;
+
+		var div = document.createElement('div');
+		div.classList = ['offcanvas offcanvas-start'];
+		div.id = `offcanvas${pv.uid}`
+		div.tabIndex = -1;
+		div.style = "width: var(--bs-offcanvas-width) * 1.5";
+
+		var html = `<table class="table table-hover">
+<thead>
+	<th>Name (EN)</th>
+	<th>Name (JP)</th>
+	<th>ID</th>
+	<th>Source</th>
+		`;
+
+		for (var i = 4; i < maxLen; i++) {
+			html += '<th />';
+		}
+
+		html += `
+</thead>
+<tbody>
+	<tr class="table-dark">
+		<td>${pv.name_en}</td>
+		<td>${pv.name}</td>
+		<td>${pv.id}</td>
+		<td>${pv.post == null ? 'MM+' : pv.post.name}</td>
+		`;
+
+		for (var i = 4; i < maxLen; i++) {
+			html += '<td />';
+		}
+
+		html += `
+	</tr>
+</tbody>
+		`;
+
+		html += '<thead>';
+
+		if (showMusic) html += '<th>Music</th>';
+		if (showLyrics) html += '<th>Lyrics</th>';
+		if (showArranger) html += '<th>Arranger</th>';
+		if (showManipulator) html += '<th>Manipulator</th>';
+		if (showEditor) html += '<th>PV Editor</th>';
+		if (showGuitar) html += '<th>Guitar</th>';
+
+		for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
+			html += '<th />';
+		}
+
+		html += '</thead><tbody>';
+		
+		if (pv.song_info_en != null) {
+			html += '<tr class="table-dark">';
+
+			if (showMusic) html += `<td>${someOrNA(pv.song_info_en.music)}</td>`;
+			if (showLyrics) html += `<td>${someOrNA(pv.song_info_en.lyrics)}</td>`;
+			if (showArranger) html += `<td>${someOrNA(pv.song_info_en.arranger)}</td>`;
+			if (showManipulator) html += `<td>${someOrNA(pv.song_info_en.manipulator)}</td>`;
+			if (showEditor) html += `<td>${someOrNA(pv.song_info_en.pv_editor)}</td>`;
+			if (showGuitar) html += `<td>${someOrNA(pv.song_info_en.guitar_player)}</td>`;
+
+			for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
+				html += '<td />';
+			}
+
+			html += '</tr>';
+		}
+
+		if (pv.song_info != null) {
+			html += '<tr class="table-dark">';
+
+			if (showMusic) html += `<td>${someOrNA(pv.song_info.music)}</td>`;
+			if (showLyrics) html += `<td>${someOrNA(pv.song_info.lyrics)}</td>`;
+			if (showArranger) html += `<td>${someOrNA(pv.song_info.arranger)}</td>`;
+			if (showManipulator) html += `<td>${someOrNA(pv.song_info.manipulator)}</td>`;
+			if (showEditor) html += `<td>${someOrNA(pv.song_info.pv_editor)}</td>`;
+			if (showGuitar) html += `<td>${someOrNA(pv.song_info.guitar_player)}</td>`;
+
+			for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
+				html += '<td />';
+			}
+			html += '<tr />';
+		}
+
+		html += '</tbody>';
+
+		html += `
+<thead>
+	<th>Easy</th>
+	<th>Normal</th>
+	<th>Hard</th>
+	<th>Extreme</th>
+	<th>Extra Extreme</th>
+</thead>
+<tbody class="table-dark">
+	<td>${levelToString(pv.levels[0])}${pv.levels[0] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td>${levelToString(pv.levels[1])}${pv.levels[1] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td>${levelToString(pv.levels[2])}${pv.levels[2] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td>${levelToString(pv.levels[3])}${pv.levels[3] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+	<td>${levelToString(pv.levels[4])}${pv.levels[4] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+		`;
+
+		for (var i = 5; i < maxLen; i++) {
+			html += '<td />';
+		}
+
+		html += `</tr></table>`;
+
+		div.innerHTML = html;
+
+		document.getElementById("offcanvasList").append(div);
+	}
+
+	async function search(query, offset) {
+		var params = new URLSearchParams();
+		if (query != null) params.append("query", query);
+		if (offset != null) params.append("offset", offset);
+		params.append("limit", "40");
+		var options = {
+			method: 'GET',
+		}
+
+		return await fetch("http://0.0.0.0:7001/api/v1/ids/pvs?" + params.toString(), options).then(req => req.json());
+	}
+
+	async function loadMore() {
+		document.getElementById("loadMore").hidden = true;
+
+		var pvs = await search(document.getElementById("searchQuery").value, document.getElementById("pvs").children.length);
+		for (var pv of pvs) {
+			getPostHtml(pv);
+		}
+
+		if (document.getElementById("pvs").children.length % 40 == 0 && document.getElementById("pvs").children.length != 0) {
+			document.getElementById("loadMore").hidden = false;
+		}
+	}
+
+	async function newLoad() {
+		document.getElementById("pvs").innerHTML = "";
+		document.getElementById("offcanvasList").innerHTML = "";
+		loadMore();
+	}
+</script>
+<div style="display: flex; justify-content: center;">
+	<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
+</div>
+<div id="offcanvasList"></div>
+<br>
+<table class="table table-hover">
+	<thead>
+		<tr>
+			<th>Name (EN)</th>
+			<th>Name (JP)</th>
+			<th>ID</th>
+			<th>Source</th>
+		</tr>
+	</thead>
+	<tbody id="pvs">
+		{% for (i, pv) in pvs.iter().enumerate() %}
+		<tr class="{% if i % 2 == 0 %}table-light{% else %}table-dark{% endif %}" role="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ pv.uid }}">
+			<td>{{ pv.name_en }}</td>
+			<td>{{ pv.name }}</td>
+			<td>{{ pv.id }}</td>
+			<td>{% if let Some(post) = pv.post %}{{ post.name }}{% else %}MM+{% endif %}</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+<button class="btn btn-sm btn-primary" type="button" id="loadMore" onClick="loadMore()" {% if pvs.len() < 40 %}hidden{% endif %}>Load more</button>
+{% endblock content %}

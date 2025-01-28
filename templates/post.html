@@ -490,7 +490,7 @@
 			</thead>
 			<tbody id="pvs">
 				{% for (i, pv) in pvs.iter().enumerate() %}
-				<tr class="{% if i % 2 == 0 %}table-light{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas{{ pv.uid }}">
+				<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas{{ pv.uid }}">
 					<td>{{ pv.name_en }}</td>
 					<td>{{ pv.name }}</td>
 					<td>{{ pv.id }}</td>

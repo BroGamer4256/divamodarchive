@@ -307,6 +307,8 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 			.await;
 	};
 
+	tokio::spawn(crate::api::ids::extract_post_data(post_id, state.clone()));
+
 	_ = socket
 		.send(ws::Message::Text(format!("/post/{post_id}")))
 		.await;
@@ -586,6 +588,15 @@ pub async fn delete_post(
 
 	if !post.authors.iter().any(|u| u.id == user.id) && !user.is_admin(&state.config) {
 		return Err(StatusCode::UNAUTHORIZED);
+	}
+
+	for file in post.local_files {
+		_ = tokio::process::Command::new("rclone")
+			.arg("delete")
+			.arg(format!("pixeldrainfs:/divamodarchive/{}", file))
+			.arg("--config=/etc/rclone-mnt.conf")
+			.output()
+			.await;
 	}
 
 	_ = sqlx::query!("DELETE FROM posts WHERE id = $1", post.id)

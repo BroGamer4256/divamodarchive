@@ -59,6 +59,8 @@ async fn main() {
 		.map(|x| x.parse::<i64>().expect("Admin IDs must be i64"))
 		.collect();
 
+	let meilisearch_url = std::env::var("MEILISEARCH_URL").expect("MEILISEARCH_URL must exist");
+
 	let config = Config {
 		decoding_key,
 		encoding_key,
@@ -69,8 +71,9 @@ async fn main() {
 		admins,
 	};
 
-	let client = meilisearch_sdk::client::Client::new("http://0.0.0.0:7700", None::<&str>).unwrap();
-	let meilisearch = client.index("posts");
+	let client = meilisearch_sdk::client::Client::new(meilisearch_url, None::<&str>).unwrap();
+	let meilisearch_posts = client.index("posts");
+	let meilisearch_pvs = client.index("posts");
 
 	let posts = sqlx::query!("SELECT id FROM posts").fetch_all(&db).await;
 	if let Ok(posts) = posts {
@@ -81,21 +84,38 @@ async fn main() {
 			};
 			vec.push(post);
 		}
-		meilisearch.add_or_update(&vec, None).await.unwrap();
+		meilisearch_posts.add_or_update(&vec, None).await.unwrap();
 	}
 
-	meilisearch
+	meilisearch_posts
 		.set_searchable_attributes(&["name", "text", "authors.name"])
 		.await
 		.unwrap();
-
-	meilisearch
+	meilisearch_posts
 		.set_filterable_attributes(&["post_type", "explicit", "id"])
 		.await
 		.unwrap();
-
-	meilisearch
+	meilisearch_posts
 		.set_sortable_attributes(&["download_count", "like_count", "time"])
+		.await
+		.unwrap();
+
+	meilisearch_pvs
+		.set_filterable_attributes(&["post", "pv_id"])
+		.await
+		.unwrap();
+	meilisearch_pvs
+		.set_searchable_attributes(&[
+			"pv_id",
+			"song_name",
+			"song_name_en",
+			"song_info",
+			"song_info_en",
+		])
+		.await
+		.unwrap();
+	meilisearch_pvs
+		.set_sortable_attributes(&["pv_id"])
 		.await
 		.unwrap();
 

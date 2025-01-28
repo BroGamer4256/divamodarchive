@@ -12,6 +12,7 @@ base64 = "0.22"
 dotenvy = "0.15"
 jsonwebtoken = "9.3"
 meilisearch-sdk = "0.27"
+pv_db = { git = "https://github.com/BroGamer4256/pv_db" }
 quick-xml = { version = "0.37", features = ["serialize"] }
 reqwest = { version = "0.12", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -23,10 +24,13 @@ sqlx = { version = "0.8", features = [
     "runtime-tokio",
     "time",
 ] }
+temp-dir = "0.1"
 time = { version = "0.3", features = ["serde", "serde-human-readable"] }
 tokio = { version = "1.41", features = ["full"] }
+toml = "0.8"
 tower-http = { version = "0.6", features = ["full"] }
 url = "2.5"
+walkdir = "2.5"
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

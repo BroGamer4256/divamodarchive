@@ -145,6 +145,7 @@ async fn liked(
 		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
 		WHERE lp.user_id = $1
 		AND (p.explicit = $2 OR p.explicit = false)
+		ORDER by p.time DESC
 		"#,
 		id,
 		base.show_explicit(),
@@ -203,6 +204,7 @@ async fn user(
 		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
 		WHERE pa.user_id = $1
 		AND (p.explicit = $2 OR p.explicit = false)
+		ORDER BY p.time DESC
 		"#,
 		id,
 		base.show_explicit()
@@ -378,7 +380,7 @@ async fn search(
 		FROM posts p
 		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
 		WHERE explicit = $1 OR explicit = false
-		ORDER BY time DESC
+		ORDER BY p.time DESC
 		LIMIT 40
 		"#,
 		base.show_explicit()

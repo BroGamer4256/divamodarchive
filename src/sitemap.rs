@@ -50,7 +50,7 @@ pub struct Urlset {
 #[axum::debug_handler]
 pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String), StatusCode> {
 	let mut urls = Vec::new();
-	let latest_date = sqlx::query!("SELECT time FROM posts WHERE explicit = false ORDER BY time")
+	let latest_date = sqlx::query!("SELECT time FROM posts ORDER BY time")
 		.fetch_one(&state.db)
 		.await;
 
@@ -90,7 +90,7 @@ pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String
 	};
 	urls.push(about_url);
 
-	let posts = sqlx::query!("SELECT id, time FROM posts WHERE explicit = false ORDER BY time")
+	let posts = sqlx::query!("SELECT id, time FROM posts ORDER BY time")
 		.fetch_all(&state.db)
 		.await;
 	if let Ok(posts) = posts {

@@ -13,9 +13,6 @@
 					<div class="col-md-7 text">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 1rem">favorite</span> {{ post.download_count }}<span class="material-symbols-outlined" style="font-size: 1rem">download</span></div>
 					<div class="col-md-5 text text-align-right-md">
 						{{ post.post_type }}
-						{% if base.show_explicit() && post.explicit %}
-						<br>Explicit
-						{% endif %}
 					</div>
 				</h5>
 			</div>

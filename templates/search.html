@@ -16,21 +16,7 @@
 	async function loadMore() {
 		document.getElementById("loadMore").hidden = true;
 
-		{% if base.show_explicit() %}
-		var searchFilter = document.getElementById("searchFilter").value;
-		var explicitFilter = document.getElementById("explicitFilter").value;
-
-		var filter = "";
-		if (searchFilter != "" && explicitFilter != "") {
-			filter = `${searchFilter} AND ${explicitFilter}`;
-		} else if (searchFilter != "") {
-			filter = searchFilter;
-		} else if (explicitFilter != "") {
-			filter = explicitFilter;
-		}
-		{% else %}
 		var filter = document.getElementById("searchFilter").value;
-		{% endif %}
 
 		var posts = await search(document.getElementById("searchQuery").value, document.getElementById("searchSort").value, filter, document.getElementById("posts").children.length);
 		for (var post of posts) {
@@ -67,15 +53,6 @@
 				<option value="post_type=Other">Other</option>
 			</select>
 		</div>
-		{% if base.show_explicit() %}
-		<div class="col flex-md-grow-2">
-			<select onchange="newLoad()" name="explicitFilter" id="explicitFilter" class="form-control list-text">
-				<option value="">Any</option>
-				<option value="explicit=true">Explicit</option>
-				<option value="explicit=false">Not Explicit</option>
-			</select>
-		</div>
-		{% endif %}
 	</div>
 </div>
 <br>

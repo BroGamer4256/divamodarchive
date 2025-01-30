@@ -614,7 +614,6 @@ pub async fn search_cstm_items(
 						authors: post.authors.clone(),
 						dependencies: None,
 						comments: None,
-						explicit: post.explicit,
 						local_files: post.local_files.clone(),
 					}),
 					id: module.id,

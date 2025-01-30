@@ -200,9 +200,6 @@
 		{% else %}
 		post_data.image = image_url;
 		post_data.images_extra = images_extra_urls;
-		{% if user.show_explicit %}
-		post_data.explicit = form['explicit'].checked
-		{% endif %}
 		{% endif %}
 
 		var socket = new WebSocket('wss://divamodarchive.com/api/v1/posts/upload');
@@ -261,7 +258,7 @@
 		<ul class="mb-0">
 			<li class="text">Copyright infringement</li>
 			<li class="text">A mod for a game other than Project DIVA Mega Mix+</li>
-			<li class="text">NSFW or otherwise explicit content not fit for minors to view {% if user.show_explicit %}unless marked as explicit{% endif %}</li>
+			<li class="text">NSFW or otherwise explicit content not fit for minors to view</li>
 			<li class="text">A plugin mod that does not have public source code linked</li>
 		</ul>
 	</div>
@@ -302,12 +299,6 @@
 			<label for="skip-image" class="btn btn-primary">Use previously uploaded image</label>
 			<input class="btn-check" type="checkbox" id="skip-images-extra" name="skip-images-extra">
 			<label for="skip-images-extra" class="btn btn-primary">Use previously uploaded images extra</label>
-		</div>
-		{% else if user.show_explicit %}
-		<br>
-		<div class="form-check">
-			<label for="explicit" class="form-check-label">Explicit</label>
-			<input class="form-check-input" type="checkbox" id="explicit" name="explicit">
 		</div>
 		{% endif %}
 	</div>

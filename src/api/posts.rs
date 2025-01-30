@@ -64,7 +64,6 @@ pub struct PostUploadData {
 	pub filenames: Option<Vec<String>>,
 	pub image: Option<String>,
 	pub images_extra: Option<Vec<String>>,
-	pub explicit: Option<bool>,
 }
 
 pub async fn edit(
@@ -282,7 +281,7 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 
 		post_id
 	} else {
-		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, files, time, type, local_files, explicit) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ID", params.name, params.text, &images, &downloads, time, params.post_type, &filepaths, params.explicit.unwrap_or(false))
+		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, files, time, type, local_files) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ID", params.name, params.text, &images, &downloads, time, params.post_type, &filepaths)
 			.fetch_one(&state.db)
 			.await else {
 				return;
@@ -419,7 +418,6 @@ pub struct MultiplePostsParams {
 
 pub async fn get_multiple_posts(
 	axum_extra::extract::Query(posts): axum_extra::extract::Query<MultiplePostsParams>,
-	user: Option<User>,
 	State(state): State<AppState>,
 ) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
 	let filter = posts
@@ -435,7 +433,7 @@ pub async fn get_multiple_posts(
 		limit: Some(posts.post_id.len()),
 		offset: None,
 	};
-	search_posts(axum_extra::extract::Query(params), user, State(state)).await
+	search_posts(axum_extra::extract::Query(params), State(state)).await
 }
 
 #[derive(Serialize, Deserialize)]
@@ -449,7 +447,6 @@ pub struct SearchParams {
 
 pub async fn search_posts(
 	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
-	user: Option<User>,
 	State(state): State<AppState>,
 ) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
 	let index = state.meilisearch.index("posts");
@@ -457,24 +454,10 @@ pub async fn search_posts(
 
 	search.query = query.query.as_ref().map(|query| query.as_str());
 
-	let show_explicit = if let Some(user) = user {
-		user.show_explicit
+	let filter = if let Some(filter) = &query.filter {
+		format!("{filter}")
 	} else {
-		false
-	};
-
-	let filter = if !show_explicit {
-		if let Some(filter) = &query.filter {
-			format!("explicit={show_explicit} AND {filter}")
-		} else {
-			format!("explicit={show_explicit}")
-		}
-	} else {
-		if let Some(filter) = &query.filter {
-			format!("{filter}")
-		} else {
-			String::new()
-		}
+		String::new()
 	};
 
 	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
@@ -526,7 +509,6 @@ pub async fn search_posts(
 
 pub async fn count_posts(
 	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
-	user: Option<User>,
 	State(state): State<AppState>,
 ) -> Result<Json<usize>, (StatusCode, String)> {
 	let index = state.meilisearch.index("posts");
@@ -534,24 +516,10 @@ pub async fn count_posts(
 
 	search.query = query.query.as_ref().map(|query| query.as_str());
 
-	let show_explicit = if let Some(user) = user {
-		user.show_explicit
+	let filter = if let Some(filter) = &query.filter {
+		format!("{filter}")
 	} else {
-		false
-	};
-
-	let filter = if !show_explicit {
-		if let Some(filter) = &query.filter {
-			format!("explicit={show_explicit} AND {filter}")
-		} else {
-			format!("explicit={show_explicit}")
-		}
-	} else {
-		if let Some(filter) = &query.filter {
-			format!("{filter}")
-		} else {
-			String::new()
-		}
+		String::new()
 	};
 
 	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
@@ -765,7 +733,6 @@ pub async fn delete_comment(
 pub struct UserSettings {
 	display_name: String,
 	public_likes: bool,
-	show_explicit: bool,
 	theme: i32,
 }
 
@@ -775,10 +742,9 @@ pub async fn user_settings(
 	Json(settings): Json<UserSettings>,
 ) {
 	_ = sqlx::query!(
-		"UPDATE users SET display_name = $1, public_likes = $2, show_explicit = $3, theme = $4 WHERE id = $5",
+		"UPDATE users SET display_name = $1, public_likes = $2, theme = $3 WHERE id = $4",
 		settings.display_name,
 		settings.public_likes,
-		settings.show_explicit,
 		settings.theme,
 		user.id
 	)

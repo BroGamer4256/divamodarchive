@@ -83,7 +83,7 @@ async fn main() {
 		.await
 		.unwrap();
 	meilisearch_posts
-		.set_filterable_attributes(&["post_type", "explicit", "id"])
+		.set_filterable_attributes(&["post_type", "id"])
 		.await
 		.unwrap();
 	meilisearch_posts

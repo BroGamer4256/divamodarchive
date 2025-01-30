@@ -24,19 +24,10 @@
 			</thead>
 			<tbody>
 				<tr class="table-dark">
-					{% if pv.is_explicit() && !base.show_explicit() %}
-					<td>[REDACTED]</td>
-					<td>[REDACTED]</td>
-					{% else %}
 					<td>{{ pv.name_en }}</td>
 					<td>{{ pv.name }}</td>
-					{% endif %}
 					<td>{{ pv.id }}</td>
-					{% if pv.is_explicit() && !base.show_explicit() %}
-					<td>[REDACTED]</td>
-					{% else %}
 					<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post.id }}" class="nav-link">{{ post.name }}</a>{% else %}MM+{% endif %}</td>
-					{% endif %}
 					{% for _ in 4..cols %}
 						<td />
 					{% endfor %}
@@ -174,19 +165,10 @@
 	<tbody id="pvs">
 		{% for (i, pv) in pvs.iter().enumerate() %}
 		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas{{ pv.uid }}">
-			{% if pv.is_explicit() && !base.show_explicit() %}
-			<td>[REDACTED]</td>
-			<td>[REDACTED]</td>
-			{% else %}
 			<td>{{ pv.name_en }}</td>
 			<td>{{ pv.name }}</td>
-			{% endif %}
 			<td>{{ pv.id }}</td>
-			{% if pv.is_explicit() && !base.show_explicit() %}
-			<td>[REDACTED]</td>
-			{% else %}
 			<td>{% if let Some(post) = pv.post %}{{ post.name }}{% else %}MM+{% endif %}</td>
-			{% endif %}
 		</tr>
 		{% endfor %}
 	</tbody>

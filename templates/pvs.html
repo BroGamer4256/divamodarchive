@@ -42,32 +42,15 @@
 		}
 	}
 
-	function post_is_explicit(post) {
-		if (post != null) {
-			return post.explicit;
-		} else {
-			return false;
-		}
-	}
-
 	function getPostHtml(pv) {
 		var tr = document.createElement('tr');
 		tr.classList = [document.getElementById("pvs").children.length % 2 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
-		if (post_is_explicit(pv.post)) {
-			tr.innerHTML = `
-				<td>[REDACTED]</td>
-				<td>[REDACTED]</td>
-				<td>${pv.id}</td>
-				<td>[REDACTED]</td>
-			`;
-		} else {
-			tr.innerHTML = `
-				<td>${pv.name_en}</td>
-				<td>${pv.name}</td>
-				<td>${pv.id}</td>
-				<td>${pv.post == null ? 'MM+' : pv.post.name}</td>
-			`;
-		}
+		tr.innerHTML = `
+			<td>${pv.name_en}</td>
+			<td>${pv.name}</td>
+			<td>${pv.id}</td>
+			<td>${pv.post == null ? 'MM+' : pv.post.name}</td>
+		`;
 		tr.role = "button";
 		tr.setAttribute("data-bs-toggle", "offcanvas");
 		tr.setAttribute("data-bs-target", `#offcanvas${pv.uid}`);
@@ -111,17 +94,10 @@
 <tbody>
 	<tr class="table-dark">
 		`;
-		if (post_is_explicit(pv.post) && !{{ base.show_explicit() }}) {
-			html += `
-			<td>[REDACTED]</td>
-			<td>[REDACTED]</td>
-			`;
-		} else {
-			html += `
-			<td>${pv.name_en}</td>
-			<td>${pv.name}</td>
-			`;
-		}
+		html += `
+		<td>${pv.name_en}</td>
+		<td>${pv.name}</td>
+		`;
 
 		html += `
 		<td>${pv.id}</td>
@@ -129,11 +105,7 @@
 		`;
 
 		if (pv.post != null) {
-			if (pv.post.explicit && !{{ base.show_explicit() }}) {
-				html += `[REDACTED]`
-			} else {
-				html += `<a href="/post/${pv.post.id}" class="nav-link">${pv.post.name}</a>`;
-			}
+			html += `<a href="/post/${pv.post.id}" class="nav-link">${pv.post.name}</a>`;
 		} else {
 			html += 'MM+';
 		}

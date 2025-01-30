@@ -99,7 +99,11 @@
 		`;
 
 		if (pv.post != null) {
-			html += `<a href="/post/${pv.post.id}" class="nav-link">${pv.post.name}</a>`;
+			if (pv.post.explicit && !{{ base.show_explicit() }}) {
+				html += `[REDACTED]`
+			} else {
+				html += `<a href="/post/${pv.post.id}" class="nav-link">${pv.post.name}</a>`;
+			}
 		} else {
 			html += 'MM+';
 		}
@@ -265,7 +269,11 @@
 					<td>{{ pv.id }}</td>
 					<td>
 					{% if let Some(post) = pv.post %}
+						{% if post.explicit && !base.show_explicit() %}
+						[REDACTED]
+						{% else %}
 						<a href="/post/{{ post.id }}" class="nav-link">{{ post.name }}</a>
+						{% endif %}
 					{% else %}
 						MM+
 					{% endif %}

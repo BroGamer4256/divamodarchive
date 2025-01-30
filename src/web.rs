@@ -349,7 +349,7 @@ async fn post_detail(
 		State(state.clone()),
 	)
 	.await
-	.map_err(|(status, _)| Err(status))?;
+	.unwrap_or(Json(Vec::new()));
 
 	Ok(PostTemplate {
 		user,
@@ -461,6 +461,6 @@ async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTem
 		State(state),
 	)
 	.await
-	.map_err(|(status, _)| status)?;
+	.unwrap_or(Json(Vec::new()));
 	return Ok(PvsTemplate { base, pvs });
 }

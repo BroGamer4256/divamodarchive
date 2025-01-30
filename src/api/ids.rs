@@ -3,6 +3,7 @@ use crate::AppState;
 use axum::{extract::*, http::StatusCode, response::*};
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use tokio::process::Command;
 
 #[derive(Serialize, Deserialize)]
@@ -23,6 +24,24 @@ pub struct MeilisearchPv {
 	pub song_info: Option<pv_db::SongInfo>,
 	pub song_info_en: Option<pv_db::SongInfo>,
 	pub levels: [Option<pv_db::Level>; 5],
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MeilisearchModule {
+	pub uid: u64,
+	pub post_id: i32,
+	pub module_id: i32,
+	#[serde(flatten)]
+	pub module: module_db::Module,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MeilisearchCstmItem {
+	pub uid: u64,
+	pub post_id: i32,
+	pub customize_item_id: i32,
+	#[serde(flatten)]
+	pub customize_item: module_db::CustomizeItem,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -90,14 +109,16 @@ pub const DB_PREFIXES: [&'static str; 21] = [
 
 pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 	let post = Post::get_short(post_id, &state.db).await?;
-	if post.post_type == PostType::Cover {
-		// Nothing of use to us here and only complicates things
+	if post.post_type == PostType::Plugin
+		|| post.post_type == PostType::Cover
+		|| post.post_type == PostType::Ui
+	{
 		return None;
 	}
 
 	for file in &post.local_files {
 		let file = format!("/pixeldrain/{file}");
-		let file = std::path::Path::new(&file);
+		let file = Path::new(&file);
 		let extension = file.extension()?.to_str()?;
 
 		let dir = temp_dir::TempDir::new().ok()?;
@@ -157,22 +178,151 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 			for include in &include {
 				for rom in &ROM_DIRS {
 					let folder = format!("{}/{include}/{rom}", file.parent()?.to_str()?);
-					let path = std::path::Path::new(&folder);
+					let path = Path::new(&folder);
 					if !path.exists() {
 						continue;
 					}
 					for prefix in &DB_PREFIXES {
 						let pv_db = format!("{folder}/{prefix}pv_db.txt");
-						let path = std::path::Path::new(&pv_db);
+						let path = Path::new(&pv_db);
 						if path.exists() {
-							let data = tokio::fs::read_to_string(&path).await.ok()?;
-							parse_pv_db(&data, post_id, state.clone()).await;
+							if let Ok(data) = tokio::fs::read_to_string(&path).await {
+								parse_pv_db(&data, post_id, state.clone()).await;
+							}
+						}
+
+						let module_tbl = format!("{folder}/{prefix}gm_module_tbl.farc");
+						let module_tbl = Path::new(&module_tbl);
+						let customize_item_tbl =
+							format!("{folder}/{prefix}gm_customize_item_tbl.farc");
+						let customize_item_tbl = Path::new(&customize_item_tbl);
+						if module_tbl.exists() || customize_item_tbl.exists() {
+							let chritm_prop = format!("{folder}/{prefix}chritm_prop.farc");
+							let chritm_prop = Path::new(&chritm_prop);
+							let str_array = format!("{folder}/lang2/mod_str_array.toml");
+							let str_array = Path::new(&str_array);
+
+							let module_tbl = if module_tbl.exists() {
+								Some(module_tbl)
+							} else {
+								None
+							};
+							let customize_item_tbl = if customize_item_tbl.exists() {
+								Some(customize_item_tbl)
+							} else {
+								None
+							};
+							let chritm_prop = if chritm_prop.exists() {
+								Some(chritm_prop)
+							} else {
+								None
+							};
+							let str_array = if str_array.exists() {
+								Some(str_array)
+							} else {
+								None
+							};
+
+							parse_module_db(
+								module_tbl,
+								customize_item_tbl,
+								chritm_prop,
+								str_array,
+								post_id,
+								state.clone(),
+							)
+							.await;
 						}
 					}
 				}
 			}
 		}
 	}
+
+	Some(())
+}
+
+async fn parse_module_db<P: AsRef<Path>>(
+	module_tbl: Option<P>,
+	customize_item_tbl: Option<P>,
+	chritm_prop: Option<P>,
+	str_array: Option<P>,
+	post_id: i32,
+	state: AppState,
+) -> Option<()> {
+	let module_db =
+		module_db::ModuleDb::from_files(module_tbl, customize_item_tbl, chritm_prop, str_array)
+			.await?;
+
+	let modules = module_db
+		.modules
+		.into_iter()
+		.map(|(id, module)| MeilisearchModule {
+			uid: (post_id as u64) << 32 | (id as u64),
+			post_id,
+			module_id: id,
+			module: module,
+		})
+		.collect::<Vec<_>>();
+
+	let cstm_items = module_db
+		.cstm_items
+		.into_iter()
+		.map(|(id, cstm_item)| MeilisearchCstmItem {
+			uid: (post_id as u64) << 32 | (id as u64),
+			post_id,
+			customize_item_id: id,
+			customize_item: cstm_item,
+		})
+		.collect::<Vec<_>>();
+
+	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("modules"))
+		.with_filter("post_id=-1")
+		.with_limit(2000)
+		.execute::<MeilisearchModule>()
+		.await
+		.ok()?;
+
+	let modules = modules
+		.into_iter()
+		.filter(|module| {
+			!base.hits.iter().any(|base| {
+				base.result.module_id == module.module_id
+					&& base.result.module.name == module.module.name
+			})
+		})
+		.collect::<Vec<_>>();
+
+	state
+		.meilisearch
+		.index("modules")
+		.add_or_update(&modules, Some("uid"))
+		.await
+		.ok()?;
+
+	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("cstm_items"))
+		.with_filter("post_id=-1")
+		.with_limit(2000)
+		.execute::<MeilisearchCstmItem>()
+		.await
+		.ok()?;
+
+	let cstm_items = cstm_items
+		.into_iter()
+		.filter(|cstm_item| {
+			!base.hits.iter().any(|base| {
+				base.result.customize_item_id == cstm_item.customize_item_id
+					&& base.result.customize_item.name == cstm_item.customize_item.name
+			})
+		})
+		.collect::<Vec<_>>();
+
+	state
+		.meilisearch
+		.index("cstm_items")
+		.add_or_update(&cstm_items, Some("uid"))
+		.await
+		.ok()?;
 
 	Some(())
 }
@@ -227,7 +377,7 @@ async fn parse_pv_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
 		});
 	}
 
-	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("pv"))
+	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("pvs"))
 		.with_filter("post=-1")
 		.with_limit(300)
 		.execute::<MeilisearchPv>()
@@ -235,7 +385,7 @@ async fn parse_pv_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
 		.unwrap();
 
 	let pvs = documents
-		.iter()
+		.into_iter()
 		.filter(|pv| {
 			!base.hits.iter().any(|base| {
 				base.result.pv_id == pv.pv_id
@@ -247,7 +397,7 @@ async fn parse_pv_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
 
 	state
 		.meilisearch
-		.index("pv")
+		.index("pvs")
 		.add_or_update(&pvs, Some("uid"))
 		.await
 		.unwrap();
@@ -259,7 +409,7 @@ pub async fn search_pvs(
 	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
 	State(state): State<AppState>,
 ) -> Result<Json<Vec<Pv>>, (StatusCode, String)> {
-	let index = state.meilisearch.index("pv");
+	let index = state.meilisearch.index("pvs");
 	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
 
 	search.query = query.query.as_ref().map(|query| query.as_str());

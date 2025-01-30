@@ -72,20 +72,11 @@ async fn main() {
 	};
 
 	let client = meilisearch_sdk::client::Client::new(meilisearch_url, None::<&str>).unwrap();
+
 	let meilisearch_posts = client.index("posts");
 	let meilisearch_pvs = client.index("pvs");
-
-	let posts = sqlx::query!("SELECT id FROM posts").fetch_all(&db).await;
-	if let Ok(posts) = posts {
-		let mut vec = Vec::with_capacity(posts.len());
-		for post in &posts {
-			let Some(post) = Post::get_short(post.id, &db).await else {
-				continue;
-			};
-			vec.push(post);
-		}
-		meilisearch_posts.add_or_update(&vec, None).await.unwrap();
-	}
+	let meilisearch_modules = client.index("modules");
+	let meilisearch_customize = client.index("cstm_items");
 
 	meilisearch_posts
 		.set_searchable_attributes(&["name", "text", "authors.name"])
@@ -119,11 +110,78 @@ async fn main() {
 		.await
 		.unwrap();
 
+	meilisearch_modules
+		.set_filterable_attributes(&["post_id", "module_id"])
+		.await
+		.unwrap();
+	meilisearch_modules
+		.set_searchable_attributes(&[
+			"module_id",
+			"chara",
+			"name",
+			"name_jp",
+			"name_en",
+			"name_cn",
+			"name_fr",
+			"name_ge",
+			"name_it",
+			"name_kr",
+			"name_sp",
+			"name_tw",
+		])
+		.await
+		.unwrap();
+	meilisearch_modules
+		.set_sortable_attributes(&["module_id"])
+		.await
+		.unwrap();
+
+	meilisearch_customize
+		.set_filterable_attributes(&["post_id", "customize_item_id"])
+		.await
+		.unwrap();
+	meilisearch_customize
+		.set_searchable_attributes(&[
+			"customize_item_id",
+			"chara",
+			"name",
+			"part",
+			"name_jp",
+			"name_en",
+			"name_cn",
+			"name_fr",
+			"name_ge",
+			"name_it",
+			"name_kr",
+			"name_sp",
+			"name_tw",
+		])
+		.await
+		.unwrap();
+	meilisearch_customize
+		.set_sortable_attributes(&["customize_item_id"])
+		.await
+		.unwrap();
+
+	let posts = sqlx::query!("SELECT id FROM posts").fetch_all(&db).await;
+
+	if let Ok(posts) = posts {
+		let mut vec = Vec::with_capacity(posts.len());
+		for post in &posts {
+			let Some(post) = Post::get_short(post.id, &db).await else {
+				continue;
+			};
+			vec.push(post);
+		}
+		meilisearch_posts.add_or_update(&vec, None).await.unwrap();
+	}
+
 	let state = AppState {
 		config,
 		db,
 		meilisearch: client,
 	};
+
 	let router = Router::new()
 		.route("/robots.txt", get(robots))
 		.route("/favicon.ico", get(favicon))

@@ -1,0 +1,160 @@
+{% macro draw_module_list(modules) %}
+<div id="offcanvasList">
+	{% for module in modules.iter() %}
+	<div class="offcanvas offcanvas-start" id="offcanvas{{ module.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
+		<div class="offcanvas-header">
+			<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+		</div>
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Name (EN)</th>
+					<th>Character</th>
+					<th>ID</th>
+					<th>Source</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr class="table-dark">
+					{% if module.is_explicit() && !base.show_explicit() %}
+					<td>[REDACTED]</td>
+					{% else %}
+					<td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
+					{% endif %}
+					<td>{{ module.module.chara.to_string() }}</td>
+					<td>{{ module.id }}</td>
+					{% if module.is_explicit() && !base.show_explicit() %}
+					<td>[REDACTED]</td>
+					{% else %}
+					<td>{% if let Some(post) = module.post %}<a href="/post/{{ post.id }}" class="nav-link">{{ post.name }}</a>{% else %}MM+{% endif %}</td>
+					{% endif %}
+				</tr>
+			</tbody>
+			<thead>
+				<tr>
+					<th>Name (JP)</th>
+					<th>Name (CN)</th>
+					<th>Name (FR)</th>
+					<th>Name (GE)</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr class="table-dark">
+					{% if module.is_explicit() && !base.show_explicit() %}
+					<td>[REDACTED]</td>
+					<td>[REDACTED]</td>
+					<td>[REDACTED]</td>
+					<td>[REDACTED]</td>
+					{% else %}
+					<td>{% if let Some(name) = module.module.name_jp %}{{ name }}{% endif %}</td>
+					<td>{% if let Some(name) = module.module.name_cn %}{{ name }}{% endif %}</td>
+					<td>{% if let Some(name) = module.module.name_fr %}{{ name }}{% endif %}</td>
+					<td>{% if let Some(name) = module.module.name_ge %}{{ name }}{% endif %}</td>
+					{% endif %}
+				</tr>
+			</tbody>
+			<thead>
+				<tr>
+					<th>Name (IT)</th>
+					<th>Name (KR)</th>
+					<th>Name (SP)</th>
+					<th>Name (TW)</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr class="table-dark">
+					{% if module.is_explicit() && !base.show_explicit() %}
+					<td>[REDACTED]</td>
+					<td>[REDACTED]</td>
+					<td>[REDACTED]</td>
+					<td>[REDACTED]</td>
+					{% else %}
+					<td>{% if let Some(name) = module.module.name_it %}{{ name }}{% endif %}</td>
+					<td>{% if let Some(name) = module.module.name_kr %}{{ name }}{% endif %}</td>
+					<td>{% if let Some(name) = module.module.name_sp %}{{ name }}{% endif %}</td>
+					<td>{% if let Some(name) = module.module.name_tw %}{{ name }}{% endif %}</td>
+					{% endif %}
+				</tr>
+			</tbody>
+			{% let item_count = module.module.cos.items.len().clamp(0, 3) %}
+			<thead>
+				<tr>
+					<th>COS ID</th>
+					{% for i in 1..=item_count %}
+					<th>Item {{ i }} ID</th>
+					{% endfor %}
+					{% for _ in (1 + item_count)..4 %}
+					<th />
+					{% endfor %}
+				</tr>
+			</thead>
+			<tbody>
+				<tr class="table-dark">
+					<td>{{ module.module.cos.id }}</td>
+					{% for i in 0..item_count %}
+					<td>{{ module.module.cos.items[i] }}</td>
+					{% endfor %}
+					{% for _ in (1 + item_count)..4 %}
+					<td />
+					{% endfor %}
+				</tr>
+			</tbody>
+			{% if module.module.cos.items.len() > 3 %}
+			{% let item_count = (module.module.cos.items.len() - 3).clamp(0, 4) %}
+			<thead>
+				<tr>
+					{% for i in 0..item_count %}
+					<th>Item {{ i + 4 }} ID</th>
+					{% endfor %}
+					{% for _ in item_count..4 %}
+					<th />
+					{% endfor %}
+				</tr>
+			</thead>
+			<tbody>
+				<tr class="table-dark">
+					{% for i in 0..item_count %}
+					<td>{{ module.module.cos.items[i + 3] }}</td>
+					{% endfor %}
+					{% for _ in item_count..4 %}
+					<td />
+					{% endfor %}
+				</tr>
+			</tbody>
+			{% endif %}
+		</table>
+	</div>
+	{% endfor %}
+</div>
+<table class="table table-hover">
+	<thead>
+		<tr>
+			<th>Name (EN)</th>
+			<th>Name (JP)</th>
+			<th>Character</th>
+			<th>ID</th>
+			<th>Source</th>
+		</tr>
+	</thead>
+	<tbody id="modules">
+		{% for (i, module) in modules.iter().enumerate() %}
+		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas{{ module.uid }}">
+			{% if module.is_explicit() && !base.show_explicit() %}
+			<td>[REDACTED]</td>
+			<td>[REDACTED]</td>
+			{% else %}
+			<td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
+			<td>{% if let Some(name_jp) = module.module.name_jp %}{{ name_jp }}{% endif %}</td>
+			{% endif %}
+			<td>{{ module.module.chara.to_string() }}</td>
+			<td>{{ module.id }}</td>
+			{% if module.is_explicit() && !base.show_explicit() %}
+			<td>[REDACTED]</td>
+			{% else %}
+			<td>{% if let Some(post) = module.post %}{{ post.name }}{% else %}MM+{% endif %}</td>
+			{% endif %}
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% endmacro %}

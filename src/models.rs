@@ -46,7 +46,7 @@ pub struct Token {
 }
 
 #[repr(i32)]
-#[derive(PartialEq, Serialize, Deserialize)]
+#[derive(PartialEq, Serialize, Deserialize, Clone)]
 pub enum PostType {
 	Plugin = 0,
 	Module = 1,
@@ -718,5 +718,50 @@ impl Pv {
 			+ self.has_manipulator() as isize
 			+ self.has_editor() as isize
 			+ self.has_guitar() as isize
+	}
+
+	pub fn is_explicit(&self) -> bool {
+		if let Some(post) = &self.post {
+			post.explicit
+		} else {
+			false
+		}
+	}
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Module {
+	pub uid: String,
+	pub post: Option<Post>,
+	pub id: i32,
+	pub module: module_db::Module,
+}
+
+impl Module {
+	pub fn is_explicit(&self) -> bool {
+		if let Some(post) = &self.post {
+			post.explicit
+		} else {
+			false
+		}
+	}
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CstmItem {
+	pub uid: String,
+	pub post: Option<Post>,
+	pub id: i32,
+	pub cstm_item: module_db::CustomizeItem,
+	pub bind_module: Option<Module>,
+}
+
+impl CstmItem {
+	pub fn is_explicit(&self) -> bool {
+		if let Some(post) = &self.post {
+			post.explicit
+		} else {
+			false
+		}
 	}
 }

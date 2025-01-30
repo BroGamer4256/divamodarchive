@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+{% import "module_helpers.html" as module_helpers %}
+
+{% block head %}
+{% endblock head %}
+
+{% block content %}
+<script>
+</script>
+<div style="display: flex; justify-content: center;">
+	<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
+</div>
+{% call module_helpers::draw_module_list(modules) %}
+<button class="btn btn-sm btn-primary" type="button" id="loadMore" onClick="loadMore()" {% if modules.len() < 40 %}hidden{% endif %}>Load more</button>
+{% endblock content %}

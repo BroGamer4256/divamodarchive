@@ -1,8 +1,12 @@
 use crate::AppState;
-use axum::{routing::*, Router};
+use axum::{extract::*, routing::*, Router};
 
 pub mod ids;
 pub mod posts;
+
+async fn extract_post(Path(id): Path<i32>, State(state): State<AppState>) {
+	ids::extract_post_data(id, state).await;
+}
 
 pub fn route(state: AppState) -> Router {
 	Router::new()
@@ -28,6 +32,9 @@ pub fn route(state: AppState) -> Router {
 		)
 		.route("/api/v1/users/settings", post(posts::user_settings))
 		.route("/api/v1/ids/pvs", get(ids::search_pvs))
+		.route("/api/v1/ids/modules", get(ids::search_modules))
+		.route("/api/v1/ids/cstm_items", get(ids::search_cstm_items))
+		.route("/api/v1/ids/extract/:id", get(extract_post))
 		.layer(tower_http::cors::CorsLayer::permissive())
 		.with_state(state)
 }

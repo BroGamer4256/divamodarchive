@@ -22,6 +22,8 @@ pub fn route(state: AppState) -> Router {
 		.route("/upload", get(upload))
 		.route("/settings", get(settings))
 		.route("/pvs", get(pvs))
+		.route("/modules", get(modules))
+		.route("/cstm_items", get(cstm_items))
 		//.route("/admin", get(admin))
 		.with_state(state)
 }
@@ -300,6 +302,7 @@ struct PostTemplate {
 	post: Post,
 	config: Config,
 	pvs: Vec<Pv>,
+	modules: Vec<Module>,
 }
 
 async fn post_detail(
@@ -343,7 +346,19 @@ async fn post_detail(
 		axum_extra::extract::Query(crate::api::ids::SearchParams {
 			query: None,
 			filter: Some(format!("post={}", post.id)),
-			limit: Some(300),
+			limit: Some(2000),
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.unwrap_or(Json(Vec::new()));
+
+	let Json(modules) = crate::api::ids::search_modules(
+		axum_extra::extract::Query(crate::api::ids::SearchParams {
+			query: None,
+			filter: Some(format!("post_id={}", post.id)),
+			limit: Some(2000),
 			offset: Some(0),
 		}),
 		State(state.clone()),
@@ -360,6 +375,7 @@ async fn post_detail(
 		post,
 		config: state.config,
 		pvs,
+		modules,
 	})
 }
 
@@ -463,4 +479,54 @@ async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTem
 	.await
 	.unwrap_or(Json(Vec::new()));
 	return Ok(PvsTemplate { base, pvs });
+}
+
+#[derive(Template)]
+#[template(path = "modules.html")]
+struct ModulesTemplate {
+	base: BaseTemplate,
+	modules: Vec<Module>,
+}
+
+async fn modules(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> Result<ModulesTemplate, StatusCode> {
+	let Json(modules) = crate::api::ids::search_modules(
+		axum_extra::extract::Query(crate::api::ids::SearchParams {
+			query: None,
+			filter: None,
+			limit: Some(40),
+			offset: Some(0),
+		}),
+		State(state),
+	)
+	.await
+	.unwrap_or(Json(Vec::new()));
+	return Ok(ModulesTemplate { base, modules });
+}
+
+#[derive(Template)]
+#[template(path = "cstm_items.html")]
+struct CstmItemsTemplate {
+	base: BaseTemplate,
+	cstm_items: Vec<CstmItem>,
+}
+
+async fn cstm_items(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> Result<CstmItemsTemplate, StatusCode> {
+	let Json(cstm_items) = crate::api::ids::search_cstm_items(
+		axum_extra::extract::Query(crate::api::ids::SearchParams {
+			query: None,
+			filter: None,
+			limit: Some(40),
+			offset: Some(0),
+		}),
+		State(state),
+	)
+	.await
+	.unwrap_or(Json(Vec::new()));
+	return Ok(CstmItemsTemplate { base, cstm_items });
 }

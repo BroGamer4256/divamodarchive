@@ -163,7 +163,9 @@ async fn main() {
 		.await
 		.unwrap();
 
-	let posts = sqlx::query!("SELECT id FROM posts").fetch_all(&db).await;
+	let posts = sqlx::query!("SELECT id FROM posts ORDER BY time DESC")
+		.fetch_all(&db)
+		.await;
 
 	if let Ok(posts) = posts {
 		let mut vec = Vec::with_capacity(posts.len());

@@ -288,7 +288,7 @@ async fn parse_module_db<P: AsRef<Path>>(
 		.filter(|module| {
 			!base.hits.iter().any(|base| {
 				base.result.module_id == module.module_id
-					&& base.result.module.name == module.module.name
+					&& base.result.module.name_jp == module.module.name_jp
 			})
 		})
 		.collect::<Vec<_>>();
@@ -312,7 +312,7 @@ async fn parse_module_db<P: AsRef<Path>>(
 		.filter(|cstm_item| {
 			!base.hits.iter().any(|base| {
 				base.result.customize_item_id == cstm_item.customize_item_id
-					&& base.result.customize_item.name == cstm_item.customize_item.name
+					&& base.result.customize_item.name_jp == cstm_item.customize_item.name_jp
 			})
 		})
 		.collect::<Vec<_>>();
@@ -463,6 +463,175 @@ pub async fn search_pvs(
 			song_info: pv.song_info,
 			song_info_en: pv.song_info_en,
 			levels: pv.levels,
+		})
+	}
+
+	Ok(Json(vec))
+}
+
+pub async fn search_modules(
+	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
+	State(state): State<AppState>,
+) -> Result<Json<Vec<Module>>, (StatusCode, String)> {
+	let index = state.meilisearch.index("modules");
+	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
+
+	search.query = query.query.as_ref().map(|query| query.as_str());
+
+	search.limit = query.limit;
+	search.offset = query.offset;
+
+	search.sort = Some(&["module_id:asc"]);
+
+	let filter = if let Some(filter) = &query.filter {
+		format!("{filter}")
+	} else {
+		String::new()
+	};
+
+	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
+		filter.as_str(),
+	)));
+
+	let modules = search
+		.execute::<MeilisearchModule>()
+		.await
+		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+	let modules = modules
+		.hits
+		.into_iter()
+		.map(|module| module.result)
+		.collect::<Vec<_>>();
+
+	let mut vec = Vec::with_capacity(modules.len());
+	for module in modules {
+		let post = if let Some(mut post) = Post::get_full(module.post_id, &state.db).await {
+			for i in 0..post.files.len() {
+				post.files[i] = format!(
+					"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
+					post.id
+				);
+				post.local_files[i] = post.local_files[i]
+					.split("/")
+					.last()
+					.map(|s| String::from(s))
+					.unwrap_or(String::new());
+			}
+			Some(post)
+		} else {
+			None
+		};
+		vec.push(Module {
+			uid: BASE64_STANDARD.encode(module.uid.to_ne_bytes()),
+			post,
+			id: module.module_id,
+			module: module.module,
+		})
+	}
+
+	Ok(Json(vec))
+}
+
+pub async fn search_cstm_items(
+	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
+	State(state): State<AppState>,
+) -> Result<Json<Vec<CstmItem>>, (StatusCode, String)> {
+	let index = state.meilisearch.index("cstm_items");
+	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
+
+	search.query = query.query.as_ref().map(|query| query.as_str());
+
+	search.limit = query.limit;
+	search.offset = query.offset;
+
+	search.sort = Some(&["customize_item_id:asc"]);
+
+	let filter = if let Some(filter) = &query.filter {
+		format!("{filter}")
+	} else {
+		String::new()
+	};
+
+	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
+		filter.as_str(),
+	)));
+
+	let cstm_items = search
+		.execute::<MeilisearchCstmItem>()
+		.await
+		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+	let cstm_items = cstm_items
+		.hits
+		.into_iter()
+		.map(|cstm_item| cstm_item.result)
+		.collect::<Vec<_>>();
+
+	let mut vec = Vec::with_capacity(cstm_items.len());
+	for cstm_item in cstm_items {
+		let post = if let Some(mut post) = Post::get_full(cstm_item.post_id, &state.db).await {
+			for i in 0..post.files.len() {
+				post.files[i] = format!(
+					"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
+					post.id
+				);
+				post.local_files[i] = post.local_files[i]
+					.split("/")
+					.last()
+					.map(|s| String::from(s))
+					.unwrap_or(String::new());
+			}
+			Some(post)
+		} else {
+			None
+		};
+		let bind_module = if let Some(bind_module) = cstm_item.customize_item.bind_module {
+			if bind_module != -1 {
+				let Json(modules) = crate::api::ids::search_modules(
+					axum_extra::extract::Query(crate::api::ids::SearchParams {
+						query: None,
+						filter: Some(format!("module_id={bind_module}")),
+						limit: Some(1),
+						offset: Some(0),
+					}),
+					State(state.clone()),
+				)
+				.await
+				.unwrap_or(Json(Vec::new()));
+				modules.first().map(|module| Module {
+					uid: module.uid.clone(),
+					post: post.as_ref().map(|post| Post {
+						id: post.id,
+						name: post.name.clone(),
+						text: post.text.clone(),
+						images: post.images.clone(),
+						files: post.files.clone(),
+						time: post.time.clone(),
+						post_type: post.post_type.clone(),
+						download_count: post.download_count,
+						like_count: post.like_count,
+						authors: post.authors.clone(),
+						dependencies: None,
+						comments: None,
+						explicit: post.explicit,
+						local_files: post.local_files.clone(),
+					}),
+					id: module.id,
+					module: module.module.clone(),
+				})
+			} else {
+				None
+			}
+		} else {
+			None
+		};
+		vec.push(CstmItem {
+			uid: BASE64_STANDARD.encode(cstm_item.uid.to_ne_bytes()),
+			post,
+			id: cstm_item.customize_item_id,
+			cstm_item: cstm_item.customize_item,
+			bind_module,
 		})
 	}
 

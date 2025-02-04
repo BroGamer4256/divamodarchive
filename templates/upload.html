@@ -169,7 +169,9 @@
 			'post_type': Number(type_tag),
 			'filenames': filenames,
 		}
+		{% if let Some(old_post) = update %}
 		post_data.id = {{ old_post.id }}
+		{% endif %}
 		post_data.image = image_url;
 		post_data.images_extra = images_extra_urls;
 

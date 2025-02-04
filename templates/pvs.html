@@ -42,7 +42,7 @@
 		}
 	}
 
-	function getPostHtml(pv) {
+	function getPvHtml(pv) {
 		var tr = document.createElement('tr');
 		tr.classList = [document.getElementById("pvs").children.length % 2 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
 		tr.innerHTML = `
@@ -224,7 +224,7 @@
 
 		var pvs = await search(document.getElementById("searchQuery").value, document.getElementById("pvs").children.length);
 		for (var pv of pvs) {
-			getPostHtml(pv);
+			getPvHtml(pv);
 		}
 
 		if (document.getElementById("pvs").children.length % 40 == 0 && document.getElementById("pvs").children.length != 0) {

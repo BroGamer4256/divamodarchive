@@ -62,16 +62,8 @@
 		var image = form['imagePicker'];
 		var archive = form['filePicker'];
 
-		{% if update.is_some() %}
-		var skipImage = form["skip-image"].checked;
-		var skipImagesExtra = form["skip-images-extra"].checked;
-		{% endif %}
 
-		{% if update.is_some() %}
-		if ((image.files.length != 1 && !skipImage) || archive.files.length == 0)
-		{% else %}
-		if (image.files.length != 1 || archive.files.length == 0)
-		{% endif %} {
+		if (image.files.length != 1 || archive.files.length == 0) {
 			alert("Upload failed\nMissing image/archive");
 			return;
 		}
@@ -98,81 +90,69 @@
 			},
 		}
 
-		{% if update.is_some() %}
-		if (!skipImage) {
-			{% endif %}
-			var image_upload_url = await fetch('https://divamodarchive.com/api/v1/posts/upload_image', options)
+		var image_upload_url = await fetch('https://divamodarchive.com/api/v1/posts/upload_image', options)
+			.then(response => response.text())
+			.catch(error => crash_and_burn(error, "Failed to upload image"));
+		if (image_upload_url == null) {
+			crash_and_burn("Error:", "Image upload failed");
+			return;
+		}
+		var image_form = new FormData();
+		image_form.append('file', image.files[0]);
+		options = {
+			method: 'POST',
+			headers: {
+				'Accept': '*/*'
+			},
+			body: image_form
+		}
+		var result = await fetch(image_upload_url, options)
+			.then(response => response.json())
+			.catch(error => crash_and_burn(error, "Failed to upload image"));
+		var image_url = result.result.variants[0].replace("/thumbnail", "/public");
+		if (image_url == null) {
+			crash_and_burn("Error: ", "Image upload failed\nMaximum size for images is 10MiB");
+			return
+		}
+		var image_url = image_url.replace("https://imagedelivery.net/", "https://divamodarchive.com/cdn-cgi/imagedelivery/");
+
+		var images_extra = form['imagesExtra'];
+		var images_extra_urls = [];
+		for (let i = 0; i < images_extra.files.length; i++) {
+			options = {
+			method: 'GET',
+				headers: {
+					'Content-Type': 'text/plain',
+					'Authorization': 'Bearer {{ jwt }}'
+				}
+			}
+			var extra_image_upload_url = await fetch('https://divamodarchive.com/api/v1/posts/upload_image', options)
 				.then(response => response.text())
 				.catch(error => crash_and_burn(error, "Failed to upload image"));
-			if (image_upload_url == null) {
-				crash_and_burn("Error:", "Image upload failed");
-				return;
+			if (extra_image_upload_url == null) {
+				alert("Image upload failed\nMaximum size for images is 10MiB");
+				return
 			}
-			var image_form = new FormData();
-			image_form.append('file', image.files[0]);
+			var extra_image_form = new FormData();
+			extra_image_form.append('file', images_extra.files[i]);
 			options = {
 				method: 'POST',
 				headers: {
 					'Accept': '*/*'
 				},
-				body: image_form
+				body: extra_image_form
 			}
-			var result = await fetch(image_upload_url, options)
+			var result = await fetch(extra_image_upload_url, options)
 				.then(response => response.json())
 				.catch(error => crash_and_burn(error, "Failed to upload image"));
-			var image_url = result.result.variants[0].replace("/thumbnail", "/public");
-			if (image_url == null) {
-				crash_and_burn("Error: ", "Image upload failed\nMaximum size for images is 10MiB");
+			if (result == null) {
+				alert("Image upload failed\nMaximum size for images is 10MiB");
 				return
 			}
-			var image_url = image_url.replace("https://imagedelivery.net/", "https://divamodarchive.com/cdn-cgi/imagedelivery/");
-			{% if update.is_some() %}
+			var extra_image_url = result.result.variants[0].replace("/thumbnail", "/public");
+			var extra_image_url = extra_image_url.replace("https://imagedelivery.net/", "https://divamodarchive.com/cdn-cgi/imagedelivery/")
+			images_extra_urls.push(extra_image_url);
 		}
-		{% endif %}
-
-		{% if update.is_some() %}
-		if (!skipImagesExtra) {
-			{% endif %}
-			var images_extra = form['imagesExtra'];
-			var images_extra_urls = [];
-			for (let i = 0; i < images_extra.files.length; i++) {
-				options = {
-					method: 'GET',
-					headers: {
-						'Content-Type': 'text/plain',
-						'Authorization': 'Bearer {{ jwt }}'
-					}
-				}
-				var extra_image_upload_url = await fetch('https://divamodarchive.com/api/v1/posts/upload_image', options)
-					.then(response => response.text())
-					.catch(error => crash_and_burn(error, "Failed to upload image"));
-				if (extra_image_upload_url == null) {
-					alert("Image upload failed\nMaximum size for images is 10MiB");
-					return
-				}
-				var extra_image_form = new FormData();
-				extra_image_form.append('file', images_extra.files[i]);
-				options = {
-					method: 'POST',
-					headers: {
-						'Accept': '*/*'
-					},
-					body: extra_image_form
-				}
-				var result = await fetch(extra_image_upload_url, options)
-					.then(response => response.json())
-					.catch(error => crash_and_burn(error, "Failed to upload image"));
-				if (result == null) {
-					alert("Image upload failed\nMaximum size for images is 10MiB");
-					return
-				}
-				var extra_image_url = result.result.variants[0].replace("/thumbnail", "/public");
-				var extra_image_url = extra_image_url.replace("https://imagedelivery.net/", "https://divamodarchive.com/cdn-cgi/imagedelivery/")
-				images_extra_urls.push(extra_image_url);
-			}
-			{% if update.is_some() %}
-		}
-		{% endif %}
 
 		var files = archive.files;
 
@@ -189,18 +169,9 @@
 			'post_type': Number(type_tag),
 			'filenames': filenames,
 		}
-		{% if let Some(old_post) = update %}
-		if (!skipImage) {
-			post_data.image = image_url;
-		}
-		if (!skipImagesExtra) {
-			post_data.images_extra = images_extra_urls;
-		}
 		post_data.id = {{ old_post.id }}
-		{% else %}
 		post_data.image = image_url;
 		post_data.images_extra = images_extra_urls;
-		{% endif %}
 
 		var socket = new WebSocket('wss://divamodarchive.com/api/v1/posts/upload');
 		var progressBar = document.getElementById('progressBar');
@@ -291,16 +262,6 @@
 		<input class="form-control" accept="image/*" type="file" id="imagesExtra" multiple>
 		<div id="imagesExtraPreview" class="row row-cols-2 row-cols-lg-4 gy-3" style="display: none;">
 		</div>
-
-		{% if update.is_some() %}
-		<br>
-		<div class="btn-group">
-			<input class="btn-check" type="checkbox" id="skip-image" name="skip-image">
-			<label for="skip-image" class="btn btn-primary">Use previously uploaded image</label>
-			<input class="btn-check" type="checkbox" id="skip-images-extra" name="skip-images-extra">
-			<label for="skip-images-extra" class="btn btn-primary">Use previously uploaded images extra</label>
-		</div>
-		{% endif %}
 	</div>
 	<div class="col-md-3 card card-body gap-3">
 		<div class="btn-group">

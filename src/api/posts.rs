@@ -204,9 +204,6 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 		let Some(post) = Post::get_full(id, &state.db).await else {
 			return;
 		};
-		if !post.authors.iter().any(|u| u.id == user.id) {
-			return;
-		}
 		for file in post.local_files {
 			_ = tokio::process::Command::new("rclone")
 				.arg("delete")

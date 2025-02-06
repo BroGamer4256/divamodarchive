@@ -5,7 +5,9 @@
 {% import "module_helpers.html" as module_helpers %}
 
 {% block head %}
-{% call base::draw_embed("", post.name, post.images[0]) %}
+{% let text = post.text.clone() %}
+{% let description = format!("{:.50}", text) %}
+{% call base::draw_embed(post.name, description, post.images[0]) %}
 {% endblock head %}
 
 {% block content %}

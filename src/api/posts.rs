@@ -498,6 +498,8 @@ pub async fn search_posts(
 					.unwrap_or(String::new());
 			}
 			vec.push(post);
+		} else {
+			_ = index.delete_document(id).await;
 		}
 	}
 
@@ -578,6 +580,18 @@ pub async fn delete_post(
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&pvs)
 		.with_filter(&format!("post={}", post.id))
 		.execute::<crate::api::ids::MeilisearchPv>()
+		.await;
+
+	let modules = state.meilisearch.index("modules");
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&modules)
+		.with_filter(&format!("post_id={}", post.id))
+		.execute::<crate::api::ids::MeilisearchModule>()
+		.await;
+
+	let cstm_items = state.meilisearch.index("cstm_items");
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&cstm_items)
+		.with_filter(&format!("post_id={}", post.id))
+		.execute::<crate::api::ids::MeilisearchCstmItem>()
 		.await;
 
 	Ok(())

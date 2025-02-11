@@ -211,7 +211,7 @@
 		var params = new URLSearchParams();
 		if (query != null) params.append("query", query);
 		if (offset != null) params.append("offset", offset);
-		params.append("limit", "40");
+		params.append("limit", "20");
 		var options = {
 			method: 'GET',
 		}
@@ -227,7 +227,7 @@
 			getPvHtml(pv);
 		}
 
-		if (document.getElementById("pvs").children.length % 40 == 0 && document.getElementById("pvs").children.length != 0) {
+		if (pvs.length == 20) {
 			document.getElementById("loadMore").hidden = false;
 		}
 	}
@@ -242,5 +242,6 @@
 	<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 </div>
 {% call pv_helpers::draw_pv_list(pvs) %}
-<button class="btn btn-sm btn-primary" type="button" id="loadMore" onClick="loadMore()" {% if pvs.len() < 40 %}hidden{% endif %}>Load more</button>
+<br>
+<button class="btn btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if pvs.len() < 20 %}hidden{% endif %}>Load more</button>
 {% endblock content %}

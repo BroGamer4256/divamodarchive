@@ -451,6 +451,13 @@ pub async fn search_pvs(
 					.unwrap_or(String::new());
 			}
 			Some(post)
+		} else if pv.post != -1 {
+			let pvs = state.meilisearch.index("pvs");
+			_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&pvs)
+				.with_filter(&format!("post={}", pv.post))
+				.execute::<crate::api::ids::MeilisearchPv>()
+				.await;
+			None
 		} else {
 			None
 		};
@@ -519,6 +526,13 @@ pub async fn search_modules(
 					.unwrap_or(String::new());
 			}
 			Some(post)
+		} else if module.post_id != -1 {
+			let modules = state.meilisearch.index("modules");
+			_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&modules)
+				.with_filter(&format!("post_id={}", module.post_id))
+				.execute::<crate::api::ids::MeilisearchModule>()
+				.await;
+			None
 		} else {
 			None
 		};
@@ -583,6 +597,13 @@ pub async fn search_cstm_items(
 					.unwrap_or(String::new());
 			}
 			Some(post)
+		} else if cstm_item.post_id != -1 {
+			let cstm_items = state.meilisearch.index("cstm_items");
+			_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&cstm_items)
+				.with_filter(&format!("post_id={}", cstm_item.post_id))
+				.execute::<crate::api::ids::MeilisearchCstmItem>()
+				.await;
+			None
 		} else {
 			None
 		};

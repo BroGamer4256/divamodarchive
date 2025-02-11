@@ -23,7 +23,7 @@
 			document.getElementById("posts").append(getPostHtml(post));
 		}
 
-		if (document.getElementById("posts").children.length % 40 == 0 && document.getElementById("posts").children.length != 0) {
+		if (posts.length == 20) {
 			document.getElementById("loadMore").hidden = false;
 		}
 	}
@@ -57,5 +57,6 @@
 </div>
 <br>
 {% call post_helpers::draw_post_list(posts) %}
-<button class="btn btn-sm btn-primary" type="button" id="loadMore" onClick="loadMore()" hidden>Load more</button>
+<br>
+<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if posts.len() != 20 %}hidden{% endif %}>Load more</button>
 {% endblock content %}

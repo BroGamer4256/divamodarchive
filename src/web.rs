@@ -381,7 +381,7 @@ async fn search(
 		FROM posts p
 		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
 		ORDER BY p.time DESC
-		LIMIT 40
+		LIMIT 20
 		"#
 	)
 	.fetch_all(&state.db)
@@ -453,7 +453,7 @@ async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTem
 		axum_extra::extract::Query(crate::api::ids::SearchParams {
 			query: None,
 			filter: None,
-			limit: Some(40),
+			limit: Some(20),
 			offset: Some(0),
 		}),
 		State(state),
@@ -478,7 +478,7 @@ async fn modules(
 		axum_extra::extract::Query(crate::api::ids::SearchParams {
 			query: None,
 			filter: None,
-			limit: Some(40),
+			limit: Some(20),
 			offset: Some(0),
 		}),
 		State(state),
@@ -503,7 +503,7 @@ async fn cstm_items(
 		axum_extra::extract::Query(crate::api::ids::SearchParams {
 			query: None,
 			filter: None,
-			limit: Some(40),
+			limit: Some(20),
 			offset: Some(0),
 		}),
 		State(state),

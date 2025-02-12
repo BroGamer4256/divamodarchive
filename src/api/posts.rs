@@ -6,7 +6,7 @@ use axum::{
 	response::*,
 };
 use serde::{Deserialize, Serialize};
-use tokio::io::AsyncWriteExt;
+use std::io::Write;
 
 #[derive(Serialize, Deserialize)]
 struct CloudflareDirectUploadResult {
@@ -217,16 +217,15 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 	let mut filepaths = Vec::new();
 	for filename in &filenames {
 		let filepath = format!("{}/{}", user.id, filename);
-		_ = tokio::fs::create_dir(format!("/pixeldrain/{}", user.id)).await;
-		let Ok(mut file) = tokio::fs::File::create(&format!("/pixeldrain/{}", &filepath)).await
-		else {
+		_ = std::fs::create_dir(format!("/pixeldrain/{}", user.id));
+		let Ok(mut file) = std::fs::File::create(&format!("/pixeldrain/{}", &filepath)) else {
 			return;
 		};
 		_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
 
 		while let Some(Ok(message)) = socket.recv().await {
 			if let ws::Message::Binary(chunk) = message {
-				_ = file.write_all(&chunk).await;
+				_ = file.write_all(&chunk);
 				_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
 			} else if let ws::Message::Close(_) = message {
 				_ = socket.close().await;
@@ -235,6 +234,8 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 				break;
 			}
 		}
+
+		_ = file.sync_all();
 
 		filepaths.push(filepath);
 	}
@@ -263,26 +264,26 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 
 	let post_id = if let Some(post_id) = params.id {
 		_ = sqlx::query!(
-			"UPDATE posts SET name = $2, text = $3, type = $4, files = $5, images = $6, time = $7, local_files = $8 WHERE id = $1",
-			post_id,
-			params.name,
-			params.text,
-			params.post_type,
-			&downloads,
-			&images,
-			time,
-			&filepaths,
-		)
-		.execute(&state.db)
-		.await;
+				"UPDATE posts SET name = $2, text = $3, type = $4, files = $5, images = $6, time = $7, local_files = $8 WHERE id = $1",
+				post_id,
+				params.name,
+				params.text,
+				params.post_type,
+				&downloads,
+				&images,
+				time,
+				&filepaths,
+			)
+			.execute(&state.db)
+			.await;
 
 		post_id
 	} else {
 		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, files, time, type, local_files) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ID", params.name, params.text, &images, &downloads, time, params.post_type, &filepaths)
-			.fetch_one(&state.db)
-			.await else {
-				return;
-			};
+				.fetch_one(&state.db)
+				.await else {
+					return;
+				};
 
 		_ = sqlx::query!(
 			"INSERT INTO post_authors (post_id, user_id) VALUES ($1, $2)",

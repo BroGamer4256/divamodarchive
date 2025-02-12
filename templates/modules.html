@@ -211,6 +211,7 @@
 <div style="display: flex; justify-content: center;">
 	<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 </div>
+<br>
 {% call module_helpers::draw_module_list(modules) %}
 <br>
 <button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if modules.len() < 20 %}hidden{% endif %}>Load more</button>

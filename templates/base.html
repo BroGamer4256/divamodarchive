@@ -76,11 +76,6 @@
 
 			return await fetch("https://divamodarchive.com/api/v1/posts?" + params.toString(), options).then(req => req.json());
 		}
-
-		function logout() {
-			document.cookie = "authorization=;Max-Age=0";
-			document.location.reload();
-		}
 	</script>
 
 	<style>
@@ -177,7 +172,6 @@
 			<a class="nav-link p-0 nav-text" href="/liked/{{ user.id }}">Liked Mods</a>
 			<a class="nav-link p-0 nav-text" href="/upload">Upload</a>
 			<a class="nav-link p-0 nav-text" href="/settings">Settings</a>
-			<button class="nav-link p-0 nav-text" onclick="logout()">Logout</button>
 			{% if user.is_admin(base.config) %}
 			<a class="nav-link p-0 nav-text" href="/admin">Admin{% if let Some(report_count) = base.report_count %} - {{ report_count }}{% endif %}</a>
 			{% endif %}

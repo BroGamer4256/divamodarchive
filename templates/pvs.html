@@ -241,6 +241,7 @@
 <div style="display: flex; justify-content: center;">
 	<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 </div>
+<br>
 {% call pv_helpers::draw_pv_list(pvs) %}
 <br>
 <button class="btn btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if pvs.len() < 20 %}hidden{% endif %}>Load more</button>

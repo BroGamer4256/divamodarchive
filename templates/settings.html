@@ -27,6 +27,11 @@
 
 		window.location.href = "/";
 	}
+
+	function logout() {
+		document.cookie = "authorization=;Max-Age=0";
+		window.location.href = "/";
+	}
 	{% endif %}
 </script>
 <div class="card card-body">
@@ -45,8 +50,14 @@
 		<input class="form-check-input" type="checkbox" id="public_likes" autocomplete="off" {% if user.public_likes %}checked=""{% endif %}>
 	</div>
 
-	<div class="btn btn-sm btn-outline-info btn-info" onclick="update()">
+	<div class="btn btn-outline-info btn-info" onclick="update()">
 		<button type="button" style="box-shadow: none" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Update</button>
+	</div>
+
+	<div style="height: 0.5rem"></div>
+
+	<div class="btn  btn-outline-danger btn-danger" onclick="logout()">
+		<button type="button" style="box-shadow: none" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Logout</button>
 	</div>
 </div>
 {% endblock content %}

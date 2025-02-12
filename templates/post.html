@@ -174,7 +174,7 @@
 
 {% if let Some(user) = user %}
 {% if is_author || user.is_admin(config) %}
-<div class="modal fade" id="deleteModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+<div class="modal fade" id="deleteModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
 	<div class="modal-dialog modal-dialog-centered">
 		<div class="modal-content">
 			<div class="modal-header">
@@ -192,6 +192,48 @@
 </div>
 {% endif %}
 {% endif %}
+
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-fullscreen">
+		<div class="modal-content" style="background: none">
+			<div class="modal-body">
+				<div style="position: absolute;z-index: 1;right: 0;display: flex;top: 0;bottom: 0;padding-top: 0.5rem;padding-right: 0.5rem;">
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div id="imageModalCarousel" class="carousel slide" data-bs-ride="carousel">
+					<div class="carousel-inner">
+						{% for (i, image) in post.images.iter().enumerate() %}
+						<div id="imageModalCarousel{{ i }}" class="carousel-item">
+							<div class="modal-dialog-centered container ratio ratio-16x9">
+								<img src="{{ image }}" class="card-img-top flat-image bg-clear border-none" loading="lazy" alt="Preview of {{ post.name }}">
+							</div>
+						</div>
+						{% endfor %}
+					</div>
+					{% if post.images.len() > 1 %}
+					<button class="carousel-control-prev" type="button" data-bs-target="#imageModalCarousel" data-bs-slide="prev">
+						<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+						<span class="visually-hidden">Previous</span>
+					</button>
+					<button class="carousel-control-next" type="button" data-bs-target="#imageModalCarousel" data-bs-slide="next">
+						<span class="carousel-control-next-icon" aria-hidden="true"></span>
+						<span class="visually-hidden">Next</span>
+					</button>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	document.getElementById("imageModal").addEventListener('show.bs.modal', event => {
+		{% for i in 0..post.images.len() %}
+		document.getElementById("imageModalCarousel{{ i }}").classList = "carousel-item";
+		{% endfor %}
+		document.getElementById(`imageModalCarousel${event.relatedTarget.getAttribute('data-bs-index')}`).classList = "carousel-item active";
+	});
+</script>
 
 <div class="row align-items-md-stretch gap-3">
 	<div class="col-md-7 card card-body">
@@ -213,7 +255,9 @@
 			<div class="carousel-inner">
 				{% for (i, image) in post.images.iter().enumerate() %}
 				<div class="carousel-item ratio ratio-16x9 {% if i == 0 %}active{% endif %}">
-					<img src="{{ image }}" class="card-img-top flat-image bg-clear border-none" loading="lazy" alt="Preview of {{ post.name }}">
+					<button type="button" class="bg-clear border-none" data-bs-toggle="modal" data-bs-target="#imageModal" data-bs-index="{{ i }}">
+						<img src="{{ image }}" class="card-img-top flat-image" loading="lazy" alt="Preview of {{ post.name }}">
+					</button>
 				</div>
 				{% endfor %}
 			</div>
@@ -311,9 +355,8 @@
 		<div class="row row-cols-2 row-cols-lg-4 gy-3">
 			{% for (i, image) in post.images.iter().enumerate() %}
 			<div class="col">
-				<button type="button" class="ratio ratio-16x9 bg-clear border-none">
-					<img src="{{ image }}" class="card-img-top flat-image" loading="lazy"
-						alt="Preview of {{ post.name }}">
+				<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal" data-bs-target="#imageModal" data-bs-index="{{ i }}">
+					<img src="{{ image }}" class="card-img-top flat-image" loading="lazy" alt="Preview of {{ post.name }}">
 				</button>
 			</div>
 			{% endfor %}

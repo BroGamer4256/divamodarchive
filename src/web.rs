@@ -36,6 +36,7 @@ pub struct BaseTemplate {
 	report_count: Option<i64>,
 }
 
+#[axum::async_trait]
 impl<S> FromRequestParts<S> for BaseTemplate
 where
 	S: Send + Sync,

@@ -3,6 +3,7 @@ use crate::AppState;
 use axum::{extract::*, http::StatusCode, response::*};
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::path::Path;
 use tokio::process::Command;
 
@@ -437,8 +438,13 @@ pub async fn search_pvs(
 	let pvs = pvs.hits.into_iter().map(|p| p.result).collect::<Vec<_>>();
 
 	let mut vec = Vec::with_capacity(pvs.len());
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
 	for pv in pvs {
-		let post = if let Some(mut post) = Post::get_full(pv.post, &state.db).await {
+		let post = if pv.post == -1 {
+			None
+		} else if let Some(post) = posts.get(&pv.post) {
+			Some(post.clone())
+		} else if let Some(mut post) = Post::get_full(pv.post, &state.db).await {
 			for i in 0..post.files.len() {
 				post.files[i] = format!(
 					"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
@@ -450,6 +456,7 @@ pub async fn search_pvs(
 					.map(|s| String::from(s))
 					.unwrap_or(String::new());
 			}
+			posts.insert(post.id, post.clone());
 			Some(post)
 		} else if pv.post != -1 {
 			let pvs = state.meilisearch.index("pvs");
@@ -461,6 +468,7 @@ pub async fn search_pvs(
 		} else {
 			None
 		};
+
 		vec.push(Pv {
 			uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
 			post,
@@ -512,8 +520,13 @@ pub async fn search_modules(
 		.collect::<Vec<_>>();
 
 	let mut vec = Vec::with_capacity(modules.len());
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
 	for module in modules {
-		let post = if let Some(mut post) = Post::get_full(module.post_id, &state.db).await {
+		let post = if module.post_id == -1 {
+			None
+		} else if let Some(post) = posts.get(&module.post_id) {
+			Some(post.clone())
+		} else if let Some(mut post) = Post::get_full(module.post_id, &state.db).await {
 			for i in 0..post.files.len() {
 				post.files[i] = format!(
 					"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
@@ -525,6 +538,7 @@ pub async fn search_modules(
 					.map(|s| String::from(s))
 					.unwrap_or(String::new());
 			}
+			posts.insert(post.id, post.clone());
 			Some(post)
 		} else if module.post_id != -1 {
 			let modules = state.meilisearch.index("modules");
@@ -536,6 +550,7 @@ pub async fn search_modules(
 		} else {
 			None
 		};
+
 		vec.push(Module {
 			uid: BASE64_STANDARD.encode(module.uid.to_ne_bytes()),
 			post,
@@ -583,8 +598,13 @@ pub async fn search_cstm_items(
 		.collect::<Vec<_>>();
 
 	let mut vec = Vec::with_capacity(cstm_items.len());
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
 	for cstm_item in cstm_items {
-		let post = if let Some(mut post) = Post::get_full(cstm_item.post_id, &state.db).await {
+		let post = if cstm_item.post_id == -1 {
+			None
+		} else if let Some(post) = posts.get(&cstm_item.post_id) {
+			Some(post.clone())
+		} else if let Some(mut post) = Post::get_full(cstm_item.post_id, &state.db).await {
 			for i in 0..post.files.len() {
 				post.files[i] = format!(
 					"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
@@ -596,6 +616,7 @@ pub async fn search_cstm_items(
 					.map(|s| String::from(s))
 					.unwrap_or(String::new());
 			}
+			posts.insert(post.id, post.clone());
 			Some(post)
 		} else if cstm_item.post_id != -1 {
 			let cstm_items = state.meilisearch.index("cstm_items");
@@ -607,6 +628,7 @@ pub async fn search_cstm_items(
 		} else {
 			None
 		};
+
 		let bind_module = if let Some(bind_module) = cstm_item.customize_item.bind_module {
 			if bind_module != -1 {
 				let Json(modules) = crate::api::ids::search_modules(
@@ -622,21 +644,7 @@ pub async fn search_cstm_items(
 				.unwrap_or(Json(Vec::new()));
 				modules.first().map(|module| Module {
 					uid: module.uid.clone(),
-					post: post.as_ref().map(|post| Post {
-						id: post.id,
-						name: post.name.clone(),
-						text: post.text.clone(),
-						images: post.images.clone(),
-						files: post.files.clone(),
-						time: post.time.clone(),
-						post_type: post.post_type.clone(),
-						download_count: post.download_count,
-						like_count: post.like_count,
-						authors: post.authors.clone(),
-						dependencies: None,
-						comments: None,
-						local_files: post.local_files.clone(),
-					}),
+					post: post.clone(),
 					id: module.id,
 					module: module.module.clone(),
 				})
@@ -646,6 +654,7 @@ pub async fn search_cstm_items(
 		} else {
 			None
 		};
+
 		vec.push(CstmItem {
 			uid: BASE64_STANDARD.encode(cstm_item.uid.to_ne_bytes()),
 			post,

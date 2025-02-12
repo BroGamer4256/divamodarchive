@@ -100,6 +100,26 @@ pub struct Post {
 	pub local_files: Vec<String>,
 }
 
+impl Clone for Post {
+	fn clone(&self) -> Self {
+		Self {
+			id: self.id,
+			name: self.name.clone(),
+			text: self.text.clone(),
+			images: self.images.clone(),
+			files: self.files.clone(),
+			time: self.time.clone(),
+			post_type: self.post_type.clone(),
+			download_count: self.download_count,
+			like_count: self.like_count,
+			authors: self.authors.clone(),
+			dependencies: self.dependencies.clone(),
+			comments: None,
+			local_files: self.local_files.clone(),
+		}
+	}
+}
+
 #[derive(Clone)]
 pub struct Comment {
 	pub id: i32,

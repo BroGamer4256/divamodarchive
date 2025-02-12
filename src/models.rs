@@ -459,7 +459,6 @@ impl User {
 #[template(path = "unauthorized.html")]
 pub struct UnauthorizedTemplate {}
 
-#[axum::async_trait]
 impl<S> FromRequestParts<S> for User
 where
 	S: Send + Sync,

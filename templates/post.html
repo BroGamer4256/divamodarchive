@@ -3,6 +3,7 @@
 {% import "post_helpers.html" as post_helpers %}
 {% import "pv_helpers.html" as pv_helpers %}
 {% import "module_helpers.html" as module_helpers %}
+{% import "cstm_item_helpers.html" as cstm_item_helpers %}
 
 {% block head %}
 {% let text = post.text.clone() %}
@@ -329,22 +330,6 @@
 	{% endif %}
 	{% endif %}
 
-	{% if pvs.len() > 0 %}
-	<div class="card card-body">
-		<h4>This mod adds the following songs: </h4>
-		{% call pv_helpers::draw_pv_list(pvs) %}
-		</div>
-	</div>
-	{% endif %}
-
-	{% if modules.len() > 0 %}
-	<div class="card card-body">
-		<h4>This mod adds the following modules: </h4>
-		{% call module_helpers::draw_module_list(modules) %}
-		</div>
-	</div>
-	{% endif %}
-
 	{% if post.dependencies.is_none() || post.dependencies.as_ref().unwrap().len() == 0 %}
 	{% if is_author %}
 	<div class="card card-body" id="postsCard" hidden>
@@ -353,6 +338,27 @@
 		</div>
 	</div>
 	{% endif %}
+	{% endif %}
+
+	{% if pvs.len() > 0 %}
+	<div class="card card-body">
+		<h4>This mod adds the following songs: </h4>
+		{% call pv_helpers::draw_pv_list(pvs) %}
+	</div>
+	{% endif %}
+
+	{% if modules.len() > 0 %}
+	<div class="card card-body">
+		<h4>This mod adds the following modules: </h4>
+		{% call module_helpers::draw_module_list(modules) %}
+	</div>
+	{% endif %}
+
+	{% if cstm_items.len() > 0 %}
+	<div class="card card-body">
+		<h4>This mod adds the following customize items: </h4>
+		{% call cstm_item_helpers::draw_cstm_items_list(cstm_items) %}
+	</div>
 	{% endif %}
 
 	{% if let Some(user) = user %}

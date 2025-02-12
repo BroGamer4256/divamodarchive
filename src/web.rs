@@ -36,7 +36,6 @@ pub struct BaseTemplate {
 	report_count: Option<i64>,
 }
 
-#[axum::async_trait]
 impl<S> FromRequestParts<S> for BaseTemplate
 where
 	S: Send + Sync,
@@ -292,6 +291,7 @@ struct PostTemplate {
 	config: Config,
 	pvs: Vec<Pv>,
 	modules: Vec<Module>,
+	cstm_items: Vec<CstmItem>,
 }
 
 async fn post_detail(
@@ -351,6 +351,18 @@ async fn post_detail(
 	.await
 	.unwrap_or(Json(Vec::new()));
 
+	let Json(cstm_items) = crate::api::ids::search_cstm_items(
+		axum_extra::extract::Query(crate::api::ids::SearchParams {
+			query: None,
+			filter: Some(format!("post_id={}", post.id)),
+			limit: Some(2000),
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.unwrap_or(Json(Vec::new()));
+
 	Ok(PostTemplate {
 		user,
 		jwt: base.jwt.clone(),
@@ -361,6 +373,7 @@ async fn post_detail(
 		config: state.config,
 		pvs,
 		modules,
+		cstm_items,
 	})
 }
 

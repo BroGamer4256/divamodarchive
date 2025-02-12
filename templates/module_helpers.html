@@ -1,7 +1,7 @@
 {% macro draw_module_list(modules) %}
 <div id="offcanvasList">
 	{% for module in modules.iter() %}
-	<div class="offcanvas offcanvas-start" id="offcanvas{{ module.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
+	<div class="offcanvas offcanvas-start" id="moduleOffcanvas{{ module.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
 		<div class="offcanvas-header">
 			<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
 		</div>
@@ -116,7 +116,7 @@
 	</thead>
 	<tbody id="modules">
 		{% for (i, module) in modules.iter().enumerate() %}
-		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas{{ module.uid }}">
+		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#moduleOffcanvas{{ module.uid }}">
 			<td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
 			<td>{% if let Some(name_jp) = module.module.name_jp %}{{ name_jp }}{% endif %}</td>
 			<td>{{ module.module.chara.to_string() }}</td>

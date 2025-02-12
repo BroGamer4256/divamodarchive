@@ -8,7 +8,7 @@
 	{% else -%}
 	{% let cols = 5 -%}
 	{% endif -%}
-	<div class="offcanvas offcanvas-start" id="offcanvas{{ pv.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
+	<div class="offcanvas offcanvas-start" id="pvOffcanvas{{ pv.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
 		<div class="offcanvas-header">
 			<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
 		</div>
@@ -164,7 +164,7 @@
 	</thead>
 	<tbody id="pvs">
 		{% for (i, pv) in pvs.iter().enumerate() %}
-		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvas{{ pv.uid }}">
+		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#pvOffcanvas{{ pv.uid }}">
 			<td>{{ pv.name_en }}</td>
 			<td>{{ pv.name }}</td>
 			<td>{{ pv.id }}</td>

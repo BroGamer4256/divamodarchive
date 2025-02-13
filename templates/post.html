@@ -254,8 +254,8 @@
 		<div id="imageCarousel" class="carousel slide" data-bs-ride="carousel">
 			<div class="carousel-inner">
 				{% for (i, image) in post.images.iter().enumerate() %}
-				<div class="carousel-item ratio ratio-16x9 {% if i == 0 %}active{% endif %}">
-					<button type="button" class="bg-clear border-none" data-bs-toggle="modal" data-bs-target="#imageModal" data-bs-index="{{ i }}">
+				<div class="carousel-item {% if i == 0 %}active{% endif %}">
+					<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal" data-bs-target="#imageModal" data-bs-index="{{ i }}">
 						<img src="{{ image }}" class="card-img-top flat-image" loading="lazy" alt="Preview of {{ post.name }}">
 					</button>
 				</div>

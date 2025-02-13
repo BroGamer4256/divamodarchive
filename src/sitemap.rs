@@ -43,8 +43,9 @@ pub struct Url {
 #[derive(Serialize)]
 #[serde(rename = "urlset")]
 pub struct Urlset {
-	pub url: Vec<Url>,
+	#[serde(rename = "@xmlns")]
 	pub xmlns: String,
+	pub url: Vec<Url>,
 }
 
 #[axum::debug_handler]
@@ -76,21 +77,7 @@ pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String
 	};
 	urls.push(base_url);
 
-	let about_url = Url {
-		loc: Loc {
-			loc: String::from("https://divamodarchive.com/about"),
-		},
-		changefreq: Changefreq {
-			changefreq: String::from("monthly"),
-		},
-		priority: Priority {
-			priority: String::from("0.25"),
-		},
-		lastmod: None,
-	};
-	urls.push(about_url);
-
-	let posts = sqlx::query!("SELECT id, time FROM posts ORDER BY time")
+	let posts = sqlx::query!("SELECT id, time FROM posts ORDER BY time DESC")
 		.fetch_all(&state.db)
 		.await;
 	if let Ok(posts) = posts {
@@ -113,11 +100,19 @@ pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String
 		}
 	};
 
-	let users = sqlx::query!("SELECT DISTINCT u.id FROM users u LEFT JOIN post_authors pa ON pa.user_id = u.id WHERE pa.post_id IS NOT NULL ORDER BY id;")
+	let users = sqlx::query!("SELECT DISTINCT u.id FROM users u LEFT JOIN post_authors pa ON pa.user_id = u.id WHERE pa.post_id IS NOT NULL ORDER BY id")
 		.fetch_all(&state.db)
 		.await;
 	if let Ok(users) = users {
 		for user in users {
+			let lastmod = sqlx::query!("SELECT p.time FROM post_authors pa LEFT JOIN posts p ON p.id = pa.post_id WHERE pa.user_id = $1 ORDER BY p.time DESC LIMIT 1", user.id).fetch_one(&state.db).await;
+			let lastmod = if let Ok(lastmod) = lastmod {
+				Some(Lastmod {
+					lastmod: lastmod.time.date().to_string(),
+				})
+			} else {
+				None
+			};
 			let url = Url {
 				loc: Loc {
 					loc: format!("https://divamodarchive.com/user/{}", user.id),
@@ -128,7 +123,7 @@ pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String
 				priority: Priority {
 					priority: String::from("0.5"),
 				},
-				lastmod: None,
+				lastmod,
 			};
 			urls.push(url);
 		}
@@ -143,5 +138,8 @@ pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String
 	let mut headers = HeaderMap::new();
 	headers.insert(header::CONTENT_TYPE, "application/xml".parse().unwrap());
 
-	Ok((headers, xml))
+	Ok((
+		headers,
+		format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>{xml}"),
+	))
 }

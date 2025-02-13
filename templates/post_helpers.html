@@ -1,30 +1,29 @@
-{% macro draw_post_short(post) %}
-<div class="col">
-	<div class="card shadow-sm">
-		<a style="text-decoration: none;" href="/post/{{ post.id }}">
-			<div class="card-img-top ratio ratio-16x9 bg-clear border-none" loading="lazy">
-				{% if let Some(image) = post.images.first() %}
-				<img src="{{ image }}" class="rounded-image" width="100%" loading="lazy">
-				{% endif %}
-			</div>
-			<div class="card-body">
-				<h5 class="text">{{ format!("{:.20}", post.name) }}{% if post.name.len() > 20 %}...{% endif %}</h5>
-				<h5 class="row">
-					<div class="col-md-7 text">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 1rem">favorite</span> {{ post.download_count }}<span class="material-symbols-outlined" style="font-size: 1rem">download</span></div>
-					<div class="col-md-5 text text-align-right-md">
-						{{ post.post_type }}
-					</div>
-				</h5>
-			</div>
-		</a>
-	</div>
-</div>
-{% endmacro %}
-
 {% macro draw_post_list(posts) %}
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
 	{% for post in posts %}
-	{% call draw_post_short(post) %}
+	<div class="col">
+		<div class="card shadow-sm">
+			<a style="text-decoration: none;" href="/post/{{ post.id }}">
+				<div class="card-img-top ratio ratio-16x9 bg-clear border-none" loading="lazy">
+					{% if let Some(image) = post.images.first() %}
+					<img src="{{ image }}" class="rounded-image" width="100%" loading="lazy">
+					{% endif %}
+				</div>
+				<div class="card-body">
+					<h5 class="text" {% if post.name.len() > 20 %}data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="{{ post.name }}"{% endif %}>{{ format!("{:.20}", post.name) }}{% if post.name.len() > 20 %}...{% endif %}</h5>
+					<h5 class="row">
+						<div class="col-md-7 text">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 1rem">favorite</span> {{ post.download_count }}<span class="material-symbols-outlined" style="font-size: 1rem">download</span></div>
+						<div class="col-md-5 text text-align-right-md">
+							{{ post.post_type }}
+						</div>
+					</h5>
+				</div>
+			</a>
+		</div>
+	</div>
 	{% endfor %}
 </div>
+<script>
+	[...document.querySelectorAll('[data-bs-toggle="tooltip"]')].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+</script>
 {% endmacro %}

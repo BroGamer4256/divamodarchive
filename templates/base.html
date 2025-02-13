@@ -48,7 +48,7 @@
 			<img src="${post.images[0]}" class="rounded-image" width="100%" loading="lazy">
 		</div>
 		<div class="card-body">
-			<h5 class="text" ${post.name.length > 20 ? 'data-bs-toggle="tooltip"' : ''} data-bs-placement="bottom" data-bs-title="${post.name}">${post.name.substring(0, 20)}${post.name.length > 20 ? "..." : ""}</h5>
+			<h5 class="text" ${post.name.length > 20 ? 'data-bs-toggle="tooltip"' : ''} data-bs-placement="bottom" data-bs-title="${post.name.replaceAll('"', '&quot;')}">${post.name.substring(0, 20)}${post.name.length > 20 ? "..." : ""}</h5>
 			<h5 class="row">
 				<div class="col-md-7 text">${post.like_count}<span class="material-symbols-outlined" style="font-size: 1rem">favorite</span> ${post.download_count}<span class="material-symbols-outlined" style="font-size: 1rem">download</span></div>
 				<div class="col-md-5 text text-align-right-md">

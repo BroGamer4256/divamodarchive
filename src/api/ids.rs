@@ -768,7 +768,7 @@ pub async fn search_cstm_items(
 
 	let mut vec = Vec::with_capacity(cstm_items.len());
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
-	let mut pending_bound_modules: BTreeSet<i32> = BTreeSet::new();
+	let mut pending_bound_modules: BTreeSet<(i32, Option<i32>)> = BTreeSet::new();
 
 	for cstm_item in cstm_items {
 		let post = if cstm_item.post_id == -1 {
@@ -802,7 +802,7 @@ pub async fn search_cstm_items(
 
 		if let Some(bind_module) = cstm_item.customize_item.bind_module {
 			if bind_module != -1 {
-				pending_bound_modules.insert(bind_module);
+				pending_bound_modules.insert((bind_module, post));
 			}
 		}
 
@@ -839,7 +839,13 @@ pub async fn search_cstm_items(
 	if pending_bound_modules.len() > 0 {
 		let filter = pending_bound_modules
 			.iter()
-			.map(|id| format!("module_id={id}"))
+			.map(|(module, post)| {
+				if let Some(post) = post {
+					format!("(module_id={module} AND (post_id={post} OR post_id=-1))")
+				} else {
+					format!("(module_id={module} AND post_id=-1)")
+				}
+			})
 			.collect::<Vec<_>>()
 			.join(" OR ");
 

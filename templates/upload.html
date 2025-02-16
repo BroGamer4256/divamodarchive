@@ -62,7 +62,6 @@
 		var image = form['imagePicker'];
 		var archive = form['filePicker'];
 
-
 		if (image.files.length != 1 || archive.files.length == 0) {
 			alert("Upload failed\nMissing image/archive");
 			return;
@@ -175,12 +174,18 @@
 		post_data.image = image_url;
 		post_data.images_extra = images_extra_urls;
 
+		var offset = 0;
+		var bytes = [];
+		for (var file of files) {
+			var data = await file.bytes();
+			bytes.push(data);
+		}
+
 		var socket = new WebSocket('wss://divamodarchive.com/api/v1/posts/upload');
 		var progressBar = document.getElementById('progressBar');
 		var completed = 0;
 		var index = 0;
 		var percentComplete = Math.round((completed / totalSize) * 100);
-		var reader = files[index].stream().getReader();
 
 		socket.addEventListener("open", (event) => {
 			socket.send('{{ jwt }}')
@@ -189,15 +194,16 @@
 
 		socket.addEventListener("message", async (event) => {
 			if (event.data == "Ready") {
-				var { done, value } = await reader.read();
-				if (done) {
+				var data = bytes[index].slice(offset, offset + (1024 * 1024))
+				if (data.length == 0) {
 					socket.send("Finished");
 					index += 1;
-					if (index != files.length) reader = files[index].stream().getReader();
+					if (index != files.length) offset = 0;
 				} else {
-					socket.send(value);
+					socket.send(data);
 
-					completed += value.length;
+					completed += data.length;
+					offset += data.length;
 					percentComplete = Math.round((completed / totalSize) * 100);
 					progressBar.style.width = percentComplete + '%';
 				}

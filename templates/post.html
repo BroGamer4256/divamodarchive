@@ -200,7 +200,7 @@
 				<div style="position: absolute;z-index: 2;right: 0;display: flex;top: 0;bottom: 0;padding-top: 0.5rem;padding-right: 0.5rem;">
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
-				<div id="imageModalCarousel" class="carousel slide" data-bs-ride="carousel">
+				<div id="imageModalCarousel" class="carousel" data-bs-ride="carousel">
 					<div class="carousel-inner">
 						{% for (i, image) in post.images.iter().enumerate() %}
 						<div id="imageModalCarousel{{ i }}" class="carousel-item">

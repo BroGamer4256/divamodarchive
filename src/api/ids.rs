@@ -834,47 +834,49 @@ pub async fn search_cstm_items(
 		})
 	}
 
-	let filter = pending_bound_modules
-		.iter()
-		.map(|id| format!("module_id={id}"))
-		.collect::<Vec<_>>()
-		.join(" OR ");
-
-	let Json(modules) = crate::api::ids::search_modules(
-		axum_extra::extract::Query(crate::api::ids::SearchParams {
-			query: None,
-			filter: Some(filter),
-			limit: query.limit,
-			offset: Some(0),
-		}),
-		State(state.clone()),
-	)
-	.await
-	.unwrap_or(Json(ModuleSearch {
-		modules: Vec::new(),
-		posts: BTreeMap::new(),
-	}));
-
 	let mut bound_modules = BTreeMap::new();
 
-	for module in modules.modules {
-		if let Some(post_id) = &module.post {
-			if let Some(post) = modules.posts.get(post_id) {
-				if !posts.contains_key(post_id) {
-					posts.insert(*post_id, post.clone());
+	if pending_bound_modules.len() > 0 {
+		let filter = pending_bound_modules
+			.iter()
+			.map(|id| format!("module_id={id}"))
+			.collect::<Vec<_>>()
+			.join(" OR ");
+
+		let Json(modules) = crate::api::ids::search_modules(
+			axum_extra::extract::Query(crate::api::ids::SearchParams {
+				query: None,
+				filter: Some(filter),
+				limit: Some(pending_bound_modules.len()),
+				offset: Some(0),
+			}),
+			State(state.clone()),
+		)
+		.await
+		.unwrap_or(Json(ModuleSearch {
+			modules: Vec::new(),
+			posts: BTreeMap::new(),
+		}));
+
+		for module in modules.modules {
+			if let Some(post_id) = &module.post {
+				if let Some(post) = modules.posts.get(post_id) {
+					if !posts.contains_key(post_id) {
+						posts.insert(*post_id, post.clone());
+					}
 				}
 			}
-		}
 
-		bound_modules.insert(
-			module.id,
-			Module {
-				uid: module.uid,
-				post: module.post,
-				id: module.id,
-				module: module.module,
-			},
-		);
+			bound_modules.insert(
+				module.id,
+				Module {
+					uid: module.uid,
+					post: module.post,
+					id: module.id,
+					module: module.module,
+				},
+			);
+		}
 	}
 
 	Ok(Json(CstmItemSearch {

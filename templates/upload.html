@@ -245,15 +245,7 @@
 		</ul>
 	</div>
 
-	<div class="card card-body">
-		<h3 class="text">PLEASE NOTE:</h3>
-		<p class="text mb-0">
-			Images cannot be edited after uploading without reuploading the mod file.<br>
-			Make sure all photos and details are correct before pressing upload.
-		</p>
-	</div>
 	<div class="col-md-7 card card-body">
-
 		<h2 class="card-text text"><label for="title">Title: </label><input type="text" id="title" name="title"
 				autocomplete="off" {% if let Some(old_post)=update %}value="{{ old_post.name }}" {% endif %}></h2>
 		{% if let Some(old_post) = update %}

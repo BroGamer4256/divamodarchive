@@ -42,14 +42,14 @@
 		}
 	}
 
-	function getPvHtml(pv) {
+	function getPvHtml(pv, posts) {
 		var tr = document.createElement('tr');
 		tr.classList = [document.getElementById("pvs").children.length % 2 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
 		tr.innerHTML = `
 			<td>${pv.name_en}</td>
 			<td>${pv.name}</td>
 			<td>${pv.id}</td>
-			<td>${pv.post == null ? 'MM+' : pv.post.name}</td>
+			<td>${pv.post == null ? 'MM+' : posts[pv.post].name}</td>
 		`;
 		tr.role = "button";
 		tr.setAttribute("data-bs-toggle", "offcanvas");
@@ -105,7 +105,7 @@
 		`;
 
 		if (pv.post != null) {
-			html += `<a href="/post/${pv.post.id}" class="nav-link">${pv.post.name}</a>`;
+			html += `<a href="/post/${pv.post}" class="nav-link">${posts[pv.post].name}</a>`;
 		} else {
 			html += 'MM+';
 		}
@@ -216,18 +216,18 @@
 			method: 'GET',
 		}
 
-		return await fetch("https://divamodarchive.com/api/v1/ids/pvs?" + params.toString(), options).then(req => req.json());
+		return await fetch("/api/v1/ids/pvs?" + params.toString(), options).then(res => res.json());
 	}
 
 	async function loadMore() {
 		document.getElementById("loadMore").hidden = true;
 
 		var pvs = await search(document.getElementById("searchQuery").value, document.getElementById("pvs").children.length);
-		for (var pv of pvs) {
-			getPvHtml(pv);
+		for (var pv of pvs.pvs) {
+			getPvHtml(pv, pvs.posts);
 		}
 
-		if (pvs.length == 20) {
+		if (pvs.pvs.length == 20) {
 			document.getElementById("loadMore").hidden = false;
 		}
 	}
@@ -242,7 +242,7 @@
 	<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 </div>
 <br>
-{% call pv_helpers::draw_pv_list(pvs) %}
+{% call pv_helpers::draw_pv_list(pvs, true) %}
 <br>
-<button class="btn btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if pvs.len() < 20 %}hidden{% endif %}>Load more</button>
+<button class="btn btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if pvs.pvs.len() < 20 %}hidden{% endif %}>Load more</button>
 {% endblock content %}

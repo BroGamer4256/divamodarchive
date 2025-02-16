@@ -3,7 +3,7 @@ use crate::AppState;
 use axum::{extract::*, http::StatusCode, response::*};
 use base64::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::*;
 use std::path::Path;
 use tokio::process::Command;
 
@@ -406,10 +406,163 @@ async fn parse_pv_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
 	Some(())
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Pv {
+	pub uid: String,
+	pub post: Option<i32>,
+	pub id: i32,
+	pub name: String,
+	pub name_en: String,
+	pub song_info: Option<pv_db::SongInfo>,
+	pub song_info_en: Option<pv_db::SongInfo>,
+	pub levels: [Option<pv_db::Level>; 5],
+}
+
+impl Pv {
+	pub fn has_music(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(music) = &song_info.music {
+				if !music.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(music) = &song_info.music {
+				if !music.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn has_lyrics(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(lyrics) = &song_info.lyrics {
+				if !lyrics.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(lyrics) = &song_info.lyrics {
+				if !lyrics.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn has_arranger(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(arranger) = &song_info.arranger {
+				if !arranger.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(arranger) = &song_info.arranger {
+				if !arranger.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn has_manipulator(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(manipulator) = &song_info.manipulator {
+				if manipulator.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(manipulator) = &song_info.manipulator {
+				if !manipulator.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn has_editor(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(pv_editor) = &song_info.pv_editor {
+				if !pv_editor.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(pv_editor) = &song_info.pv_editor {
+				if !pv_editor.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn has_guitar(&self) -> bool {
+		if let Some(song_info) = &self.song_info {
+			if let Some(guitar_player) = &song_info.guitar_player {
+				if !guitar_player.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(guitar_player) = &song_info.guitar_player {
+				if !guitar_player.trim().is_empty() {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn song_info_count(&self) -> isize {
+		self.has_music() as isize
+			+ self.has_lyrics() as isize
+			+ self.has_arranger() as isize
+			+ self.has_manipulator() as isize
+			+ self.has_editor() as isize
+			+ self.has_guitar() as isize
+	}
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Module {
+	pub uid: String,
+	pub post: Option<i32>,
+	pub id: i32,
+	pub module: module_db::Module,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CstmItem {
+	pub uid: String,
+	pub post: Option<i32>,
+	pub id: i32,
+	pub cstm_item: module_db::CustomizeItem,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PvSearch {
+	pub pvs: Vec<Pv>,
+	pub posts: BTreeMap<i32, Post>,
+}
+
 pub async fn search_pvs(
 	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
 	State(state): State<AppState>,
-) -> Result<Json<Vec<Pv>>, (StatusCode, String)> {
+) -> Result<Json<PvSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("pvs");
 	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
 
@@ -443,7 +596,7 @@ pub async fn search_pvs(
 		let post = if pv.post == -1 {
 			None
 		} else if let Some(post) = posts.get(&pv.post) {
-			Some(post.clone())
+			Some(post.id)
 		} else if let Some(mut post) = Post::get_full(pv.post, &state.db).await {
 			for i in 0..post.files.len() {
 				post.files[i] = format!(
@@ -457,7 +610,7 @@ pub async fn search_pvs(
 					.unwrap_or(String::new());
 			}
 			posts.insert(post.id, post.clone());
-			Some(post)
+			Some(post.id)
 		} else if pv.post != -1 {
 			let pvs = state.meilisearch.index("pvs");
 			_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&pvs)
@@ -471,23 +624,29 @@ pub async fn search_pvs(
 
 		vec.push(Pv {
 			uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
-			post,
 			id: pv.pv_id,
 			name: pv.song_name,
 			name_en: pv.song_name_en,
 			song_info: pv.song_info,
 			song_info_en: pv.song_info_en,
 			levels: pv.levels,
+			post,
 		})
 	}
 
-	Ok(Json(vec))
+	Ok(Json(PvSearch { pvs: vec, posts }))
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ModuleSearch {
+	pub modules: Vec<Module>,
+	pub posts: BTreeMap<i32, Post>,
 }
 
 pub async fn search_modules(
 	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
 	State(state): State<AppState>,
-) -> Result<Json<Vec<Module>>, (StatusCode, String)> {
+) -> Result<Json<ModuleSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("modules");
 	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
 
@@ -525,7 +684,7 @@ pub async fn search_modules(
 		let post = if module.post_id == -1 {
 			None
 		} else if let Some(post) = posts.get(&module.post_id) {
-			Some(post.clone())
+			Some(post.id)
 		} else if let Some(mut post) = Post::get_full(module.post_id, &state.db).await {
 			for i in 0..post.files.len() {
 				post.files[i] = format!(
@@ -539,7 +698,7 @@ pub async fn search_modules(
 					.unwrap_or(String::new());
 			}
 			posts.insert(post.id, post.clone());
-			Some(post)
+			Some(post.id)
 		} else if module.post_id != -1 {
 			let modules = state.meilisearch.index("modules");
 			_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&modules)
@@ -559,13 +718,23 @@ pub async fn search_modules(
 		})
 	}
 
-	Ok(Json(vec))
+	Ok(Json(ModuleSearch {
+		modules: vec,
+		posts,
+	}))
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CstmItemSearch {
+	pub cstm_items: Vec<CstmItem>,
+	pub bound_modules: BTreeMap<i32, Module>,
+	pub posts: BTreeMap<i32, Post>,
 }
 
 pub async fn search_cstm_items(
 	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
 	State(state): State<AppState>,
-) -> Result<Json<Vec<CstmItem>>, (StatusCode, String)> {
+) -> Result<Json<CstmItemSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("cstm_items");
 	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
 
@@ -599,11 +768,13 @@ pub async fn search_cstm_items(
 
 	let mut vec = Vec::with_capacity(cstm_items.len());
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
+	let mut pending_bound_modules: BTreeSet<i32> = BTreeSet::new();
+
 	for cstm_item in cstm_items {
 		let post = if cstm_item.post_id == -1 {
 			None
 		} else if let Some(post) = posts.get(&cstm_item.post_id) {
-			Some(post.clone())
+			Some(post.id)
 		} else if let Some(mut post) = Post::get_full(cstm_item.post_id, &state.db).await {
 			for i in 0..post.files.len() {
 				post.files[i] = format!(
@@ -617,7 +788,7 @@ pub async fn search_cstm_items(
 					.unwrap_or(String::new());
 			}
 			posts.insert(post.id, post.clone());
-			Some(post)
+			Some(post.id)
 		} else if cstm_item.post_id != -1 {
 			let cstm_items = state.meilisearch.index("cstm_items");
 			_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&cstm_items)
@@ -629,40 +800,86 @@ pub async fn search_cstm_items(
 			None
 		};
 
-		let bind_module = if let Some(bind_module) = cstm_item.customize_item.bind_module {
+		if let Some(bind_module) = cstm_item.customize_item.bind_module {
 			if bind_module != -1 {
-				let Json(modules) = crate::api::ids::search_modules(
-					axum_extra::extract::Query(crate::api::ids::SearchParams {
-						query: None,
-						filter: Some(format!("module_id={bind_module}")),
-						limit: Some(1),
-						offset: Some(0),
-					}),
-					State(state.clone()),
-				)
-				.await
-				.unwrap_or(Json(Vec::new()));
-				modules.first().map(|module| Module {
-					uid: module.uid.clone(),
-					post: post.clone(),
-					id: module.id,
-					module: module.module.clone(),
-				})
-			} else {
-				None
+				pending_bound_modules.insert(bind_module);
+			}
+		}
+
+		let customize_item = if cstm_item.customize_item.bind_module == Some(-1) {
+			module_db::CustomizeItem {
+				bind_module: None,
+				chara: cstm_item.customize_item.chara,
+				part: cstm_item.customize_item.part,
+				name: cstm_item.customize_item.name,
+				name_jp: cstm_item.customize_item.name_jp,
+				name_en: cstm_item.customize_item.name_en,
+				name_cn: cstm_item.customize_item.name_cn,
+				name_fr: cstm_item.customize_item.name_fr,
+				name_ge: cstm_item.customize_item.name_ge,
+				name_it: cstm_item.customize_item.name_it,
+				name_kr: cstm_item.customize_item.name_kr,
+				name_sp: cstm_item.customize_item.name_sp,
+				name_tw: cstm_item.customize_item.name_tw,
 			}
 		} else {
-			None
+			cstm_item.customize_item
 		};
 
 		vec.push(CstmItem {
 			uid: BASE64_STANDARD.encode(cstm_item.uid.to_ne_bytes()),
 			post,
 			id: cstm_item.customize_item_id,
-			cstm_item: cstm_item.customize_item,
-			bind_module,
+			cstm_item: customize_item,
 		})
 	}
 
-	Ok(Json(vec))
+	let filter = pending_bound_modules
+		.iter()
+		.map(|id| format!("module_id={id}"))
+		.collect::<Vec<_>>()
+		.join(" OR ");
+
+	let Json(modules) = crate::api::ids::search_modules(
+		axum_extra::extract::Query(crate::api::ids::SearchParams {
+			query: None,
+			filter: Some(filter),
+			limit: query.limit,
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.unwrap_or(Json(ModuleSearch {
+		modules: Vec::new(),
+		posts: BTreeMap::new(),
+	}));
+
+	let mut bound_modules = BTreeMap::new();
+
+	for module in modules.modules {
+		if let Some(post_id) = &module.post {
+			if let Some(post) = modules.posts.get(post_id) {
+				if !posts.contains_key(post_id) {
+					posts.insert(*post_id, post.clone());
+				}
+			}
+		}
+
+		bound_modules.insert(
+			module.id,
+			Module {
+				uid: module.uid,
+				post: module.post,
+				id: module.id,
+				module: module.module,
+			},
+		);
+	}
+
+	Ok(Json(CstmItemSearch {
+		cstm_items: vec,
+		bound_modules,
+		posts,
+	}))
 }

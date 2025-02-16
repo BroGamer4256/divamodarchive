@@ -1,6 +1,6 @@
-{% macro draw_cstm_items_list(cstm_items) %}
+{% macro draw_cstm_items_list(cstm_item_search, show_source) %}
 <div id="offcanvasList">
-	{% for cstm_item in cstm_items.iter() %}
+	{% for cstm_item in cstm_item_search.cstm_items.iter() %}
 	<div class="offcanvas offcanvas-start" id="cstmItemOffcanvas{{ cstm_item.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
 		<div class="offcanvas-header">
 			<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -19,7 +19,7 @@
 					<td>{% if let Some(name_en) = cstm_item.cstm_item.name_en %}{{ name_en }}{% else if let Some(name) = cstm_item.cstm_item.name %}{{ name }}{% endif %}</td>
 					<td>{{ cstm_item.cstm_item.chara.to_string() }}</td>
 					<td>{{ cstm_item.id }}</td>
-					<td>{% if let Some(post) = cstm_item.post %}<a href="/post/{{ post.id }}" class="nav-link">{{ post.name }}</a>{% else %}MM+{% endif %}</td>
+					<td>{% if let Some(post) = cstm_item.post %}<a href="/post/{{ post }}" class="nav-link">{{ cstm_item_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
 				</tr>
 			</tbody>
 			<thead>
@@ -54,7 +54,8 @@
 					<td>{% if let Some(name) = cstm_item.cstm_item.name_tw %}{{ name }}{% endif %}</td>
 				</tr>
 			</tbody>
-            {% if let Some(module) = cstm_item.bind_module %}
+            {% if let Some(module) = cstm_item.cstm_item.bind_module %}
+			{% let module = cstm_item_search.bound_modules[module] %}
             <thead>
                 <tr>
                     <th>Module Name (EN)</th>
@@ -68,7 +69,7 @@
                     <td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
                     <td>{% if let Some(name_jp) = module.module.name_jp %}{{ name_jp }}{% endif %}</td>
                     <td>{{ module.id }}</td>
-                    <td>{% if let Some(post) = module.post %}<a href="/post/{{ post.id }}" class="nav-link">{{ post.name }}</a>{% else %}MM+{% endif %}</td>
+                    <td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}" class="nav-link">{{ cstm_item_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
                 </tr>
             </tbody>
             {% endif %}
@@ -84,18 +85,22 @@
 			<th>Character</th>
             <th>Part</th>
 			<th>ID</th>
+			{% if show_source %}
 			<th>Source</th>
+			{% endif %}
 		</tr>
 	</thead>
 	<tbody id="cstm_items">
-		{% for (i, cstm_item) in cstm_items.iter().enumerate() %}
+		{% for (i, cstm_item) in cstm_item_search.cstm_items.iter().enumerate() %}
 		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#cstmItemOffcanvas{{ cstm_item.uid }}">
 			<td>{% if let Some(name_en) = cstm_item.cstm_item.name_en %}{{ name_en }}{% else if let Some(name) = cstm_item.cstm_item.name %}{{ name }}{% endif %}</td>
 			<td>{% if let Some(name_jp) = cstm_item.cstm_item.name_jp %}{{ name_jp }}{% endif %}</td>
 			<td>{{ cstm_item.cstm_item.chara.to_string() }}</td>
             <td>{{ cstm_item.cstm_item.part.to_string() }}</td>
 			<td>{{ cstm_item.id }}</td>
-			<td>{% if let Some(post) = cstm_item.post %}{{ post.name }}{% else %}MM+{% endif %}</td>
+			{% if show_source %}
+			<td>{% if let Some(post) = cstm_item.post %}{{ cstm_item_search.posts[post].name }}{% else %}MM+{% endif %}</td>
+			{% endif %}
 		</tr>
 		{% endfor %}
 	</tbody>

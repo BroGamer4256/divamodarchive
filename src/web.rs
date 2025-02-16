@@ -1,3 +1,4 @@
+use crate::api::ids::*;
 use crate::models::*;
 use crate::{AppState, Config};
 use askama::Template;
@@ -8,6 +9,7 @@ use axum::{
 	RequestPartsExt, Router,
 };
 use axum_extra::extract::CookieJar;
+use std::collections::*;
 
 pub fn route(state: AppState) -> Router {
 	Router::new()
@@ -290,9 +292,9 @@ struct PostTemplate {
 	is_author: bool,
 	post: Post,
 	config: Config,
-	pvs: Vec<Pv>,
-	modules: Vec<Module>,
-	cstm_items: Vec<CstmItem>,
+	pvs: PvSearch,
+	modules: ModuleSearch,
+	cstm_items: CstmItemSearch,
 }
 
 async fn post_detail(
@@ -328,7 +330,7 @@ async fn post_detail(
 		false
 	};
 
-	let Json(pvs) = crate::api::ids::search_pvs(
+	let Json(pvs) = search_pvs(
 		axum_extra::extract::Query(crate::api::ids::SearchParams {
 			query: None,
 			filter: Some(format!("post={}", post.id)),
@@ -338,7 +340,10 @@ async fn post_detail(
 		State(state.clone()),
 	)
 	.await
-	.unwrap_or(Json(Vec::new()));
+	.unwrap_or(Json(PvSearch {
+		pvs: Vec::new(),
+		posts: BTreeMap::new(),
+	}));
 
 	let Json(modules) = crate::api::ids::search_modules(
 		axum_extra::extract::Query(crate::api::ids::SearchParams {
@@ -350,7 +355,10 @@ async fn post_detail(
 		State(state.clone()),
 	)
 	.await
-	.unwrap_or(Json(Vec::new()));
+	.unwrap_or(Json(ModuleSearch {
+		modules: Vec::new(),
+		posts: BTreeMap::new(),
+	}));
 
 	let Json(cstm_items) = crate::api::ids::search_cstm_items(
 		axum_extra::extract::Query(crate::api::ids::SearchParams {
@@ -362,7 +370,11 @@ async fn post_detail(
 		State(state.clone()),
 	)
 	.await
-	.unwrap_or(Json(Vec::new()));
+	.unwrap_or(Json(CstmItemSearch {
+		cstm_items: Vec::new(),
+		bound_modules: BTreeMap::new(),
+		posts: BTreeMap::new(),
+	}));
 
 	Ok(PostTemplate {
 		user,
@@ -459,7 +471,7 @@ async fn report(
 #[template(path = "pvs.html")]
 struct PvsTemplate {
 	base: BaseTemplate,
-	pvs: Vec<Pv>,
+	pvs: PvSearch,
 }
 
 async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTemplate, StatusCode> {
@@ -473,7 +485,10 @@ async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTem
 		State(state),
 	)
 	.await
-	.unwrap_or(Json(Vec::new()));
+	.unwrap_or(Json(PvSearch {
+		pvs: Vec::new(),
+		posts: std::collections::BTreeMap::new(),
+	}));
 	return Ok(PvsTemplate { base, pvs });
 }
 
@@ -481,7 +496,7 @@ async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTem
 #[template(path = "modules.html")]
 struct ModulesTemplate {
 	base: BaseTemplate,
-	modules: Vec<Module>,
+	modules: ModuleSearch,
 }
 
 async fn modules(
@@ -498,7 +513,10 @@ async fn modules(
 		State(state),
 	)
 	.await
-	.unwrap_or(Json(Vec::new()));
+	.unwrap_or(Json(ModuleSearch {
+		modules: Vec::new(),
+		posts: BTreeMap::new(),
+	}));
 	return Ok(ModulesTemplate { base, modules });
 }
 
@@ -506,7 +524,7 @@ async fn modules(
 #[template(path = "cstm_items.html")]
 struct CstmItemsTemplate {
 	base: BaseTemplate,
-	cstm_items: Vec<CstmItem>,
+	cstm_items: CstmItemSearch,
 }
 
 async fn cstm_items(
@@ -523,6 +541,10 @@ async fn cstm_items(
 		State(state),
 	)
 	.await
-	.unwrap_or(Json(Vec::new()));
+	.unwrap_or(Json(CstmItemSearch {
+		cstm_items: Vec::new(),
+		bound_modules: BTreeMap::new(),
+		posts: BTreeMap::new(),
+	}));
 	return Ok(CstmItemsTemplate { base, cstm_items });
 }

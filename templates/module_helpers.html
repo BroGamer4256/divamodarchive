@@ -1,6 +1,6 @@
-{% macro draw_module_list(modules) %}
+{% macro draw_module_list(module_search, show_source) %}
 <div id="offcanvasList">
-	{% for module in modules.iter() %}
+	{% for module in module_search.modules.iter() %}
 	<div class="offcanvas offcanvas-start" id="moduleOffcanvas{{ module.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
 		<div class="offcanvas-header">
 			<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -19,7 +19,7 @@
 					<td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
 					<td>{{ module.module.chara.to_string() }}</td>
 					<td>{{ module.id }}</td>
-					<td>{% if let Some(post) = module.post %}<a href="/post/{{ post.id }}" class="nav-link">{{ post.name }}</a>{% else %}MM+{% endif %}</td>
+					<td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}" class="nav-link">{{ module_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
 				</tr>
 			</tbody>
 			<thead>
@@ -111,17 +111,21 @@
 			<th>Name (JP)</th>
 			<th>Character</th>
 			<th>ID</th>
+			{% if show_source %}
 			<th>Source</th>
+			{% endif %}
 		</tr>
 	</thead>
 	<tbody id="modules">
-		{% for (i, module) in modules.iter().enumerate() %}
+		{% for (i, module) in module_search.modules.iter().enumerate() %}
 		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#moduleOffcanvas{{ module.uid }}">
 			<td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
 			<td>{% if let Some(name_jp) = module.module.name_jp %}{{ name_jp }}{% endif %}</td>
 			<td>{{ module.module.chara.to_string() }}</td>
 			<td>{{ module.id }}</td>
-			<td>{% if let Some(post) = module.post %}{{ post.name }}{% else %}MM+{% endif %}</td>
+			{% if show_source %}
+			<td>{% if let Some(post) = module.post %}{{ module_search.posts[post].name }}{% else %}MM+{% endif %}</td>
+			{% endif %}
 		</tr>
 		{% endfor %}
 	</tbody>

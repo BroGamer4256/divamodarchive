@@ -1,6 +1,6 @@
-{% macro draw_pv_list(pvs) %}
+{% macro draw_pv_list(pv_search, show_source) %}
 <div id="offcanvasList">
-	{% for pv in pvs.iter() %}
+	{% for pv in pv_search.pvs.iter() %}
 
 	{% let cols -%}
 	{% if pv.song_info_count() == 6 -%}
@@ -8,6 +8,7 @@
 	{% else -%}
 	{% let cols = 5 -%}
 	{% endif -%}
+
 	<div class="offcanvas offcanvas-start" id="pvOffcanvas{{ pv.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
 		<div class="offcanvas-header">
 			<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -27,7 +28,7 @@
 					<td>{{ pv.name_en }}</td>
 					<td>{{ pv.name }}</td>
 					<td>{{ pv.id }}</td>
-					<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post.id }}" class="nav-link">{{ post.name }}</a>{% else %}MM+{% endif %}</td>
+					<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}" class="nav-link">{{ pv_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
 					{% for _ in 4..cols %}
 						<td />
 					{% endfor %}
@@ -159,16 +160,20 @@
 			<th>Name (EN)</th>
 			<th>Name (JP)</th>
 			<th>ID</th>
+			{% if show_source %}
 			<th>Source</th>
+			{% endif %}
 		</tr>
 	</thead>
 	<tbody id="pvs">
-		{% for (i, pv) in pvs.iter().enumerate() %}
+		{% for (i, pv) in pv_search.pvs.iter().enumerate() %}
 		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#pvOffcanvas{{ pv.uid }}">
 			<td>{{ pv.name_en }}</td>
 			<td>{{ pv.name }}</td>
 			<td>{{ pv.id }}</td>
-			<td>{% if let Some(post) = pv.post %}{{ post.name }}{% else %}MM+{% endif %}</td>
+			{% if show_source %}
+			<td>{% if let Some(post) = pv.post %}{{ pv_search.posts[post].name }}{% else %}MM+{% endif %}</td>
+			{% endif %}
 		</tr>
 		{% endfor %}
 	</tbody>

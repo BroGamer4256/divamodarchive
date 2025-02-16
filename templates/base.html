@@ -76,7 +76,7 @@
 				method: 'GET',
 			}
 
-			return await fetch("https://divamodarchive.com/api/v1/posts?" + params.toString(), options).then(req => req.json());
+			return await fetch("/api/v1/posts?" + params.toString(), options).then(res => res.json());
 		}
 	</script>
 

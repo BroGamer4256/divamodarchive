@@ -383,24 +383,24 @@
 	{% endif %}
 	{% endif %}
 
-	{% if pvs.len() > 0 %}
+	{% if pvs.pvs.len() > 0 %}
 	<div class="card card-body">
 		<h4>This mod adds the following songs: </h4>
-		{% call pv_helpers::draw_pv_list(pvs) %}
+		{% call pv_helpers::draw_pv_list(pvs, false) %}
 	</div>
 	{% endif %}
 
-	{% if modules.len() > 0 %}
+	{% if modules.modules.len() > 0 %}
 	<div class="card card-body">
 		<h4>This mod adds the following modules: </h4>
-		{% call module_helpers::draw_module_list(modules) %}
+		{% call module_helpers::draw_module_list(modules, false) %}
 	</div>
 	{% endif %}
 
-	{% if cstm_items.len() > 0 %}
+	{% if cstm_items.cstm_items.len() > 0 %}
 	<div class="card card-body">
 		<h4>This mod adds the following customize items: </h4>
-		{% call cstm_item_helpers::draw_cstm_items_list(cstm_items) %}
+		{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false) %}
 	</div>
 	{% endif %}
 

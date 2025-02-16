@@ -33,7 +33,7 @@
 		}
 	}
 
-	function getModuleHtml(module) {
+	function getModuleHtml(module, posts) {
 		var tr = document.createElement('tr');
 		tr.classList = [document.getElementById("modules").children.length % 2 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
 		var name_en = "";
@@ -42,10 +42,14 @@
 		} else if (module.module.name != null) {
 			name_en = module.module.name;
 		}
+
 		var source_name = "MM+";
+		var source_link = source_name;
 		if (module.post != null) {
-			source_name = module.post.name;
+			source_name = posts[module.post].name;
+			source_link = `<a href="/post/${module.post}" class="nav-link">${source_name}</a>`;
 		}
+
 		tr.innerHTML = `
 			<td>${name_en}</td>
 			<td>${someOrNA(module.module.name_jp)}</td>
@@ -81,7 +85,7 @@
 			<td>${name_en}</td>
 			<td>${getHumanCharaName(module.module.chara)}</td>
 			<td>${module.id}</td>
-			<td>${source_name}</td>
+			<td>${source_link}</td>
 		</tr>
 	</tbody>
 	<thead>
@@ -186,18 +190,18 @@
 			method: 'GET',
 		}
 
-		return await fetch("https://divamodarchive.com/api/v1/ids/modules?" + params.toString(), options).then(req => req.json());
+		return await fetch("/api/v1/ids/modules?" + params.toString(), options).then(res => res.json());
 	}
 
 	async function loadMore() {
 		document.getElementById("loadMore").hidden = true;
 
 		var modules = await search(document.getElementById("searchQuery").value, document.getElementById("modules").children.length);
-		for (var module of modules) {
-			getModuleHtml(module);
+		for (var module of modules.modules) {
+			getModuleHtml(module, modules.posts);
 		}
 
-		if (modules.length == 20) {
+		if (modules.modules.length == 20) {
 			document.getElementById("loadMore").hidden = false;
 		}
 	}
@@ -212,7 +216,7 @@
 	<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 </div>
 <br>
-{% call module_helpers::draw_module_list(modules) %}
+{% call module_helpers::draw_module_list(modules, true) %}
 <br>
-<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if modules.len() < 20 %}hidden{% endif %}>Load more</button>
+<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if modules.modules.len() < 20 %}hidden{% endif %}>Load more</button>
 {% endblock content %}

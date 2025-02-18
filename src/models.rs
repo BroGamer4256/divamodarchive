@@ -8,7 +8,7 @@ use jsonwebtoken::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Eq, Ord)]
 pub struct User {
 	pub id: i64,
 	pub name: String,
@@ -20,8 +20,20 @@ pub struct User {
 	pub theme: Theme,
 }
 
+impl PartialEq for User {
+	fn eq(&self, other: &Self) -> bool {
+		self.id == other.id
+	}
+}
+
+impl PartialOrd for User {
+	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+		self.id.partial_cmp(&other.id)
+	}
+}
+
 #[repr(i32)]
-#[derive(PartialEq, Serialize, Deserialize, Clone, Copy, Default)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Clone, Copy, Default)]
 pub enum Theme {
 	#[default]
 	Light = 0,

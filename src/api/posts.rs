@@ -277,6 +277,24 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 			.execute(&state.db)
 			.await;
 
+		let pvs = state.meilisearch.index("pvs");
+		_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&pvs)
+			.with_filter(&format!("post={}", post_id))
+			.execute::<crate::api::ids::MeilisearchPv>()
+			.await;
+
+		let modules = state.meilisearch.index("modules");
+		_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&modules)
+			.with_filter(&format!("post_id={}", post_id))
+			.execute::<crate::api::ids::MeilisearchModule>()
+			.await;
+
+		let cstm_items = state.meilisearch.index("cstm_items");
+		_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&cstm_items)
+			.with_filter(&format!("post_id={}", post_id))
+			.execute::<crate::api::ids::MeilisearchCstmItem>()
+			.await;
+
 		post_id
 	} else {
 		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, files, time, type, local_files) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ID", params.name, params.text, &images, &downloads, time, params.post_type, &filepaths)

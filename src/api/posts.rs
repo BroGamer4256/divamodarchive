@@ -6,7 +6,7 @@ use axum::{
 	response::*,
 };
 use serde::{Deserialize, Serialize};
-use std::io::Write;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Serialize, Deserialize)]
 struct CloudflareDirectUploadResult {
@@ -217,15 +217,16 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 	let mut filepaths = Vec::new();
 	for filename in &filenames {
 		let filepath = format!("{}/{}", user.id, filename);
-		_ = std::fs::create_dir(format!("/pixeldrain/{}", user.id));
-		let Ok(mut file) = std::fs::File::create(&format!("/pixeldrain/{}", &filepath)) else {
+		_ = tokio::fs::create_dir(format!("/pixeldrain/{}", user.id)).await;
+		let Ok(mut file) = tokio::fs::File::create(&format!("/pixeldrain/{}", &filepath)).await
+		else {
 			return;
 		};
 		_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
 
 		while let Some(Ok(message)) = socket.recv().await {
 			if let ws::Message::Binary(chunk) = message {
-				_ = file.write_all(&chunk);
+				_ = file.write_all(&chunk).await;
 				_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
 			} else if let ws::Message::Close(_) = message {
 				_ = socket.close().await;

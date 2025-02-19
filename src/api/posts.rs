@@ -200,20 +200,6 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 		}
 	}
 
-	if let Some(id) = params.id {
-		let Some(post) = Post::get_full(id, &state.db).await else {
-			return;
-		};
-		for file in post.local_files {
-			_ = tokio::process::Command::new("rclone")
-				.arg("delete")
-				.arg(format!("pixeldrainfs:/divamodarchive/{}", file))
-				.arg("--config=/etc/rclone-mnt.conf")
-				.output()
-				.await;
-		}
-	}
-
 	let mut filepaths = Vec::new();
 	for filename in &filenames {
 		let filepath = format!("{}/{}", user.id, filename);
@@ -264,6 +250,10 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 	}
 
 	let post_id = if let Some(post_id) = params.id {
+		let Some(post) = Post::get_full(post_id, &state.db).await else {
+			return;
+		};
+
 		_ = sqlx::query!(
 				"UPDATE posts SET name = $2, text = $3, type = $4, files = $5, images = $6, time = $7, local_files = $8 WHERE id = $1",
 				post_id,
@@ -295,6 +285,17 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 			.with_filter(&format!("post_id={}", post_id))
 			.execute::<crate::api::ids::MeilisearchCstmItem>()
 			.await;
+
+		for file in post.local_files {
+			if !filepaths.contains(&file) {
+				_ = tokio::process::Command::new("rclone")
+					.arg("delete")
+					.arg(format!("pixeldrainfs:/divamodarchive/{}", file))
+					.arg("--config=/etc/rclone-mnt.conf")
+					.output()
+					.await;
+			}
+		}
 
 		post_id
 	} else {

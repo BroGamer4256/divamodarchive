@@ -177,7 +177,7 @@
 		var offset = 0;
 		var bytes = [];
 		for (var file of files) {
-			var data = await file.bytes();
+			var data = await file.arrayBuffer();
 			bytes.push(data);
 		}
 
@@ -194,16 +194,16 @@
 
 		socket.addEventListener("message", async (event) => {
 			if (event.data == "Ready") {
-				var data = bytes[index].slice(offset, offset + (1024 * 1024))
-				if (data.length == 0) {
+				var data = bytes[index].slice(offset, offset + (1024 * 1024));
+				if (data.byteLength == 0) {
 					socket.send("Finished");
 					index += 1;
 					if (index != files.length) offset = 0;
 				} else {
 					socket.send(data);
 
-					completed += data.length;
-					offset += data.length;
+					completed += data.byteLength;
+					offset += data.byteLength;
 					percentComplete = Math.round((completed / totalSize) * 100);
 					progressBar.style.width = percentComplete + '%';
 				}

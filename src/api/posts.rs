@@ -657,21 +657,40 @@ pub async fn add_dependency(
 	State(state): State<AppState>,
 	Json(dependency): Json<i32>,
 ) -> Result<Json<Post>, StatusCode> {
-	let Some(post) = Post::get_full(id, &state.db).await else {
+	let Some(post) = Post::get_short(id, &state.db).await else {
 		return Err(StatusCode::NOT_FOUND);
 	};
 
-	let Some(dependency) = Post::get_full(dependency, &state.db).await else {
+	let Some(dependency) = Post::get_short(dependency, &state.db).await else {
 		return Err(StatusCode::NOT_FOUND);
 	};
 
 	if !post.authors.iter().any(|u| u.id == user.id) {
 		return Err(StatusCode::UNAUTHORIZED);
 	}
-	if let Some(dependencies) = post.dependencies {
-		if dependencies.iter().any(|p| p.id == dependency.id) {
-			return Err(StatusCode::BAD_REQUEST);
-		}
+
+	if sqlx::query!(
+		"SELECT FROM post_dependencies WHERE post_id = $1 AND dependency_id = $2",
+		post.id,
+		dependency.id
+	)
+	.fetch_optional(&state.db)
+	.await
+	.map_or(true, |opt| opt.is_some())
+	{
+		return Err(StatusCode::BAD_REQUEST);
+	}
+
+	if sqlx::query!(
+		"SELECT FROM post_dependencies WHERE post_id = $1 AND dependency_id = $2",
+		dependency.id,
+		post.id
+	)
+	.fetch_optional(&state.db)
+	.await
+	.map_or(true, |opt| opt.is_some())
+	{
+		return Err(StatusCode::BAD_REQUEST);
 	}
 
 	_ = sqlx::query!(

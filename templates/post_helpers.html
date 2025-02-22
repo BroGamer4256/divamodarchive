@@ -4,7 +4,7 @@
 	<div class="col">
 		<div class="card shadow-sm">
 			<a style="text-decoration: none;" href="/post/{{ post.id }}">
-				<div class="card-img-top ratio ratio-16x9 bg-clear border-none" loading="lazy">
+				<div class="card-img-top ratio ratio-16x9 bg-clear border-none">
 					{% if let Some(image) = post.images.first() %}
 					<img src="{{ image }}" class="rounded-image" width="100%" loading="lazy">
 					{% endif %}

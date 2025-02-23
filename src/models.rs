@@ -469,7 +469,29 @@ impl User {
 
 #[derive(askama::Template)]
 #[template(path = "unauthorized.html")]
-pub struct UnauthorizedTemplate {}
+pub struct UnauthorizedTemplate {
+	pub base: crate::web::BaseTemplate,
+}
+
+#[axum::async_trait]
+impl<S> FromRequestParts<S> for UnauthorizedTemplate
+where
+	S: Send + Sync,
+	AppState: FromRef<S>,
+{
+	type Rejection = std::convert::Infallible;
+
+	async fn from_request_parts(
+		parts: &mut axum::http::request::Parts,
+		state: &S,
+	) -> Result<Self, Self::Rejection> {
+		Ok(Self {
+			base: crate::web::BaseTemplate::from_request_parts(parts, state)
+				.await
+				.unwrap(),
+		})
+	}
+}
 
 #[axum::async_trait]
 impl<S> FromRequestParts<S> for User
@@ -480,27 +502,33 @@ where
 	type Rejection = UnauthorizedTemplate;
 
 	async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-		let cookies = parts
-			.extract::<CookieJar>()
-			.await
-			.map_err(|_| UnauthorizedTemplate {})?;
+		let cookies = parts.extract::<CookieJar>().await.unwrap();
 		let cookie = cookies.get(&AUTHORIZATION.to_string());
 		let token = match cookie {
 			Some(cookie) => String::from(cookie.value()),
 			None => {
-				let auth = parts
-					.headers
-					.get(AUTHORIZATION)
-					.ok_or(UnauthorizedTemplate {})?;
-				auth.to_str()
-					.map_err(|_| UnauthorizedTemplate {})?
-					.replace("Bearer ", "")
+				let Some(auth) = parts.headers.get(AUTHORIZATION) else {
+					return Err(UnauthorizedTemplate::from_request_parts(parts, state)
+						.await
+						.unwrap());
+				};
+				let Ok(auth) = auth.to_str() else {
+					return Err(UnauthorizedTemplate::from_request_parts(parts, state)
+						.await
+						.unwrap());
+				};
+				auth.replace("Bearer ", "")
 			}
 		};
-		let state: AppState = AppState::from_ref(state);
-		Ok(Self::parse(&token, &state)
-			.await
-			.map_err(|_| UnauthorizedTemplate {})?)
+		let app_state: AppState = AppState::from_ref(state);
+
+		let Ok(user) = Self::parse(&token, &app_state).await else {
+			return Err(UnauthorizedTemplate::from_request_parts(parts, state)
+				.await
+				.unwrap());
+		};
+
+		Ok(user)
 	}
 }
 

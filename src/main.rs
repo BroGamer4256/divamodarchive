@@ -187,7 +187,7 @@ async fn main() {
 	let router = Router::new()
 		.route("/robots.txt", get(robots))
 		.route("/favicon.ico", get(favicon))
-		.route("/large_icon.png", get(large_icon))
+		.route("/dma_black.png", get(dma_black))
 		.route("/sitemap.xml", get(sitemap::sitemap))
 		.route("/login", get(login))
 		.layer(axum::extract::DefaultBodyLimit::disable())
@@ -221,7 +221,7 @@ pub async fn favicon() -> (HeaderMap, &'static [u8]) {
 	(headers, include_bytes!("../static/DMA_BLACK_STARLESS.ico"))
 }
 
-pub async fn large_icon() -> (HeaderMap, &'static [u8]) {
+pub async fn dma_black() -> (HeaderMap, &'static [u8]) {
 	let mut headers = HeaderMap::new();
 	headers.insert("content-type", "image/png".parse().unwrap());
 	(headers, include_bytes!("../static/DMA_BLACK.png"))

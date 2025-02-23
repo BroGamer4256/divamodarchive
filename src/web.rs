@@ -5,6 +5,7 @@ use askama::Template;
 use axum::{
 	extract::*,
 	http::{header::*, StatusCode},
+	response::*,
 	routing::*,
 	RequestPartsExt, Router,
 };
@@ -16,7 +17,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/", get(search))
 		.route("/about", get(about))
 		.route("/post/:id", get(post_detail))
-		.route("/posts/:id", get(post_detail))
+		.route("/posts/:id", get(post_redirect))
 		.route("/post/:id/edit", get(upload))
 		.route("/post/:id/report", get(report))
 		.route("/liked/:id", get(liked))
@@ -32,10 +33,10 @@ pub fn route(state: AppState) -> Router {
 
 #[derive(Clone)]
 pub struct BaseTemplate {
-	user: Option<User>,
-	config: Config,
-	jwt: Option<String>,
-	report_count: Option<i64>,
+	pub user: Option<User>,
+	pub config: Config,
+	pub jwt: Option<String>,
+	pub report_count: Option<i64>,
 }
 
 #[axum::async_trait]
@@ -44,33 +45,32 @@ where
 	S: Send + Sync,
 	AppState: FromRef<S>,
 {
-	type Rejection = StatusCode;
+	type Rejection = std::convert::Infallible;
 
 	async fn from_request_parts(
 		parts: &mut axum::http::request::Parts,
 		state: &S,
 	) -> Result<Self, Self::Rejection> {
-		let cookies = parts
-			.extract::<CookieJar>()
-			.await
-			.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-		let cookie = cookies.get(&AUTHORIZATION.to_string());
-		let jwt = match cookie {
-			Some(cookie) => Some(String::from(cookie.value())),
-			None => {
-				if let Some(auth) = parts.headers.get(AUTHORIZATION) {
-					if let Ok(auth) = auth.to_str() {
-						Some(String::from(auth.replace("Bearer ", "")))
-					} else {
-						None
-					}
+		let cookies = parts.extract::<CookieJar>().await.unwrap();
+		let jwt = if let Some(cookie) = cookies.get(&AUTHORIZATION.to_string()) {
+			Some(String::from(cookie.value()))
+		} else {
+			if let Some(auth) = parts.headers.get(AUTHORIZATION) {
+				if let Ok(auth) = auth.to_str() {
+					Some(String::from(auth.replace("Bearer ", "")))
 				} else {
 					None
 				}
+			} else {
+				None
 			}
 		};
 
-		let user = User::from_request_parts(parts, state).await.ok();
+		let user = if jwt.is_some() {
+			User::from_request_parts(parts, state).await.ok()
+		} else {
+			None
+		};
 		let state: AppState = AppState::from_ref(state);
 
 		let report_count = if let Some(user) = &user {
@@ -97,7 +97,7 @@ where
 }
 
 impl BaseTemplate {
-	fn theme(&self) -> Theme {
+	pub fn theme(&self) -> Theme {
 		let Some(user) = &self.user else {
 			return Theme::default();
 		};
@@ -249,14 +249,12 @@ struct UploadTemplate {
 }
 
 async fn upload(
-	update_id: Option<Path<i32>>,
-	State(state): State<AppState>,
 	base: BaseTemplate,
+	update_id: Option<Path<i32>>,
+	user: User,
+	State(state): State<AppState>,
 ) -> Result<UploadTemplate, StatusCode> {
 	let Some(jwt) = base.jwt.clone() else {
-		return Err(StatusCode::UNAUTHORIZED);
-	};
-	let Some(user) = base.user.clone() else {
 		return Err(StatusCode::UNAUTHORIZED);
 	};
 
@@ -295,6 +293,10 @@ struct PostTemplate {
 	pvs: PvSearch,
 	modules: ModuleSearch,
 	cstm_items: CstmItemSearch,
+}
+
+async fn post_redirect(Path(id): Path<i32>) -> Redirect {
+	Redirect::permanent(&format!("https://divamodarchive.com/post/{id}"))
 }
 
 async fn post_detail(

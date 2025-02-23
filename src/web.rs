@@ -127,13 +127,13 @@ async fn liked(
 	Path(id): Path<i64>,
 	base: BaseTemplate,
 	State(state): State<AppState>,
-) -> Result<LikedTemplate, StatusCode> {
+) -> Result<LikedTemplate, Result<UnauthorizedTemplate, StatusCode>> {
 	let Some(owner) = User::get(id, &state.db).await else {
-		return Err(StatusCode::BAD_REQUEST);
+		return Err(Err(StatusCode::BAD_REQUEST));
 	};
 
 	if !owner.public_likes && !base.user.as_ref().map_or(false, |user| user.id == owner.id) {
-		return Err(StatusCode::UNAUTHORIZED);
+		return Err(Ok(UnauthorizedTemplate { base }));
 	}
 
 	let liked_posts = sqlx::query!(
@@ -149,7 +149,7 @@ async fn liked(
 	)
 	.fetch_all(&state.db)
 	.await
-	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+	.map_err(|_| Err(StatusCode::INTERNAL_SERVER_ERROR))?;
 
 	let posts = liked_posts
 		.into_iter()
@@ -333,7 +333,7 @@ async fn post_detail(
 	};
 
 	let Json(pvs) = search_pvs(
-		axum_extra::extract::Query(crate::api::ids::SearchParams {
+		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: Some(format!("post={}", post.id)),
 			limit: Some(2000),
@@ -342,13 +342,10 @@ async fn post_detail(
 		State(state.clone()),
 	)
 	.await
-	.unwrap_or(Json(PvSearch {
-		pvs: Vec::new(),
-		posts: BTreeMap::new(),
-	}));
+	.unwrap_or_default();
 
 	let Json(modules) = crate::api::ids::search_modules(
-		axum_extra::extract::Query(crate::api::ids::SearchParams {
+		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: Some(format!("post_id={}", post.id)),
 			limit: Some(2000),
@@ -357,13 +354,10 @@ async fn post_detail(
 		State(state.clone()),
 	)
 	.await
-	.unwrap_or(Json(ModuleSearch {
-		modules: Vec::new(),
-		posts: BTreeMap::new(),
-	}));
+	.unwrap_or_default();
 
 	let Json(cstm_items) = crate::api::ids::search_cstm_items(
-		axum_extra::extract::Query(crate::api::ids::SearchParams {
+		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: Some(format!("post_id={}", post.id)),
 			limit: Some(2000),
@@ -372,11 +366,7 @@ async fn post_detail(
 		State(state.clone()),
 	)
 	.await
-	.unwrap_or(Json(CstmItemSearch {
-		cstm_items: Vec::new(),
-		bound_modules: BTreeMap::new(),
-		posts: BTreeMap::new(),
-	}));
+	.unwrap_or_default();
 
 	Ok(PostTemplate {
 		user,
@@ -478,7 +468,7 @@ struct PvsTemplate {
 
 async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTemplate, StatusCode> {
 	let Json(pvs) = crate::api::ids::search_pvs(
-		axum_extra::extract::Query(crate::api::ids::SearchParams {
+		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: None,
 			limit: Some(20),
@@ -487,10 +477,8 @@ async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTem
 		State(state),
 	)
 	.await
-	.unwrap_or(Json(PvSearch {
-		pvs: Vec::new(),
-		posts: std::collections::BTreeMap::new(),
-	}));
+	.unwrap_or_default();
+
 	return Ok(PvsTemplate { base, pvs });
 }
 
@@ -506,7 +494,7 @@ async fn modules(
 	State(state): State<AppState>,
 ) -> Result<ModulesTemplate, StatusCode> {
 	let Json(modules) = crate::api::ids::search_modules(
-		axum_extra::extract::Query(crate::api::ids::SearchParams {
+		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: None,
 			limit: Some(20),
@@ -515,10 +503,8 @@ async fn modules(
 		State(state),
 	)
 	.await
-	.unwrap_or(Json(ModuleSearch {
-		modules: Vec::new(),
-		posts: BTreeMap::new(),
-	}));
+	.unwrap_or_default();
+
 	return Ok(ModulesTemplate { base, modules });
 }
 
@@ -534,7 +520,7 @@ async fn cstm_items(
 	State(state): State<AppState>,
 ) -> Result<CstmItemsTemplate, StatusCode> {
 	let Json(cstm_items) = crate::api::ids::search_cstm_items(
-		axum_extra::extract::Query(crate::api::ids::SearchParams {
+		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: None,
 			limit: Some(20),
@@ -543,10 +529,7 @@ async fn cstm_items(
 		State(state),
 	)
 	.await
-	.unwrap_or(Json(CstmItemSearch {
-		cstm_items: Vec::new(),
-		bound_modules: BTreeMap::new(),
-		posts: BTreeMap::new(),
-	}));
+	.unwrap_or_default();
+
 	return Ok(CstmItemsTemplate { base, cstm_items });
 }

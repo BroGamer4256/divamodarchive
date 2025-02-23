@@ -406,7 +406,7 @@ async fn parse_pv_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
 	Some(())
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Pv {
 	pub uid: String,
 	pub post: Option<i32>,
@@ -553,7 +553,7 @@ pub struct CstmItem {
 	pub cstm_item: module_db::CustomizeItem,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct PvSearch {
 	pub pvs: Vec<Pv>,
 	pub posts: BTreeMap<i32, Post>,
@@ -637,7 +637,7 @@ pub async fn search_pvs(
 	Ok(Json(PvSearch { pvs: vec, posts }))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct ModuleSearch {
 	pub modules: Vec<Module>,
 	pub posts: BTreeMap<i32, Post>,
@@ -724,7 +724,7 @@ pub async fn search_modules(
 	}))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct CstmItemSearch {
 	pub cstm_items: Vec<CstmItem>,
 	pub bound_modules: BTreeMap<i32, Module>,
@@ -859,10 +859,7 @@ pub async fn search_cstm_items(
 			State(state.clone()),
 		)
 		.await
-		.unwrap_or(Json(ModuleSearch {
-			modules: Vec::new(),
-			posts: BTreeMap::new(),
-		}));
+		.unwrap_or_default();
 
 		for module in modules.modules {
 			if let Some(post_id) = &module.post {

@@ -175,10 +175,12 @@
 		post_data.images_extra = images_extra_urls;
 
 		var offset = 0;
-		var bytes = [];
+		var readers = [];
+		var lengths = [];
 		for (var file of files) {
-			var data = await file.arrayBuffer();
-			bytes.push(data);
+			lengths.push(file.size);
+			var reader = file.stream().getReader();
+			readers.push(reader);
 		}
 
 		var socket = new WebSocket('wss://divamodarchive.com/api/v1/posts/upload');
@@ -194,16 +196,19 @@
 
 		socket.addEventListener("message", async (event) => {
 			if (event.data == "Ready") {
-				var data = bytes[index].slice(offset, offset + (1024 * 1024));
-				if (data.byteLength == 0) {
+				var {done, value} = await readers[index].read();
+				if (value.length == 0 || done) {
+					if (offset != lengths[index]) {
+						crash_and_burn("Failed to read full file", `Only read ${completed} of ${lengths[index]}`);
+					}
 					socket.send("Finished");
 					index += 1;
-					if (index != files.length) offset = 0;
+					offset = 0;
 				} else {
-					socket.send(data);
+					socket.send(value);
 
-					completed += data.byteLength;
-					offset += data.byteLength;
+					completed += value.length;
+					offset += value.length;
 					percentComplete = Math.round((completed / totalSize) * 100);
 					progressBar.style.width = percentComplete + '%';
 				}
@@ -214,7 +219,7 @@
 		});
 
 		socket.addEventListener("close", async (event) => console.log(event));
-		socket.addEventListener("error", async (event) => alert("Websocket error: " + event));
+		socket.addEventListener("error", async (event) => crash_and_burn("Websocket error", event));
 	}
 
 	function descriptionUpdate() {

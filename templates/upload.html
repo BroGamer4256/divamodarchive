@@ -108,6 +108,9 @@
 		var result = await fetch(image_upload_url, options)
 			.then(response => response.json())
 			.catch(error => crash_and_burn(error, "Failed to upload image"));
+		if (result.result == null) {
+			crash_and_burn(results.errors[0].message, "Failed to upload image");
+		}
 		var image_url = result.result.variants[0].replace("/thumbnail", "/public");
 		if (image_url == null) {
 			crash_and_burn("Error: ", "Image upload failed\nMaximum size for images is 10MiB");
@@ -197,7 +200,7 @@
 		socket.addEventListener("message", async (event) => {
 			if (event.data == "Ready") {
 				var {done, value} = await readers[index].read();
-				if (value.length == 0 || done) {
+				if (done || value == undefined || value.length == 0) {
 					if (offset != lengths[index]) {
 						crash_and_burn("Failed to read full file", `Only read ${completed} of ${lengths[index]}`);
 					}

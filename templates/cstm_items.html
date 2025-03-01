@@ -132,7 +132,7 @@
 	</tbody>
 		`;
 
-		if (cstm_item.cstm_item.bind_module != null) {
+		if (cstm_item.cstm_item.bind_module != null && modules[cstm_item.cstm_item.bind_module] != null) {
 			var bind_module = modules[cstm_item.cstm_item.bind_module];
 
 			var name_en = "";

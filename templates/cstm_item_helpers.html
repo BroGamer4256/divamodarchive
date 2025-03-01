@@ -55,7 +55,7 @@
 				</tr>
 			</tbody>
             {% if let Some(module) = cstm_item.cstm_item.bind_module %}
-			{% let module = cstm_item_search.bound_modules[module] %}
+			{% if let Some(module) = cstm_item_search.bound_modules.get(module) %}
             <thead>
                 <tr>
                     <th>Module Name (EN)</th>
@@ -72,6 +72,7 @@
                     <td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}" class="nav-link">{{ cstm_item_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
                 </tr>
             </tbody>
+			{% endif %}
             {% endif %}
 		</table>
 	</div>

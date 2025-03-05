@@ -11,17 +11,18 @@
 {% endblock head %}
 
 {% block content %}
-<div class="container card">
-	<div class="row border border-dark">
-		<div class="col-2 card-img-left">
+<div class="card card-body row col-6 offset-3">
+	<div class="row">
+		<div class="col-4 card-img-left">
 			<div class="ratio ratio-1x1">
-				<img src="{{ owner.avatar }}" crossorigin="anonymous">
+				<img style="border-radius: 100%" src="{{ owner.avatar }}" crossorigin="anonymous">
 			</div>
 		</div>
-		<div class="col-10 card-body">
+		<div class="col-8">
 			<h1 class="text">{{ owner.display_name }}</h1>
-			<h5 class="text">{{ total_likes }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></h5>
-			<h5 class="text">{{ total_downloads }}<span class="material-symbols-outlined" style="font-size: 0.8rem">download</span></h5>
+			<h5 class="text">
+				<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span>{{ total_likes|prettify_num }} <span class="material-symbols-outlined" style="font-size: 0.8rem">download</span>{{ total_downloads|prettify_num }}
+			</h5>
 			{% if owner.public_likes %}
 			<a class="text" href="/liked/{{ owner.id }}">{{ owner.display_name }}'s Liked Mods</a>
 			{% endif %}

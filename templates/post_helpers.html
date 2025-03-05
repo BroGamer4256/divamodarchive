@@ -9,14 +9,16 @@
 					<img src="{{ image }}" class="rounded-image" width="100%" loading="lazy">
 					{% endif %}
 				</div>
-				<div class="card-body">
-					<h5 class="text" {% if post.name.len() > 20 %}data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="{{ post.name }}"{% endif %}>{{ format!("{:.20}", post.name) }}{% if post.name.len() > 20 %}...{% endif %}</h5>
-					<h5 class="row">
-						<div class="col-md-7 text">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 1rem">favorite</span> {{ post.download_count }}<span class="material-symbols-outlined" style="font-size: 1rem">download</span></div>
-						<div class="col-md-5 text text-align-right-md">
-							{{ post.post_type }}
-						</div>
-					</h5>
+				<div class="card-body clearfix">
+					<p class="col-auto float-end ms-1 text text-align-right">
+						<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span>{{ post.like_count|prettify_num }} <span class="material-symbols-outlined" style="font-size: 0.8rem">download</span>{{ post.download_count|prettify_num }}<br>
+						{{ post.post_type }}
+					</p>
+					<h5 class="text"><b>{{ post.name }}</b></h5>
+					{% for author in post.authors %}
+					<img class="float-start pe-1 ratio ratio-1x1" style="border-radius: 100%; width: 1.75rem" src="{{ author.avatar }}">
+					<p class="text"> {{ author.display_name }}</p>
+					{% endfor %}
 				</div>
 			</a>
 		</div>

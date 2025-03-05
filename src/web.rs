@@ -31,6 +31,32 @@ pub fn route(state: AppState) -> Router {
 		.with_state(state)
 }
 
+mod filters {
+	pub fn prettify_num<T: std::fmt::Display>(s: T) -> askama::Result<String> {
+		let num: u64 = match s.to_string().parse() {
+			Ok(num) => num,
+			Err(e) => return Err(askama::Error::Custom(Box::new(e))),
+		};
+
+		let suffixes = ["", "K", "M", "B"];
+		let mut remainder = 0;
+		let mut value = num;
+		for suffix in suffixes {
+			if value < 1000 {
+				if remainder > 0 {
+					return Ok(format!("{value}.{remainder}{suffix}"));
+				} else {
+					return Ok(format!("{value}{suffix}"));
+				}
+			}
+			remainder = (value % 1000) / 100;
+			value /= 1000;
+		}
+
+		Ok(String::new())
+	}
+}
+
 #[derive(Clone)]
 pub struct BaseTemplate {
 	pub user: Option<User>,
@@ -138,10 +164,9 @@ async fn liked(
 
 	let liked_posts = sqlx::query!(
 		r#"
-		SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, like_count.like_count
+		SELECT p.id
 		FROM liked_posts lp
 		LEFT JOIN posts p ON lp.post_id = p.id
-		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
 		WHERE lp.user_id = $1
 		ORDER by p.time DESC
 		"#,
@@ -151,24 +176,12 @@ async fn liked(
 	.await
 	.map_err(|_| Err(StatusCode::INTERNAL_SERVER_ERROR))?;
 
-	let posts = liked_posts
-		.into_iter()
-		.map(|post| Post {
-			id: post.id,
-			name: post.name,
-			text: post.text,
-			images: post.images,
-			files: post.files,
-			time: post.time.assume_offset(time::UtcOffset::UTC),
-			post_type: post.post_type.into(),
-			download_count: post.download_count,
-			like_count: post.like_count.unwrap_or(0),
-			authors: vec![],
-			dependencies: None,
-			comments: None,
-			local_files: post.local_files,
-		})
-		.collect();
+	let mut posts = Vec::new();
+	for post in liked_posts {
+		if let Some(post) = Post::get_short(post.id, &state.db).await {
+			posts.push(post);
+		}
+	}
 
 	Ok(LikedTemplate { base, posts, owner })
 }
@@ -194,10 +207,9 @@ async fn user(
 
 	let user_posts = sqlx::query!(
 		r#"
-		SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, like_count.like_count
+		SELECT p.id
 		FROM post_authors pa
 		LEFT JOIN posts p ON pa.post_id = p.id
-		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
 		WHERE pa.user_id = $1
 		ORDER BY p.time DESC
 		"#,
@@ -207,24 +219,12 @@ async fn user(
 	.await
 	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-	let posts: Vec<Post> = user_posts
-		.into_iter()
-		.map(|post| Post {
-			id: post.id,
-			name: post.name,
-			text: post.text,
-			images: post.images,
-			files: post.files,
-			time: post.time.assume_offset(time::UtcOffset::UTC),
-			post_type: post.post_type.into(),
-			download_count: post.download_count,
-			like_count: post.like_count.unwrap_or(0),
-			authors: vec![],
-			dependencies: None,
-			comments: None,
-			local_files: post.local_files,
-		})
-		.collect();
+	let mut posts = Vec::new();
+	for post in user_posts {
+		if let Some(post) = Post::get_short(post.id, &state.db).await {
+			posts.push(post);
+		}
+	}
 
 	let (total_likes, total_downloads) = posts.iter().fold((0, 0), |acc, post| {
 		(acc.0 + post.like_count, acc.1 + post.download_count)

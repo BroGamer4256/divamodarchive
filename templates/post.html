@@ -105,9 +105,14 @@
 		}
 
 		var user = await res.json();
-		var h5 = document.createElement("h5");
-		h5.innerHTML = `<a href="/user/${user.id}" class="card-subtitle text">${user.name}</a>`;
-		document.getElementById("authors").append(h5);
+		var author = document.createElement("a");
+		author.href = `/user/${user.id}`;
+		author.classList = "card-subtitle clearfix";
+		author.innerHTML = `
+		<img class="float-start pe-2 pb-2 ratio ratio-1x1" style="border-radius: 100%; width: 3.5rem" src="${user.avatar}">
+		<h5 class="text" style="padding-top: 0.875rem;"> ${user.display_name}</h5>
+		`;
+		document.getElementById("authors").append(author);
 
 		document.getElementById("authorTxt").innerText = `Sucessfully added author ${user.name}`;
 	}
@@ -238,18 +243,9 @@
 <div class="row align-items-md-stretch gap-3">
 	<div class="col-md-7 card card-body">
 		<h2 class="text card-title" style="text-align: center">{{ post.name }} </h2>
-		<div class="row d-flex align-items-center">
-			<div class="col-md" id="authors">
-				{% for author in post.authors %}
-				<h5>
-					<a href=" /user/{{ author.id }}" class="card-subtitle text">{{ author.display_name }}</a>
-				</h5>
-				{% endfor %}
-			</div>
-			<div class="col-md">
-				<h5 class="card-subtitle text-align-right-md text">{{ post.download_count }}<span class="material-symbols-outlined" style="font-size: 1rem">download</span></h5>
-			</div>
-			<h5 class="card-subtitle text">Last updated: {{ post.time.date() }}</h5>
+		<div class="row">
+			<h5 class="col card-subtitle text">Last updated: {{ post.time.date() }}</h5>
+			<h5 class="col card-subtitle text-align-right-md text">{{ post.download_count }}<span class="material-symbols-outlined" style="font-size: 1rem">download</span></h5>
 		</div>
 		<div id="imageCarousel" class="carousel slide" data-bs-ride="carousel">
 			<div class="carousel-inner">
@@ -273,78 +269,92 @@
 			{% endif %}
 		</div>
 	</div>
-	<div class="col-md-3 card card-body gap-3">
-		{% if let Some(user) = user %}
-		<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" {% if has_liked %} checked="true" {% endif %} onclick="onLike()">
-		<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></label>
-		{% else %}
-		<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
-		<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></label>
-		{% endif %}
-		{% if post.files.len() == 1 %}
-		<a href="/api/v1/posts/{{ post.id }}/download/0" class="btn btn-sm btn-outline-success btn-success">
-			<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Download</button>
-		</a>
-		{% else %}
-		<button class="btn btn-lg btn-outline-success btn-success {% if base.theme() == Theme::Light %}text-light{% endif %} dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Download</button>
-		<ul class="dropdown-menu" style="width: 89%">
-			{% for (i, file) in post.local_files.iter().enumerate() %}
-				{% if let Some(file) = file.split("/").last() %}
-					<li><a class="dropdown-item btn btn-sm btn-outline-success btn-success" href="/api/v1/posts/{{ post.id }}/download/{{ i }}">{{ file }}</a></li>
-				{% endif %}
-			{% endfor %}
-		</ul>
-		{% endif %}
-		<a href="divamodmanager:dma/{{ post.id }}" class="btn btn-sm btn-outline-info btn-info">
-			<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">One Click Install</button>
-		</a>
-		{% if let Some(user) = user %}
-		{% if is_author %}
-		<a href="/post/{{ post.id }}/edit" class="btn btn-sm btn-outline-warning btn-warning">
-			<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Edit</button>
-		</a>
-		<div class="btn btn-sm btn-outline-warning btn-warning">
-			<button class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#dependencyAdd"
-				aria-expanded="false" aria-controls="dependencyAdd">Add dependency</button>
-		</div>
-		<div class="collapse collapse" id="dependencyAdd">
-			<div class="card card-body">
-				<p id="dependencyTxt">
-					Get the id from a post by looking at the URL.
-				</p>
-				<input class="form-control" id="dependencyId" type="text" autocomplete="off" placeholder="Post ID">
-				<div class="btn btn-sm btn-outline-danger btn-danger" onclick="addDependency()">
-					<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Confirm</button>
-				</div>
+
+	<div class="col-md-3 p-0">
+		<div class="card mb-3">
+			<div class="card-body" id="authors">
+				{% for author in post.authors %}
+				<a href="/user/{{ author.id }}" class="card-subtitle clearfix">
+					<img class="float-start pe-2 pb-2 ratio ratio-1x1" style="border-radius: 100%; width: 3.5rem" src="{{ author.avatar }}">
+					<h5 class="text" style="padding-top: 0.875rem;"> {{ author.display_name }}</h5>
+				</a>
+				{% endfor %}
 			</div>
 		</div>
-		<div class="btn btn-sm btn-outline-warning btn-warning">
-			<button class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#authorAdd"
-				aria-expanded="false" aria-controls="authorAdd">Add author</button>
-		</div>
-		<div class="collapse collapse" id="authorAdd">
-			<div class="card card-body">
-				<p id="authorTxt">
-					Any authors get full access to editing this mod.<br>
-					They cannot be removed without contacting the admins.<br>
-				</p>
-				<input class="form-control" id="authorId" type="text" autocomplete="off" placeholder="Discord username">
-				<div class="btn btn-sm btn-outline-danger btn-danger" onclick="addAuthor()">
-					<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Confirm</button>
+
+		<div class="card card-body gap-3">
+			{% if let Some(user) = user %}
+			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" {% if has_liked %} checked="true" {% endif %} onclick="onLike()">
+			<label class="btn btn-outline-primary" for="likedradiobtn" id="likes">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></label>
+			{% else %}
+			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
+			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ post.like_count }}<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span></label>
+			{% endif %}
+			{% if post.files.len() == 1 %}
+			<a href="/api/v1/posts/{{ post.id }}/download/0" class="btn btn-sm btn-outline-success btn-success">
+				<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Download</button>
+			</a>
+			{% else %}
+			<button class="btn btn-lg btn-outline-success btn-success {% if base.theme() == Theme::Light %}text-light{% endif %} dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Download</button>
+			<ul class="dropdown-menu" style="width: 89%">
+				{% for (i, file) in post.local_files.iter().enumerate() %}
+					{% if let Some(file) = file.split("/").last() %}
+						<li><a class="dropdown-item btn btn-sm btn-outline-success btn-success" href="/api/v1/posts/{{ post.id }}/download/{{ i }}">{{ file }}</a></li>
+					{% endif %}
+				{% endfor %}
+			</ul>
+			{% endif %}
+			<a href="divamodmanager:dma/{{ post.id }}" class="btn btn-sm btn-outline-info btn-info">
+				<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">One Click Install</button>
+			</a>
+			{% if let Some(user) = user %}
+			{% if is_author %}
+			<a href="/post/{{ post.id }}/edit" class="btn btn-sm btn-outline-warning btn-warning">
+				<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Edit</button>
+			</a>
+			<div class="btn btn-sm btn-outline-warning btn-warning">
+				<button class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#dependencyAdd"
+					aria-expanded="false" aria-controls="dependencyAdd">Add dependency</button>
+			</div>
+			<div class="collapse collapse" id="dependencyAdd">
+				<div class="card card-body">
+					<p id="dependencyTxt">
+						Get the id from a post by looking at the URL.
+					</p>
+					<input class="form-control" id="dependencyId" type="text" autocomplete="off" placeholder="Post ID">
+					<div class="btn btn-sm btn-outline-danger btn-danger" onclick="addDependency()">
+						<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Confirm</button>
+					</div>
 				</div>
 			</div>
+			<div class="btn btn-sm btn-outline-warning btn-warning">
+				<button class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#authorAdd"
+					aria-expanded="false" aria-controls="authorAdd">Add author</button>
+			</div>
+			<div class="collapse collapse" id="authorAdd">
+				<div class="card card-body">
+					<p id="authorTxt">
+						Any authors get full access to editing this mod.<br>
+						They cannot be removed without contacting the admins.<br>
+					</p>
+					<input class="form-control" id="authorId" type="text" autocomplete="off" placeholder="Discord username">
+					<div class="btn btn-sm btn-outline-danger btn-danger" onclick="addAuthor()">
+						<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Confirm</button>
+					</div>
+				</div>
+			</div>
+			{% else %}
+			<a href="/post/{{ post.id }}/report" class="btn btn-sm btn-outline-danger btn-danger">
+				<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Report</button>
+			</a>
+			{% endif %}
+			{% if is_author || user.is_admin(config) %}
+			<div class="btn btn-sm btn-outline-danger btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+				<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Delete</button>
+			</div>
+			{% endif %}
+			{% endif %}
 		</div>
-		{% else %}
-		<a href="/post/{{ post.id }}/report" class="btn btn-sm btn-outline-danger btn-danger">
-			<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Report</button>
-		</a>
-		{% endif %}
-		{% if is_author || user.is_admin(config) %}
-		<div class="btn btn-sm btn-outline-danger btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-			<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Delete</button>
-		</div>
-		{% endif %}
-		{% endif %}
 	</div>
 
 	<div class="card card-body text">{{ post.text|markdown }}</div>

@@ -40,7 +40,7 @@
 	<script>
 		function getPostHtml(post) {
 			var div = document.createElement('div');
-			div.classList = ["col"];
+			div.classList = "col";
 			var formatter = new Intl.NumberFormat("en-GB", {notation: "compact", roundingMode: "floor", maximumFractionDigits: 1});
 			var html = `
 <div class="card shadow">
@@ -71,7 +71,6 @@
 
 			div.innerHTML = html;
 
-			[...div.querySelectorAll('[data-bs-toggle="tooltip"]')].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
 			return div;
 		}
 

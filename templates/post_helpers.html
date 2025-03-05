@@ -2,7 +2,7 @@
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
 	{% for post in posts %}
 	<div class="col">
-		<div class="card shadow-sm">
+		<div class="card shadow">
 			<a style="text-decoration: none;" href="/post/{{ post.id }}">
 				<div class="card-img-top ratio ratio-16x9 bg-clear border-none">
 					{% if let Some(image) = post.images.first() %}
@@ -25,7 +25,4 @@
 	</div>
 	{% endfor %}
 </div>
-<script>
-	[...document.querySelectorAll('[data-bs-toggle="tooltip"]')].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
-</script>
 {% endmacro %}

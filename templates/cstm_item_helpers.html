@@ -1,11 +1,11 @@
 {% macro draw_cstm_items_list(cstm_item_search, show_source) %}
 <div id="offcanvasList">
 	{% for cstm_item in cstm_item_search.cstm_items.iter() %}
-	<div class="offcanvas offcanvas-start" id="cstmItemOffcanvas{{ cstm_item.uid }}" tabindex="-1" style="width: var(--bs-offcanvas-width) * 1.5">
+	<div class="offcanvas offcanvas-start" id="cstmItemOffcanvas{{ cstm_item.uid }}" tabindex="-1">
 		<div class="offcanvas-header">
 			<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
 		</div>
-		<table class="table">
+		<table class="table table-sm">
 			<thead>
 				<tr>
 					<th>Name (EN)</th>
@@ -78,7 +78,7 @@
 	</div>
 	{% endfor %}
 </div>
-<table class="table table-hover">
+<table class="table sm-table table-hover">
 	<thead>
 		<tr>
 			<th>Name (EN)</th>

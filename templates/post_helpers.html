@@ -6,7 +6,7 @@
 			<a style="text-decoration: none;" href="/post/{{ post.id }}">
 				<div class="card-img-top ratio ratio-16x9 bg-clear border-none">
 					{% if let Some(image) = post.images.first() %}
-					<img src="{{ image.replace("/public", "thumbnail") }}" class="rounded-image" width="100%" loading="lazy" alt="Preview of {{ post.name }}">
+					<img src="{{ image.replace("/public", "/thumbnail") }}" class="rounded-image" width="100%" loading="lazy" alt="Preview of {{ post.name }}">
 					{% endif %}
 				</div>
 				<div class="card-body clearfix">

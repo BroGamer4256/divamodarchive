@@ -602,13 +602,13 @@ pub async fn login(
 		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 	let avatar = if let Some(avatar) = response.avatar {
 		format!(
-			"https://cdn.discordapp.com/avatars/{}/{}.png?size=512",
+			"https://cdn.discordapp.com/avatars/{}/{}.png",
 			id, avatar
 		)
 	} else {
 		let discriminator: i32 = response.discriminator.parse().unwrap_or_default();
 		format!(
-			"https://cdn.discordapp.com/embed/avatars/{}.png?size=512",
+			"https://cdn.discordapp.com/embed/avatars/{}.png",
 			discriminator % 5
 		)
 	};

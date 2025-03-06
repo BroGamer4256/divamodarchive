@@ -6,7 +6,7 @@
 			<a style="text-decoration: none;" href="/post/{{ post.id }}">
 				<div class="card-img-top ratio ratio-16x9 bg-clear border-none">
 					{% if let Some(image) = post.images.first() %}
-					<img src="{{ image }}" class="rounded-image" width="100%" loading="lazy">
+					<img src="{{ image.replace("/public", "thumbnail") }}" class="rounded-image" width="100%" loading="lazy" alt="Preview of {{ post.name }}">
 					{% endif %}
 				</div>
 				<div class="card-body clearfix">
@@ -16,7 +16,7 @@
 					</p>
 					<h5 class="text"><b>{{ post.name }}</b></h5>
 					{% for author in post.authors %}
-					<img class="float-start pe-1 ratio ratio-1x1" style="border-radius: 100%; width: 1.75rem" src="{{ author.avatar }}">
+					<img class="float-start pe-1 ratio ratio-1x1" style="border-radius: 100%; width: 1.75rem" src="{{ author.avatar }}?size=32" alt="Avatar of {{ author.display_name }}">
 					<p class="text"> {{ author.display_name }}</p>
 					{% endfor %}
 				</div>

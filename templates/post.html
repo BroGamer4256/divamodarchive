@@ -109,7 +109,7 @@
 		author.href = `/user/${user.id}`;
 		author.classList = "card-subtitle clearfix";
 		author.innerHTML = `
-		<img class="float-start pe-2 pb-2 ratio ratio-1x1" style="border-radius: 100%; width: 3.5rem" src="${user.avatar}">
+		<img class="float-start pe-2 pb-2 ratio ratio-1x1" style="border-radius: 100%; width: 3.5rem" src="${user.avatar}?size=64">
 		<h5 class="text" style="padding-top: 0.875rem;"> ${user.display_name}</h5>
 		`;
 		document.getElementById("authors").append(author);
@@ -203,7 +203,7 @@
 		<div class="modal-content" style="background: none">
 			<div class="modal-body">
 				<div style="position: absolute;z-index: 2;right: 0;display: flex;top: 0;bottom: 0;padding-top: 0.5rem;padding-right: 0.5rem;">
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					<button type="button" class="btn-close {% if base.theme() == Theme::Light %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div id="imageModalCarousel" class="carousel" data-bs-ride="carousel">
 					<div class="carousel-inner">
@@ -275,7 +275,7 @@
 			<div class="card-body" id="authors">
 				{% for author in post.authors %}
 				<a href="/user/{{ author.id }}" class="card-subtitle clearfix">
-					<img class="float-start pe-2 pb-2 ratio ratio-1x1" style="border-radius: 100%; width: 3.5rem" src="{{ author.avatar }}">
+					<img class="float-start pe-2 pb-2 ratio ratio-1x1" style="border-radius: 100%; width: 3.5rem" src="{{ author.avatar }}?size=64">
 					<h5 class="text" style="padding-top: 0.875rem;"> {{ author.display_name }}</h5>
 				</a>
 				{% endfor %}
@@ -362,7 +362,7 @@
 	{% if post.images.len() > 1 %}
 	<div class="card card-body">
 		<h4>Screenshots:</h4>
-		<div class="row row-cols-2 row-cols-lg-4 gy-3">
+		<div class="row row-cols-1 row-cols-md-4 gy-3">
 			{% for (i, image) in post.images.iter().enumerate() %}
 			<div class="col">
 				<button type="button" class="ratio ratio-16x9 bg-clear border-none" data-bs-toggle="modal" data-bs-target="#imageModal" data-bs-index="{{ i }}">

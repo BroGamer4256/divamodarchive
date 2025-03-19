@@ -202,7 +202,9 @@
 				var {done, value} = await readers[index].read();
 				if (done || value == undefined || value.length == 0) {
 					if (offset != lengths[index]) {
+						socket.close();
 						crash_and_burn("Failed to read full file", `Only read ${completed} of ${lengths[index]}`);
+						return;
 					}
 					socket.send("Finished");
 					index += 1;

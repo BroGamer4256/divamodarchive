@@ -212,7 +212,14 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 
 		while let Some(Ok(message)) = socket.recv().await {
 			if let ws::Message::Binary(chunk) = message {
-				_ = file.write_all(&chunk).await;
+				let Ok(_) = file.write_all(&chunk).await else {
+					_ = socket.close().await;
+					return;
+				};
+				let Ok(_) = file.sync_data().await else {
+					_ = socket.close().await;
+					return;
+				};
 				_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
 			} else if let ws::Message::Close(_) = message {
 				_ = socket.close().await;
@@ -222,7 +229,7 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 			}
 		}
 
-		_ = file.sync_all();
+		_ = file.sync_all().await;
 
 		filepaths.push(filepath);
 	}

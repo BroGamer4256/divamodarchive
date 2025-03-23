@@ -210,7 +210,16 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 		};
 		_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
 
-		while let Some(Ok(message)) = socket.recv().await {
+		while let Some(message) = socket.recv().await {
+			let message = match message {
+				Ok(message) => message,
+				Err(e) => {
+					dbg!(e);
+					_ = socket.close().await;
+					return;
+				}
+			};
+
 			if let ws::Message::Binary(chunk) = message {
 				let Ok(_) = file.write_all(&chunk).await else {
 					_ = socket.close().await;

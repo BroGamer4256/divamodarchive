@@ -284,7 +284,7 @@ async fn parse_module_db<P: AsRef<Path>>(
 		.await
 		.ok()?;
 
-	let modules = modules
+	let mut modules = modules
 		.into_iter()
 		.filter(|module| {
 			!base.hits.iter().any(|base| {
@@ -293,6 +293,23 @@ async fn parse_module_db<P: AsRef<Path>>(
 			})
 		})
 		.collect::<Vec<_>>();
+
+	for module in &mut modules {
+		for item in &mut module.module.cos.items {
+			if item.objset.is_empty() {
+				for base_module in &base.hits {
+					if base_module.result.module.chara != module.module.chara {
+						continue;
+					}
+					for base_item in &base_module.result.module.cos.items {
+						if base_item.id == item.id {
+							*item = base_item.clone();
+						}
+					}
+				}
+			}
+		}
+	}
 
 	state
 		.meilisearch

@@ -25,6 +25,37 @@
 		}
 	}
 
+	function getHumanSubName(sub) {
+		switch (sub) {
+			case "ZUJO": return "Hat (Zujo)";
+			case "KAMI": return "Hair (Kami)";
+			case "HITAI": return "Forehead (Hitai)";
+			case "ME": return "Eyes (Me)";
+			case "MEGANE": return "Glasses (Megane)";
+			case "MIMI": return "Ears (Mimi)";
+			case "KUCHI": return "Mouth (Kuchi)";
+			case "MAKI": return "Neck (Maki)";
+			case "KUBI": return "Collar (Kubi)";
+			case "INNER": return "Body (Inner)";
+			case "OUTER": return "Outfit (Outer)";
+			case "KATA": return "Shoulders (Kata)";
+			case "U_UDE": return "Right Arm (Ude)";
+			case "L_UDE": return "Left Arm (Ude)";
+			case "TE": return "Hands (Te)";
+			case "JOHA_MAE": return "Chest (Joha Mae)";
+			case "JOHA_USHIRO": return "Back (Joha Ushiro)";
+			case "BELT": return "Belt";
+			case "KOSI": return "Crotch (Kosi)";
+			case "PANTS": return "Pants";
+			case "ASI": return "Legs (Asi)";
+			case "SUNE": return "Feet (Sune)";
+			case "KUTSU": return "Shoes (Kutsu)";
+			case "HADA": return "Skin (Hada)";
+			case "HEAD": return "Head";
+			default: return "";
+		}
+	}
+
 	function someOrNA(data) {
 		if (data == null) {
 			return "";
@@ -117,57 +148,39 @@
 		</tr>
 	</tbody>
 	<thead>
-		<th>COS ID</th>
-		`;
-
-		var itemLen = 3;
-		if (module.module.cos.items.length < itemLen) itemLen = module.module.cos.items.length;
-		for (var i = 0; i < itemLen; i++) {
-			html += `<th>Item ${i + 1}</th>`
-		}
-		for (var i = itemLen + 1; i < 4; i++) {
-			html += `<th />`;
-		}
-
-		html += `
+		<tr>
+			<th>COS ID</th>
+			<th />
+			<th />
+			<th />
+		</tr>
 	</thead>
 	<tbody class="table-dark">
 		<tr class="table-dark">
 			<td>${module.module.cos.id}</td>
-		`;
-
-		for (var i = 0; i < itemLen; i++) {
-			html += `<td>${module.module.cos.items[i]}</td>`
-		}
-		for (var i = itemLen + 1; i < 4; i++) {
-			html += `<td />`;
-		}
-
-		html += `
+			<td />
+			<td />
+			<td />
 		</tr>
 	</tbody>
 		`;
 
-		if (module.module.cos.items.length > 3) {
-			html += `<thead>`;
-			for (var i = 0; i < module.module.cos.items.length - 3; i++) {
-				html += `<th>Item ${i + 4}</th>`
-			}
-			for (var i = module.module.cos.items.length - 3; i < 4; i++) {
-				html += `<th />`;
-			}
+		for (item of module.module.cos.items.sort((a, b) => a.id - b.id)) {
 			html += `
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>Object${item.objset.length > 1 ? 's' : ''}</th>
+			<th>Type</th>
+			<th />
+		</tr>
 	</thead>
-	<tbody class="table-dark">
+	<tbody>
 		<tr class="table-dark">
-			`;
-			for (var i = 0; i < module.module.cos.items.length - 3; i++) {
-				html += `<td>${module.module.cos.items[i + 3]}</td>`
-			}
-			for (var i = module.module.cos.items.length - 3; i < 4; i++) {
-				html += `<td />`;
-			}
-			html += `
+			<td>${item.id}</td>
+			<td>${item.objset}</td>
+			<td>${getHumanSubName(item.sub)}</td>
+			<td />
 		</tr>
 	</tbody>
 			`;

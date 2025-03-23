@@ -54,52 +54,44 @@
 					<td>{% if let Some(name) = module.module.name_tw %}{{ name }}{% endif %}</td>
 				</tr>
 			</tbody>
-			{% let item_count = module.module.cos.items.len().clamp(0, 3) %}
 			<thead>
 				<tr>
 					<th>COS ID</th>
-					{% for i in 1..=item_count %}
-					<th>Item {{ i }} ID</th>
-					{% endfor %}
-					{% for _ in (1 + item_count)..4 %}
 					<th />
-					{% endfor %}
+					<th />
+					<th />
 				</tr>
 			</thead>
 			<tbody>
 				<tr class="table-dark">
 					<td>{{ module.module.cos.id }}</td>
-					{% for i in 0..item_count %}
-					<td>{{ module.module.cos.items[i] }}</td>
-					{% endfor %}
-					{% for _ in (1 + item_count)..4 %}
 					<td />
-					{% endfor %}
+					<td />
+					<td />
 				</tr>
 			</tbody>
-			{% if module.module.cos.items.len() > 3 %}
-			{% let item_count = (module.module.cos.items.len() - 3).clamp(0, 4) %}
+			{% for item in module.module.cos.items.iter().sorted() %}
 			<thead>
 				<tr>
-					{% for i in 0..item_count %}
-					<th>Item {{ i + 4 }} ID</th>
-					{% endfor %}
-					{% for _ in item_count..4 %}
+					<th>ID</th>
+					<th>Object{% if item.objset.len() > 1 %}s{% endif %}</th>
+					<th>Type</th>
 					<th />
-					{% endfor %}
 				</tr>
 			</thead>
 			<tbody>
 				<tr class="table-dark">
-					{% for i in 0..item_count %}
-					<td>{{ module.module.cos.items[i + 3] }}</td>
-					{% endfor %}
-					{% for _ in item_count..4 %}
+					<td>{{ item.id }}</td>
+					<td>
+						{% for (i, objset) in item.objset.iter().enumerate() %}
+							{{ objset }}{% if i != item.objset.len() - 1 %}, {% endif %}
+						{% endfor %}
+					</td>
+					<td>{{ item.sub.to_string() }}</td>
 					<td />
-					{% endfor %}
 				</tr>
 			</tbody>
-			{% endif %}
+			{% endfor %}
 		</table>
 	</div>
 	{% endfor %}

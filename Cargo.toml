@@ -10,6 +10,7 @@ axum = { version = "0.7", features = ["macros", "ws"] }
 axum-extra = { version = "0.9", features = ["cookie", "query"] }
 base64 = "0.22"
 dotenvy = "0.15"
+itertools = "0.14"
 jsonwebtoken = "9.3"
 meilisearch-sdk = "0.27"
 module_db = { git = "https://github.com/BroGamer4256/module_db" }

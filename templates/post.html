@@ -282,6 +282,32 @@
 			</div>
 		</div>
 
+		{% if pvs.pvs.len() > 0 || modules.modules.len() > 0 %}
+		<div class="card mb-3">
+			<div class="card-header">
+				At a glance
+			</div>
+			<div class="card-body">
+				{% if pvs.pvs.len() > 0 %}
+					<p data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="
+{% if pv_easy_count > 0 %}Easy: {{ pv_easy_count }}<br>{% endif %}
+{% if pv_normal_count > 0 %}Normal: {{ pv_normal_count }}<br>{% endif %}
+{% if pv_hard_count > 0 %}Hard: {{ pv_hard_count }}<br>{% endif %}
+{% if pv_extreme_count > 0 %}Extreme: {{ pv_extreme_count }}<br>{% endif %}
+{% if pv_exextreme_count > 0 %}ExExtreme: {{ pv_exextreme_count }}<br>{% endif %}
+">{{ pvs.pvs.len() }} Song{% if pvs.pvs.len() > 1 %}s{% endif %}</p>
+				{% endif %}
+				{% if modules.modules.len() > 0 %}
+					<p>{{ modules.modules.len() }} Module{% if modules.modules.len() > 1 %}s{% endif %}</p>
+				{% endif %}
+			</div>
+		</div>
+		<script>
+			const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+			const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl)) 
+		</script>
+		{% endif %}
+
 		<div class="card card-body gap-3">
 			{% if let Some(user) = user %}
 			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off" {% if has_liked %} checked="true" {% endif %} onclick="onLike()">

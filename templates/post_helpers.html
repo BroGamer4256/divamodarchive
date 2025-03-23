@@ -16,7 +16,7 @@
 					</p>
 					<h5 class="text"><b>{{ post.name }}</b></h5>
 					{% for author in post.authors %}
-					<img class="float-start pe-1 ratio ratio-1x1" style="border-radius: 100%; width: 1.75rem" src="{{ author.avatar }}?size=32" alt="Avatar of {{ author.display_name }}">
+					<img class="float-start pe-1 ratio ratio-1x1" style="border-radius: 100%; width: 1.75rem" src="{{ author.avatar }}?size=32" >
 					<p class="text"> {{ author.display_name }}</p>
 					{% endfor %}
 				</div>

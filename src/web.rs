@@ -293,6 +293,11 @@ struct PostTemplate {
 	pvs: PvSearch,
 	modules: ModuleSearch,
 	cstm_items: CstmItemSearch,
+	pv_easy_count: usize,
+	pv_normal_count: usize,
+	pv_hard_count: usize,
+	pv_extreme_count: usize,
+	pv_exextreme_count: usize,
 }
 
 async fn post_redirect(Path(id): Path<i32>) -> Redirect {
@@ -368,6 +373,12 @@ async fn post_detail(
 	.await
 	.unwrap_or_default();
 
+	let pv_easy_count = pvs.pvs.iter().filter(|pv| pv.levels[0].is_some()).count();
+	let pv_normal_count = pvs.pvs.iter().filter(|pv| pv.levels[1].is_some()).count();
+	let pv_hard_count = pvs.pvs.iter().filter(|pv| pv.levels[2].is_some()).count();
+	let pv_extreme_count = pvs.pvs.iter().filter(|pv| pv.levels[3].is_some()).count();
+	let pv_exextreme_count = pvs.pvs.iter().filter(|pv| pv.levels[4].is_some()).count();
+
 	Ok(PostTemplate {
 		user,
 		jwt: base.jwt.clone(),
@@ -379,6 +390,11 @@ async fn post_detail(
 		pvs,
 		modules,
 		cstm_items,
+		pv_easy_count,
+		pv_normal_count,
+		pv_hard_count,
+		pv_extreme_count,
+		pv_exextreme_count,
 	})
 }
 

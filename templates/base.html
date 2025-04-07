@@ -228,7 +228,9 @@
 						<div class="dropdown-menu">
 							<a class="dropdown-item" href="/user/{{ user.id }}">Profile</a>
 							<a class="dropdown-item" href="/liked/{{ user.id }}">Liked Mods</a>
+							{% if base.has_reservations %}
 							<a class="dropdown-item" href="/reservations/{{ user.id }}">Reserved IDs</a>
+							{% endif %}
 							<a class="dropdown-item" href="/settings">Settings</a>
 							{% if user.is_admin(base.config) %}
 							<a class="dropdown-item" href="/admin">Admin{% if let Some(report_count) = base.report_count %} - {{ report_count }}{% endif %}</a>

@@ -67,6 +67,7 @@ pub struct BaseTemplate {
 	pub config: Config,
 	pub jwt: Option<String>,
 	pub report_count: Option<i64>,
+	pub has_reservations: bool,
 }
 
 #[axum::async_trait]
@@ -117,11 +118,24 @@ where
 			None
 		};
 
+		let has_reservations = if let Some(user) = &user {
+			sqlx::query!(
+				"SELECT COUNT(*) FROM reservations WHERE user_id = $1",
+				user.id
+			)
+			.fetch_one(&state.db)
+			.await
+			.map_or(false, |record| record.count.unwrap_or(0) > 0)
+		} else {
+			false
+		};
+
 		Ok(Self {
 			user,
 			config: state.config,
 			jwt,
 			report_count,
+			has_reservations,
 		})
 	}
 }

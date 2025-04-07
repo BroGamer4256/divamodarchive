@@ -66,10 +66,16 @@
 		};
 
 		var start = document.getElementById('start_input');
+		var start_div = document.getElementById('start_div');
+		var start_feedback = document.getElementById('start_feedback');
 		start.value = await fetch('/api/v1/reserve/find?' + new URLSearchParams(query).toString(), options).then(response => response.json());
 
 		var submit = document.getElementById('submit_reservation_button');
 		submit.hidden = false;
+
+		start.classList = 'form-control is-valid';
+		start_div.classList = '';
+		start_feedback.hidden = true;
 	}
 
 	async function check_length_valid() {
@@ -265,8 +271,7 @@
 		<input type="number" value="" class="form-control" id="start_input" onchange="check_id_valid()">
 		<div class="invalid-feedback" id="start_feedback" hidden></div>
 	</div>
-	<button class="btn btn-secondary" type="button" id="get_recommendation_button" onclick="get_recommendation()" hidden>Get first free IDs for length</button>
-
-	<button class="btn btn-primary" type="button" id="submit_reservation_button" onclick="submit_reservation()" hidden>Submit</button>
+	<button class="mt-2 btn btn-secondary" type="button" id="get_recommendation_button" onclick="get_recommendation()" hidden>Get first free IDs for length</button>
+	<button class="mt-2 btn btn-primary" type="button" id="submit_reservation_button" onclick="submit_reservation()" hidden>Submit</button>
 </div>
 {% endblock content %}

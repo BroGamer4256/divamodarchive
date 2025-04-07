@@ -184,6 +184,10 @@ async fn main() {
 		meilisearch: client,
 	};
 
+	api::ids::optimise_reservations(api::ids::ReservationType::Song, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::Module, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CstmItem, &state).await;
+
 	let router = Router::new()
 		.route("/robots.txt", get(robots))
 		.route("/favicon.ico", get(favicon))

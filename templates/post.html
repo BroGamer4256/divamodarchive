@@ -241,6 +241,81 @@
 </script>
 
 <div class="row align-items-md-stretch gap-3 m-1">
+	{% if
+		conflicting_pvs.pvs.len() > 0 ||
+		conflicting_modules.modules.len() > 0 ||
+		conflicting_cstm_items.cstm_items.len() > 0 ||
+		conflicting_pv_reservations.len() > 0 ||
+		conflicting_module_reservations.len() > 0 ||
+		conflicting_cstm_item_reservations.len() > 0
+	%}
+	<div class="card text-white bg-danger card-body">
+		<h4>This mod conflicts with the following:</h4>
+		{% if conflicting_pvs.pvs.len() > 0 %}
+		<h5>PVs:</h5>
+		{% call pv_helpers::draw_pv_list(conflicting_pvs, true) %}
+		{% endif %}
+
+		{% if conflicting_pv_reservations.len() > 0 %}
+		<h5>Reserved PVs:</h5>
+		{% for (user, ids) in conflicting_pv_reservations %}
+		<p>
+			{{ user.display_name }}:
+			{% for (i, id) in ids.iter().enumerate() %}
+				{% if i == ids.len() - 1 %}
+					{{ id }}
+				{% else %}
+					{{ id }}, 
+				{% endif %}
+			{% endfor %}
+		</p>
+		{% endfor %}
+		{% endif %}
+
+		{% if conflicting_modules.modules.len() > 0 %}
+		<h5>Modules:</h5>
+		{% call module_helpers::draw_module_list(conflicting_modules, true) %}
+		{% endif %}
+
+		{% if conflicting_module_reservations.len() > 0 %}
+		<h5>Reserved Modules:</h5>
+		{% for (user, ids) in conflicting_module_reservations %}
+		<p>
+			{{ user.display_name }}:
+			{% for (i, id) in ids.iter().enumerate() %}
+				{% if i == ids.len() - 1 %}
+					{{ id }}
+				{% else %}
+					{{ id }}, 
+				{% endif %}
+			{% endfor %}
+		</p>
+		{% endfor %}
+		{% endif %}
+
+		{% if conflicting_cstm_items.cstm_items.len() > 0 %}
+		<h5>Customize Items:</h5>
+		{% call cstm_item_helpers::draw_cstm_items_list(conflicting_cstm_items, true) %}
+		{% endif %}
+
+		{% if conflicting_cstm_item_reservations.len() > 0 %}
+		<h5>Reserved Customize Items:</h5>
+		{% for (user, ids) in conflicting_cstm_item_reservations %}
+		<p>
+			{{ user.display_name }}:
+			{% for (i, id) in ids.iter().enumerate() %}
+				{% if i == ids.len() - 1 %}
+					{{ id }}
+				{% else %}
+					{{ id }}, 
+				{% endif %}
+			{% endfor %}
+		</p>
+		{% endfor %}
+		{% endif %}
+	</div>
+	{% endif %}
+
 	<div class="col-md-7 card card-body">
 		<h2 class="text card-title pb-2" style="text-align: center">{{ post.name }} </h2>
 		<div class="row">

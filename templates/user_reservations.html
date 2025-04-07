@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+{% import "post_helpers.html" as post_helpers %}
+
+{% block head %}
+{% let owner_name = owner.display_name.as_str() %}
+{% let description = format!("{owner_name}'s reservations") %}
+{% call base::draw_embed(owner.display_name, description, owner.avatar) %}
+{% endblock head %}
+
+{% block content %}
+{% if let Some(user) = base.user %}
+{% if user.id == owner.id %}
+<script>
+	async function delete_reservation(type, id) {
+		var query = {
+			'reservation_type': type,
+			'start': id,
+			'length': 1,
+		};
+
+		var options = {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ base.jwt.as_ref().unwrap() }}'
+			},
+			body: JSON.stringify(query),
+		}
+
+		await fetch('/api/v1/reserve', options);
+		document.getElementById(type + id).hidden = true;
+	}
+</script>
+{% endif %}
+{% endif %}
+
+{% if song_reservations.len() > 0 %}
+<h1 class="text">Songs</h1>
+<table class="table table-sm table-striped table-bordered">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>Time</th>
+			{% if let Some(user) = base.user %}
+			{% if user.id == owner.id %}
+			<th />
+			{% endif %}
+			{% endif %}
+		</tr>
+	</thead>
+	<tbody>
+	{% for (id, reservation) in song_reservations %}
+		<tr id="Song{{id}}">
+			<td>{{ id }}</td>
+			<td>{{ reservation.time.date() }}</td>
+			{% if let Some(user) = base.user %}
+			{% if user.id == owner.id %}
+			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Song', {{ id }})">Delete</button></td>
+			{% endif %}
+			{% endif %}
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% endif %}
+{% if module_reservations.len() > 0 %}
+<h1 class="text">Modules</h1>
+<table class="table table-sm table-striped table-bordered">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>Time</th>
+			{% if let Some(user) = base.user %}
+			{% if user.id == owner.id %}
+			<th />
+			{% endif %}
+			{% endif %}
+		</tr>
+	</thead>
+	<tbody>
+	{% for (id, reservation) in module_reservations %}
+		<tr id="Module{{id}}">
+			<td>{{ id }}</td>
+			<td>{{ reservation.time.date() }}</td>
+			{% if let Some(user) = base.user %}
+			{% if user.id == owner.id %}
+			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Module', {{ id }})">Delete</button></td>
+			{% endif %}
+			{% endif %}
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% endif %}
+{% if cstm_item_reservations.len() > 0 %}
+<h1 class="text">Customize Items</h1>
+<table class="table table-sm table-striped table-bordered">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>Time</th>
+			{% if let Some(user) = base.user %}
+			{% if user.id == owner.id %}
+			<th />
+			{% endif %}
+			{% endif %}
+		</tr>
+	</thead>
+	<tbody>
+	{% for (id, reservation) in cstm_item_reservations %}
+		<tr id="CstmItem{{id}}">
+			<td>{{ id }}</td>
+			<td>{{ reservation.time.date() }}</td>
+			{% if let Some(user) = base.user %}
+			{% if user.id == owner.id %}
+			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('CstmItem', {{ id }})">Delete</button></td>
+			{% endif %}
+			{% endif %}
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% endif %}
+{% endblock content %}

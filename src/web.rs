@@ -10,6 +10,7 @@ use axum::{
 	RequestPartsExt, Router,
 };
 use axum_extra::extract::CookieJar;
+use itertools::*;
 use std::collections::*;
 
 pub fn route(state: AppState) -> Router {
@@ -22,11 +23,14 @@ pub fn route(state: AppState) -> Router {
 		.route("/post/:id/report", get(report))
 		.route("/liked/:id", get(liked))
 		.route("/user/:id", get(user))
+		.route("/reservations/:id", get(user_reservations))
 		.route("/upload", get(upload))
 		.route("/settings", get(settings))
 		.route("/pvs", get(pvs))
 		.route("/modules", get(modules))
 		.route("/cstm_items", get(cstm_items))
+		.route("/pv_spreadsheet", get(pv_spreadsheet))
+		.route("/reserve", get(reserve))
 		//.route("/admin", get(admin))
 		.with_state(state)
 }
@@ -194,6 +198,7 @@ struct UserTemplate {
 	owner: User,
 	total_likes: i64,
 	total_downloads: i64,
+	has_reservations: bool,
 }
 
 async fn user(
@@ -230,12 +235,134 @@ async fn user(
 		(acc.0 + post.like_count, acc.1 + post.download_count)
 	});
 
+	let reservation_count =
+		sqlx::query!("SELECT COUNT(*) FROM reservations WHERE user_id = $1", id)
+			.fetch_one(&state.db)
+			.await
+			.map_or(0, |record| record.count.unwrap_or(0));
+
 	Ok(UserTemplate {
 		base,
 		posts,
 		owner,
 		total_likes,
 		total_downloads,
+		has_reservations: reservation_count > 0,
+	})
+}
+
+#[derive(Template)]
+#[template(path = "user_reservations.html")]
+struct UserReservationsTemplate {
+	base: BaseTemplate,
+	owner: User,
+	song_reservations: BTreeMap<i32, Reservation>,
+	module_reservations: BTreeMap<i32, Reservation>,
+	cstm_item_reservations: BTreeMap<i32, Reservation>,
+}
+
+async fn user_reservations(
+	Path(id): Path<i64>,
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> Result<UserReservationsTemplate, StatusCode> {
+	let Some(owner) = User::get(id, &state.db).await else {
+		return Err(StatusCode::BAD_REQUEST);
+	};
+
+	let song_reservations = sqlx::query!(
+		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1 AND r.user_id = $2",
+		ReservationType::Song as i32,
+		owner.id
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.map(|reservation| Reservation {
+		user: User {
+			id: reservation.user_id,
+			name: reservation.name.clone(),
+			avatar: reservation.avatar.clone(),
+			display_name: reservation.display_name.clone(),
+			public_likes: reservation.public_likes,
+			theme: reservation.theme.into(),
+		},
+		reservation_type: reservation.reservation_type.into(),
+		range_start: reservation.range_start,
+		length: reservation.length,
+		time: reservation.time.assume_offset(time::UtcOffset::UTC),
+	})
+	.flat_map(|reservation| {
+		(reservation.range_start..(reservation.range_start + reservation.length))
+			.map(move |i| (i, reservation.clone()))
+	})
+	.collect::<BTreeMap<_, _>>();
+
+	let module_reservations = sqlx::query!(
+		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1 AND r.user_id = $2",
+		ReservationType::Module as i32,
+		owner.id
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.map(|reservation| Reservation {
+		user: User {
+			id: reservation.user_id,
+			name: reservation.name.clone(),
+			avatar: reservation.avatar.clone(),
+			display_name: reservation.display_name.clone(),
+			public_likes: reservation.public_likes,
+			theme: reservation.theme.into(),
+		},
+		reservation_type: reservation.reservation_type.into(),
+		range_start: reservation.range_start,
+		length: reservation.length,
+		time: reservation.time.assume_offset(time::UtcOffset::UTC),
+	})
+	.flat_map(|reservation| {
+		(reservation.range_start..(reservation.range_start + reservation.length))
+			.map(move |i| (i, reservation.clone()))
+	})
+	.collect::<BTreeMap<_, _>>();
+
+	let cstm_item_reservations = sqlx::query!(
+		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1 AND r.user_id = $2",
+		ReservationType::CstmItem as i32,
+		owner.id
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.map(|reservation| Reservation {
+		user: User {
+			id: reservation.user_id,
+			name: reservation.name.clone(),
+			avatar: reservation.avatar.clone(),
+			display_name: reservation.display_name.clone(),
+			public_likes: reservation.public_likes,
+			theme: reservation.theme.into(),
+		},
+		reservation_type: reservation.reservation_type.into(),
+		range_start: reservation.range_start,
+		length: reservation.length,
+		time: reservation.time.assume_offset(time::UtcOffset::UTC),
+	})
+	.flat_map(|reservation| {
+		(reservation.range_start..(reservation.range_start + reservation.length))
+			.map(move |i| (i, reservation.clone()))
+	})
+	.collect::<BTreeMap<_, _>>();
+
+	Ok(UserReservationsTemplate {
+		base,
+		owner,
+		song_reservations,
+		module_reservations,
+		cstm_item_reservations,
 	})
 }
 
@@ -298,6 +425,12 @@ struct PostTemplate {
 	pv_hard_count: usize,
 	pv_extreme_count: usize,
 	pv_exextreme_count: usize,
+	conflicting_pvs: PvSearch,
+	conflicting_modules: ModuleSearch,
+	conflicting_cstm_items: CstmItemSearch,
+	conflicting_pv_reservations: BTreeMap<User, Vec<i32>>,
+	conflicting_module_reservations: BTreeMap<User, Vec<i32>>,
+	conflicting_cstm_item_reservations: BTreeMap<User, Vec<i32>>,
 }
 
 async fn post_redirect(Path(id): Path<i32>) -> Redirect {
@@ -379,6 +512,207 @@ async fn post_detail(
 	let pv_extreme_count = pvs.pvs.iter().filter(|pv| pv.levels[3].is_some()).count();
 	let pv_exextreme_count = pvs.pvs.iter().filter(|pv| pv.levels[4].is_some()).count();
 
+	let conflicting_pvs = if pvs.pvs.len() > 0 {
+		let filter = pvs
+			.pvs
+			.iter()
+			.map(|pv| format!("(pv_id={} AND post!={})", pv.id, pv.post.unwrap_or(-1)))
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		let Json(conflicting_pvs) = search_pvs(
+			axum_extra::extract::Query(SearchParams {
+				query: None,
+				filter: Some(filter),
+				limit: Some(2000),
+				offset: Some(0),
+			}),
+			State(state.clone()),
+		)
+		.await
+		.unwrap_or_default();
+
+		conflicting_pvs
+	} else {
+		PvSearch::default()
+	};
+
+	let conflicting_modules = if modules.modules.len() > 0 {
+		let filter = modules
+			.modules
+			.iter()
+			.map(|module| {
+				format!(
+					"(module_id={} AND post_id!={})",
+					module.id,
+					module.post.unwrap_or(-1)
+				)
+			})
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		let Json(conflicting_modules) = crate::api::ids::search_modules(
+			axum_extra::extract::Query(SearchParams {
+				query: None,
+				filter: Some(filter),
+				limit: Some(2000),
+				offset: Some(0),
+			}),
+			State(state.clone()),
+		)
+		.await
+		.unwrap_or_default();
+
+		conflicting_modules
+	} else {
+		ModuleSearch::default()
+	};
+
+	let conflicting_cstm_items = if cstm_items.cstm_items.len() > 0 {
+		let filter = cstm_items
+			.cstm_items
+			.iter()
+			.map(|cstm_item| {
+				format!(
+					"(customize_item_id={} AND post_id!={})",
+					cstm_item.id,
+					cstm_item.post.unwrap_or(-1)
+				)
+			})
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		let Json(conflicting_cstm_items) = crate::api::ids::search_cstm_items(
+			axum_extra::extract::Query(SearchParams {
+				query: None,
+				filter: Some(filter),
+				limit: Some(2000),
+				offset: Some(0),
+			}),
+			State(state.clone()),
+		)
+		.await
+		.unwrap_or_default();
+
+		conflicting_cstm_items
+	} else {
+		CstmItemSearch::default()
+	};
+
+	let mut conflicting_pv_reservations: BTreeMap<User, Vec<i32>> = BTreeMap::new();
+	let mut conflicting_module_reservations: BTreeMap<User, Vec<i32>> = BTreeMap::new();
+	let mut conflicting_cstm_item_reservations: BTreeMap<User, Vec<i32>> = BTreeMap::new();
+
+	for pv in &pvs.pvs {
+		let users = sqlx::query_as!(
+			User,
+			r#"
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+			FROM reservations r
+			LEFT JOIN users u ON r.user_id = u.id
+			WHERE r.reservation_type = 0
+			AND (
+				r.range_start >= $1
+				OR r.range_start + r.length > $1
+			)
+			AND r.range_start <= $1
+			"#,
+			pv.id,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default();
+		for user in users {
+			if post.authors.contains(&user) {
+				continue;
+			}
+
+			if let Some(conflict) = conflicting_pv_reservations.get_mut(&user) {
+				conflict.push(pv.id);
+			} else {
+				conflicting_pv_reservations.insert(user, vec![pv.id]);
+			}
+		}
+	}
+
+	for module in &modules.modules {
+		let reservations = sqlx::query!(
+			r#"
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+			FROM reservations r
+			LEFT JOIN users u ON r.user_id = u.id
+			WHERE r.reservation_type = 1
+			AND (
+				r.range_start >= $1
+				OR r.range_start + r.length > $1
+			)
+			AND r.range_start <= $1
+			"#,
+			module.id,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default();
+		for reservation in reservations {
+			let user = User {
+				id: reservation.id,
+				name: reservation.name,
+				avatar: reservation.avatar,
+				display_name: reservation.display_name,
+				public_likes: reservation.public_likes,
+				theme: reservation.theme.into(),
+			};
+			if post.authors.contains(&user) {
+				continue;
+			}
+
+			if let Some(conflict) = conflicting_module_reservations.get_mut(&user) {
+				conflict.push(module.id);
+			} else {
+				conflicting_module_reservations.insert(user, vec![module.id]);
+			}
+		}
+	}
+
+	for cstm_item in &cstm_items.cstm_items {
+		let reservations = sqlx::query!(
+			r#"
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+			FROM reservations r
+			LEFT JOIN users u ON r.user_id = u.id
+			WHERE r.reservation_type = 2
+			AND (
+				r.range_start >= $1
+				OR r.range_start + r.length > $1
+			)
+			AND r.range_start <= $1
+			"#,
+			cstm_item.id,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default();
+		for reservation in reservations {
+			let user = User {
+				id: reservation.id,
+				name: reservation.name,
+				avatar: reservation.avatar,
+				display_name: reservation.display_name,
+				public_likes: reservation.public_likes,
+				theme: reservation.theme.into(),
+			};
+			if post.authors.contains(&user) {
+				continue;
+			}
+
+			if let Some(conflict) = conflicting_cstm_item_reservations.get_mut(&user) {
+				conflict.push(cstm_item.id);
+			} else {
+				conflicting_cstm_item_reservations.insert(user, vec![cstm_item.id]);
+			}
+		}
+	}
+
 	Ok(PostTemplate {
 		user,
 		jwt: base.jwt.clone(),
@@ -395,6 +729,12 @@ async fn post_detail(
 		pv_hard_count,
 		pv_extreme_count,
 		pv_exextreme_count,
+		conflicting_pvs,
+		conflicting_modules,
+		conflicting_cstm_items,
+		conflicting_pv_reservations,
+		conflicting_module_reservations,
+		conflicting_cstm_item_reservations,
 	})
 }
 
@@ -411,10 +751,9 @@ async fn search(
 ) -> Result<SearchTemplate, StatusCode> {
 	let latest_posts = sqlx::query!(
 		r#"
-		SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, like_count.like_count
-		FROM posts p
-		LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
-		ORDER BY p.time DESC
+		SELECT id
+		FROM posts
+		ORDER BY time DESC
 		LIMIT 20
 		"#
 	)
@@ -422,24 +761,12 @@ async fn search(
 	.await
 	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-	let posts = latest_posts
-		.into_iter()
-		.map(|post| Post {
-			id: post.id,
-			name: post.name,
-			text: post.text,
-			images: post.images,
-			files: post.files,
-			time: post.time.assume_offset(time::UtcOffset::UTC),
-			post_type: post.post_type.into(),
-			download_count: post.download_count,
-			like_count: post.like_count.unwrap_or(0),
-			authors: vec![],
-			dependencies: None,
-			comments: None,
-			local_files: post.local_files,
-		})
-		.collect();
+	let mut posts = Vec::new();
+	for post in latest_posts {
+		if let Some(post) = Post::get_short(post.id, &state.db).await {
+			posts.push(post);
+		}
+	}
 
 	Ok(SearchTemplate { base, posts })
 }
@@ -548,4 +875,107 @@ async fn cstm_items(
 	.unwrap_or_default();
 
 	return Ok(CstmItemsTemplate { base, cstm_items });
+}
+
+// This code fucking sucks
+#[derive(Template)]
+#[template(path = "pv_spreadsheet.html")]
+struct PvSpreadsheet {
+	base: BaseTemplate,
+	reservations: BTreeMap<i32, Reservation>,
+	pvs: BTreeMap<i32, Vec<Pv>>,
+	posts: BTreeMap<i32, Post>,
+}
+
+async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> PvSpreadsheet {
+	let mut reservations = sqlx::query!(
+		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
+		ReservationType::Song as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.map(|reservation| Reservation {
+		user: User {
+			id: reservation.user_id,
+			name: reservation.name.clone(),
+			avatar: reservation.avatar.clone(),
+			display_name: reservation.display_name.clone(),
+			public_likes: reservation.public_likes,
+			theme: reservation.theme.into(),
+		},
+		reservation_type: reservation.reservation_type.into(),
+		range_start: reservation.range_start,
+		length: reservation.length,
+		time: reservation.time.assume_offset(time::UtcOffset::UTC),
+	})
+	.flat_map(|reservation| {
+		(reservation.range_start..(reservation.range_start + reservation.length))
+			.map(move |i| (i, reservation.clone()))
+	})
+	.collect::<BTreeMap<_, _>>();
+
+	let Json(search) = search_pvs(
+		axum_extra::extract::Query(SearchParams {
+			query: None,
+			filter: None,
+			limit: Some(100_000),
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.unwrap_or_default();
+
+	let mut pvs: BTreeMap<i32, Vec<Pv>> = BTreeMap::new();
+	for pv in &search.pvs {
+		if let Some(reservation) = reservations.get(&pv.id) {
+			if let Some(post) = pv.post {
+				if search.posts[&post].authors.contains(&reservation.user) {
+					reservations.remove(&pv.id);
+				}
+			}
+		}
+		if let Some(original) = pvs.get_mut(&pv.id) {
+			original.push(pv.clone());
+		} else {
+			pvs.insert(pv.id, vec![pv.clone()]);
+		}
+	}
+
+	PvSpreadsheet {
+		base,
+		reservations,
+		pvs,
+		posts: search.posts,
+	}
+}
+
+#[derive(Template)]
+#[template(path = "reserve.html")]
+struct ReserveTemplate {
+	base: BaseTemplate,
+	remaining_song_reservations: i32,
+	remaining_module_reservations: i32,
+	remaining_cstm_item_reservations: i32,
+}
+
+async fn reserve(
+	base: BaseTemplate,
+	user: User,
+	State(state): State<AppState>,
+) -> Result<ReserveTemplate, StatusCode> {
+	let remaining_song_reservations =
+		get_user_max_reservations(ReservationType::Song, &user, &state).await;
+	let remaining_module_reservations =
+		get_user_max_reservations(ReservationType::Module, &user, &state).await;
+	let remaining_cstm_item_reservations =
+		get_user_max_reservations(ReservationType::CstmItem, &user, &state).await;
+	Ok(ReserveTemplate {
+		base,
+		remaining_song_reservations,
+		remaining_module_reservations,
+		remaining_cstm_item_reservations,
+	})
 }

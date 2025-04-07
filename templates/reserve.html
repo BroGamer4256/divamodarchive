@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+
+{% block head %}
+{% endblock head %}
+
+{% block content %}
+<script>
+	const song_reservations = {{ remaining_song_reservations }};
+	const module_reservations = {{ remaining_module_reservations }};
+	const cstm_reservations = {{ remaining_cstm_item_reservations }};
+	var reservation_type = 'Song';
+	var current_max = {{ remaining_song_reservations }};
+
+	function update_dropdown(type) {
+		reservation_type = type;
+		var reservation_count = document.getElementById('reservation_count');
+		if (type == 'Song') {
+			reservation_count.innerText = song_reservations + ' Songs';
+			current_max = song_reservations;
+		} else if (type == 'Module') {
+			reservation_count.innerText = module_reservations + ' Modules';
+			current_max = module_reservations;
+		} else if (type == 'CstmItem') {
+			reservation_count.innerText = cstm_reservations + ' Customize Items';
+			current_max = cstm_reservations;
+		}
+
+		var start = document.getElementById('start_input');
+		var length = document.getElementById('length_input');
+		start.value = undefined;
+		length.value = undefined;
+
+		var length_div = document.getElementById('length_div');
+		var length_feedback = document.getElementById('length_feedback');
+		var get_recommendation_button = document.getElementById('get_recommendation_button');
+
+		length.classList = 'form-control';
+		length_div.classList = '';
+		length_feedback.hidden = true;
+		get_recommendation_button.hidden = true;
+
+		var submit = document.getElementById('submit_reservation_button');
+		var start_div = document.getElementById('start_div');
+		var start_feedback = document.getElementById('start_feedback');
+		
+		start.classList = 'form-control'
+		start_div.classList = '';
+		start_feedback.hidden = true;
+		submit.hidden = true;
+	}
+
+	async function get_recommendation() {
+		var options = {
+			method: 'GET',
+			headers: {
+				'Authorization': 'Bearer {{ base.jwt.as_ref().unwrap() }}'
+			}
+		}
+
+		var length = document.getElementById('length_input');
+		var query = {
+			'reservation_type': reservation_type,
+			'start': 0,
+			'length': Number(length.value),
+		};
+
+		var start = document.getElementById('start_input');
+		start.value = await fetch('/api/v1/reserve/find?' + new URLSearchParams(query).toString(), options).then(response => response.json());
+
+		var submit = document.getElementById('submit_reservation_button');
+		submit.hidden = false;
+	}
+
+	async function check_length_valid() {
+		var length = document.getElementById('length_input');
+		var length_div = document.getElementById('length_div');
+		var length_feedback = document.getElementById('length_feedback');
+
+		if (length.value == undefined || length.value <= 0 || isNaN(length.value)) {
+			length.classList = 'form-control';
+			length_div.classList = '';
+			length_feedback.hidden = false;
+			get_recommendation_button.hidden = true;
+		} else if (length.value > current_max) {
+			length.classList = 'form-control is-invalid';
+			length_div.classList = 'has-danger';
+			length_feedback.hidden = false;
+			get_recommendation_button.hidden = true;
+		} else {
+			length.classList = 'form-control is-valid';
+			length_div.classList = '';
+			length_feedback.hidden = true;
+			get_recommendation_button.hidden = false;
+		}
+
+		await check_id_valid();
+	}
+
+	async function check_id_valid() {
+		var start = document.getElementById('start_input');
+		var length = document.getElementById('length_input');
+		var submit = document.getElementById('submit_reservation_button');
+		var start_div = document.getElementById('start_div');
+		var start_feedback = document.getElementById('start_feedback');
+
+		if (start.value == undefined || start.value <= 0 || isNaN(start.value) || length.value == undefined || length.value <= 0 || isNaN(length.value)) {
+			start.classList = 'form-control'
+			start_div.classList = '';
+			start_feedback.hidden = true;
+			submit.hidden = true;
+			return;
+		}
+
+		var options = {
+			method: 'GET',
+			headers: {
+				'Authorization': 'Bearer {{ base.jwt.as_ref().unwrap() }}'
+			}
+		}
+
+		var query = {
+			'reservation_type': reservation_type,
+			'start': Number(start.value),
+			'length': Number(length.value),
+		};
+
+		submit.hidden = true;
+		var response = await fetch('/api/v1/reserve/check?' + new URLSearchParams(query).toString(), options).then(response => response.json());
+		if (response == 'ValidRange') {
+			start.classList = 'form-control is-valid';
+			start_div.classList = '';
+			start_feedback.hidden = true;
+			submit.hidden = false;
+		} else if (response.PartialValidRange != undefined) {
+			start.classList = 'form-control is-valid';
+			start_div.classList = 'has-success';
+
+			start_feedback.hidden = false;
+			start_feedback.classList = 'valid-feedback';
+			start_feedback.innerText = 'Valid reservation, contains already taken IDs by you: ' + response.PartialValidRange;
+
+			submit.hidden = false;
+		} else if (response == 'InvalidRange') {
+			start.classList = 'form-control is-invalid';
+			start_div.classList = 'has-danger';
+
+			start_feedback.hidden = false;
+			start_feedback.classList = 'invalid-feedback';
+			start_feedback.innerText = 'Invalid reservation, contains already taken IDs';
+
+			submit.hidden = true;
+		} else if (response.InvalidLength != undefined) {
+			start.classList = 'form-control is-valid';
+			start_div.classList = '';
+			start_feedback.hidden = true;
+			submit.hidden = true;
+		} else if (response.InvalidAlignment != undefined) {
+			start.classList = 'form-control is-invalid';
+			start_div.classList = 'has-danger';
+
+			start_feedback.hidden = false;
+			start_feedback.classList = 'invalid-feedback';
+			start_feedback.innerText = 'Invalid reservation, must be aligned to multiple of ' + response.InvalidAlignment;
+
+			submit.hidden = true;
+		}
+
+		if (length.value > current_max) {
+			submit.hidden = true;
+		}
+	}
+
+	async function submit_reservation() {
+		var start = document.getElementById('start_input');
+		var length = document.getElementById('length_input');
+
+		var length_div = document.getElementById('length_div');
+		var length_feedback = document.getElementById('length_feedback');
+
+		var submit = document.getElementById('submit_reservation_button');
+		var start_div = document.getElementById('start_div');
+		var start_feedback = document.getElementById('start_feedback');
+
+		if (start.value == undefined || start.value <= 0 || isNaN(start.value) || length.value == undefined || length.value <= 0 || isNaN(length.value)) {
+			submit.hidden = true;
+			return;
+		}
+
+		var query = {
+			'reservation_type': reservation_type,
+			'start': Number(start.value),
+			'length': Number(length.value),
+		};
+
+		var options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ base.jwt.as_ref().unwrap() }}'
+			},
+			body: JSON.stringify(query),
+		}
+
+		var response = await fetch('/api/v1/reserve', options).then(response => response.json());
+
+		if (response == 'ValidRange' || response.PartialValidRange != undefined) {
+			window.location.href = '/reservations/{{ base.user.as_ref().unwrap().id }}';
+		} else if (response == 'InvalidRange') {
+			start.classList = 'form-control is-invalid';
+			start_div.classList = 'has-danger';
+
+			start_feedback.hidden = false;
+			start_feedback.classList = 'invalid-feedback';
+			start_feedback.innerText = 'Invalid reservation, contains already taken IDs';
+
+			submit.hidden = true;
+		} else if (response.InvalidLength != undefined) {
+			start.classList = 'form-control is-valid';
+			start_div.classList = '';
+			start_feedback.hidden = true;
+			submit.hidden = true;
+		} else if (response.InvalidAlignment != undefined) {
+			start.classList = 'form-control is-invalid';
+			start_div.classList = 'has-danger';
+
+			start_feedback.hidden = false;
+			start_feedback.classList = 'invalid-feedback';
+			start_feedback.innerText = 'Invalid reservation, must be aligned to multiple of ' + response.InvalidAlignment;
+
+			submit.hidden = true;
+		} else if (length.value > current_max) {
+			length.classList = 'form-control is-invalid';
+			length_div.classList = 'has-danger';
+			length_feedback.hidden = false;
+			get_recommendation_button.hidden = true;
+
+			submit.hidden = true;
+		}
+	}
+</script>
+<div class="card card-body">
+	<!-- Currently only accepting song reservations
+	<div class="dropdown">
+		<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+			Change reservation type
+		</button>
+		<ul class="dropdown-menu">
+			<li><button class="dropdown-item" onclick="update_dropdown('Song')">Songs</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('Module')">Modules</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CstmItem')">Customize Items</button></li>
+		</ul>
+	</div>
+	-->
+
+	<p>You can reserve up to <b id="reservation_count">{{ remaining_song_reservations }} Songs</b></p>
+
+	<div id="length_div">
+		<label class="form-label mt-4" for="length_input">Length</label>
+		<input type="number" value="" class="form-control" id="length_input" onchange="check_length_valid()">
+		<div class="invalid-feedback" id="length_feedback" hidden>Too long for current max, if you require more than you can currently reserve please contact an admin</div>
+	</div>
+	<div id="start_div">
+		<label class="form-label mt-4" for="start_input">Starting ID</label>
+		<input type="number" value="" class="form-control" id="start_input" onchange="check_id_valid()">
+		<div class="invalid-feedback" id="start_feedback" hidden></div>
+	</div>
+	<button class="btn btn-secondary" type="button" id="get_recommendation_button" onclick="get_recommendation()" hidden>Get first free IDs for length</button>
+
+	<button class="btn btn-primary" type="button" id="submit_reservation_button" onclick="submit_reservation()" hidden>Submit</button>
+</div>
+{% endblock content %}

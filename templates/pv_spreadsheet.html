@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+
+{% block head %}
+<style>
+	.red-background {
+		background-color: #FF6D6D !important;
+	}
+</style>
+{% endblock head %}
+
+{% block content %}
+<div class="row m-2">
+	<div class="col-md-3 offset-md-3">
+		<a class="btn btn-primary" style="width: 100%" href="/pvs">Search</a>
+	</div>
+	<div class="col-md-3">
+		<a class="btn btn-danger" style="width: 100%" href="/reserve">Reserve IDs</a>
+	</div>
+</div>
+<table class="table table-sm table-striped table-bordered">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>Name (EN)</th>
+			<th>Name (JP)</th>
+			<th>Source / Reservation Date</th>
+		</tr>
+	</thead>
+	<tbody>
+	{% let last -%}
+	{% if let Some((reservation, _)) = reservations.iter().last() -%}
+		{% if let Some((pv, _)) = pvs.iter().last() -%}
+			{% if reservation > pv -%}
+				{% let last = reservation.clone().clone() -%}
+			{% else -%}
+				{% let last = pv.clone().clone() -%}
+			{% endif -%}
+		{% else -%}
+			{% let last = reservation.clone().clone() -%}
+		{% endif -%}
+	{% else if let Some((pv, _)) = pvs.iter().last() -%}
+		{% let last = pv.clone().clone() -%}
+	{% else -%}
+		{% let last = 1000 -%}
+	{% endif -%}
+
+	{% for i in 1..=last %}
+	{% if i != 700 && i != 701 && i != 988 && i != 999 && (reservations.contains_key(i) || pvs.contains_key(i)) %}
+		<tr>
+			<td>{{ i }}</td>
+
+			{% if let Some(reservation) = reservations.get(i) %}
+				<td class="red-background">Reserved by {{ reservation.user.display_name }}</td>
+				<td class="red-background"/>
+				<td class="red-background">{{ reservation.time.date() }}</td>
+			{% endif %}
+
+			{% if let Some(pvs) = pvs.get(i) %}
+				{% for (j, pv) in pvs.iter().enumerate() %}
+					{% if j != 0 || reservations.contains_key(i) %}
+						</tr>
+						<tr>
+						<td>{{ i }}</td>
+					{% endif %}
+					<td>{{ pv.name_en }}</td>
+					<td>{{ pv.name }}</td>
+					<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}">{{ posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+				{% endfor %}
+			{% endif %}
+		</tr>
+	{% endif %}
+	{% endfor %}
+	</tbody>
+</table>
+{% endblock content %}	

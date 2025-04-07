@@ -2,6 +2,7 @@ use crate::models::*;
 use crate::AppState;
 use axum::{extract::*, http::StatusCode, response::*};
 use base64::prelude::*;
+use itertools::*;
 use serde::{Deserialize, Serialize};
 use std::collections::*;
 use std::path::Path;
@@ -239,6 +240,10 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 			}
 		}
 	}
+
+	optimise_reservations(ReservationType::Song, &state).await;
+	optimise_reservations(ReservationType::Module, &state).await;
+	optimise_reservations(ReservationType::CstmItem, &state).await;
 
 	Some(())
 }
@@ -863,8 +868,8 @@ pub async fn search_cstm_items(
 					format!("(module_id={module} AND post_id=-1)")
 				}
 			})
-			.collect::<Vec<_>>()
-			.join(" OR ");
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
 
 		let Json(modules) = crate::api::ids::search_modules(
 			axum_extra::extract::Query(crate::api::ids::SearchParams {
@@ -904,4 +909,836 @@ pub async fn search_cstm_items(
 		bound_modules,
 		posts,
 	}))
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq)]
+#[repr(i32)]
+pub enum ReservationType {
+	Song = 0,
+	Module = 1,
+	CstmItem = 2,
+}
+
+impl From<i32> for ReservationType {
+	fn from(value: i32) -> Self {
+		match value {
+			1 => Self::Module,
+			2 => Self::CstmItem,
+			_ => Self::Song,
+		}
+	}
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Reservation {
+	pub user: User,
+	pub reservation_type: ReservationType,
+	pub range_start: i32,
+	pub length: i32,
+	#[serde(with = "time::serde::rfc3339")]
+	pub time: time::OffsetDateTime,
+}
+
+#[derive(Serialize, Deserialize, PartialEq)]
+pub enum ReserveRangeResult {
+	ValidRange,                  // Completly empty
+	PartialValidRange(Vec<i32>), // Range contains content that the user is an author of, returns which ids those are
+	InvalidRange,                // Range containts content that the user is not an author
+	InvalidLength(i32),          // The length is too high, returns the users max remaining length
+	InvalidAlignment(u32),       // Start was improperly aligned
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ReserveRangeArgs {
+	pub reservation_type: ReservationType,
+	pub start: u32,
+	pub length: u32,
+}
+
+pub async fn create_reservation(
+	user: User,
+	State(state): State<AppState>,
+	Json(query): Json<ReserveRangeArgs>,
+) -> Json<ReserveRangeResult> {
+	if query.reservation_type != ReservationType::Song || query.start == 0 || query.length == 0 {
+		return Json(ReserveRangeResult::InvalidRange);
+	}
+
+	let validity = check_reserve_range(
+		query.reservation_type,
+		query.start,
+		query.length,
+		&user,
+		&state,
+	)
+	.await;
+
+	match validity {
+		ReserveRangeResult::ValidRange => {
+			let now = time::OffsetDateTime::now_utc();
+			let time = time::PrimitiveDateTime::new(now.date(), now.time());
+			_ = sqlx::query!(
+				"INSERT INTO reservations VALUES($1, $2, $3, $4, $5)",
+				user.id,
+				query.reservation_type as i32,
+				query.start as i32,
+				query.length as i32,
+				time
+			)
+			.execute(&state.db)
+			.await;
+		}
+		ReserveRangeResult::PartialValidRange(ref old_ids) => {
+			let old_ids = old_ids.iter().cloned().collect::<BTreeSet<_>>();
+			let new_ids = (query.start as i32..(query.start as i32 + query.length as i32))
+				.collect::<BTreeSet<_>>();
+
+			let time = time::OffsetDateTime::now_utc();
+
+			let mut ranges: Vec<Reservation> = Vec::new();
+			for id in new_ids.difference(&old_ids) {
+				if let Some(last) = ranges.last_mut() {
+					if last.range_start + last.length == *id {
+						last.length += 1;
+					} else {
+						ranges.push(Reservation {
+							user: user.clone(),
+							reservation_type: query.reservation_type,
+							range_start: *id,
+							length: 1,
+							time,
+						});
+					}
+				} else {
+					ranges.push(Reservation {
+						user: user.clone(),
+						reservation_type: query.reservation_type,
+						range_start: *id,
+						length: 1,
+						time,
+					});
+				}
+			}
+
+			for reservation in ranges {
+				_ = sqlx::query!(
+					"INSERT INTO reservations VALUES($1, $2, $3, $4, $5)",
+					reservation.user.id,
+					reservation.reservation_type as i32,
+					reservation.range_start,
+					reservation.length,
+					time::PrimitiveDateTime::new(reservation.time.date(), reservation.time.time()),
+				)
+				.execute(&state.db)
+				.await;
+			}
+
+			optimise_reservations(query.reservation_type, &state).await;
+		}
+		_ => {}
+	}
+
+	Json(validity)
+}
+
+pub async fn delete_reservation(
+	user: User,
+	State(state): State<AppState>,
+	Json(query): Json<ReserveRangeArgs>,
+) {
+	if query.start == 0 || query.length == 0 {
+		return;
+	}
+
+	let reservered_ids = sqlx::query!(
+		r#"
+		SELECT * FROM reservations r
+		LEFT JOIN users u ON r.user_id = u.id
+		WHERE r.reservation_type = $1
+		AND r.user_id = $2
+		AND (r.range_start >= $3 OR r.range_start + r.length > $3) AND r.range_start < $4
+		"#,
+		query.reservation_type as i32,
+		user.id,
+		query.start as i32,
+		(query.start + query.length) as i32
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.flat_map(|reservation| {
+		(reservation.range_start..(reservation.range_start + reservation.length))
+			.map(|id| (id, reservation.time.assume_offset(time::UtcOffset::UTC)))
+	})
+	.collect::<BTreeMap<_, _>>();
+
+	let ids =
+		(query.start as i32..(query.start as i32 + query.length as i32)).collect::<BTreeSet<_>>();
+
+	if ids.len() > reservered_ids.len() {
+		return;
+	}
+
+	let mut ranges: Vec<Reservation> = Vec::new();
+	for id in reservered_ids
+		.keys()
+		.cloned()
+		.collect::<BTreeSet<_>>()
+		.difference(&ids)
+	{
+		if let Some(last) = ranges.last_mut() {
+			if last.range_start + last.length == *id {
+				last.length += 1;
+				if reservered_ids[id] > last.time {
+					last.time = reservered_ids[id];
+				}
+			} else {
+				ranges.push(Reservation {
+					user: user.clone(),
+					reservation_type: query.reservation_type,
+					range_start: *id,
+					length: 1,
+					time: reservered_ids[id],
+				});
+			}
+		} else {
+			ranges.push(Reservation {
+				user: user.clone(),
+				reservation_type: query.reservation_type,
+				range_start: *id,
+				length: 1,
+				time: reservered_ids[id],
+			});
+		}
+	}
+
+	_ = sqlx::query!(
+		r#"
+		UPDATE reservations r
+		SET time = '2000-01-01'
+		WHERE r.reservation_type = $1
+		AND r.user_id = $2
+		AND (r.range_start >= $3 OR r.range_start + r.length > $3) AND r.range_start < $4
+		"#,
+		query.reservation_type as i32,
+		user.id,
+		query.start as i32,
+		(query.start + query.length) as i32
+	)
+	.execute(&state.db)
+	.await;
+
+	for reservation in ranges {
+		_ = sqlx::query!(
+			"INSERT INTO reservations VALUES($1, $2, $3, $4, $5)",
+			reservation.user.id,
+			reservation.reservation_type as i32,
+			reservation.range_start,
+			reservation.length,
+			time::PrimitiveDateTime::new(reservation.time.date(), reservation.time.time()),
+		)
+		.execute(&state.db)
+		.await;
+	}
+
+	_ = sqlx::query!(
+		r#"
+		DELETE FROM reservations r
+		WHERE time = '2000-01-01'
+		AND r.reservation_type = $1
+		AND r.user_id = $2
+		AND (r.range_start >= $3 OR r.range_start + r.length > $3) AND r.range_start < $4
+		"#,
+		query.reservation_type as i32,
+		user.id,
+		query.start as i32,
+		(query.start + query.length) as i32
+	)
+	.execute(&state.db)
+	.await;
+}
+
+pub async fn web_check_reserve_range(
+	axum_extra::extract::Query(query): axum_extra::extract::Query<ReserveRangeArgs>,
+	user: User,
+	State(state): State<AppState>,
+) -> Json<ReserveRangeResult> {
+	if query.start == 0 || query.length == 0 {
+		return Json(ReserveRangeResult::InvalidRange);
+	}
+
+	Json(
+		check_reserve_range(
+			query.reservation_type,
+			query.start,
+			query.length,
+			&user,
+			&state,
+		)
+		.await,
+	)
+}
+
+/*
+- Must be aligned, e.g. less than 10 means no alignment, 10+ means the first id must be aligned to 10 and end with `0`, 100+ means the first id must be aligned to 100 and end with `00`
+- Can go through mods the user is an author of
+- Max number of reserved ids is 30 + half of how many items the user has already uploaded rounded up to the nearest multiple of 10, e.g. if a user has uploaded a song pack with 30 songs they can reserve 50 song ids and 30 module/cstm_item ids
+*/
+
+pub async fn check_reserve_range(
+	reservation_type: ReservationType,
+	start: u32,
+	length: u32,
+	user: &User,
+	state: &AppState,
+) -> ReserveRangeResult {
+	let max = get_user_max_reservations(reservation_type, &user, &state).await;
+	if max < length as i32 {
+		return ReserveRangeResult::InvalidLength(max);
+	}
+
+	let alignment = 10_u32
+		.checked_pow(length.checked_ilog10().unwrap_or(0))
+		.unwrap_or(1);
+	if start % alignment != 0 {
+		return ReserveRangeResult::InvalidAlignment(alignment);
+	}
+
+	let conflicts = match reservation_type {
+		ReservationType::Song => {
+			let index = state.meilisearch.index("pvs");
+
+			let filter = (start..(start + length))
+				.map(|id| format!("pv_id={id}"))
+				.intersperse(String::from(" OR "))
+				.collect::<String>();
+
+			let search = meilisearch_sdk::search::SearchQuery::new(&index)
+				.with_limit(10000)
+				.with_sort(&["pv_id:asc"])
+				.with_filter(&filter)
+				.execute::<MeilisearchPv>()
+				.await;
+
+			search.map_or(Vec::new(), |search| {
+				search
+					.hits
+					.into_iter()
+					.map(|pv| (pv.result.pv_id, pv.result.post))
+					.collect::<Vec<_>>()
+			})
+		}
+		ReservationType::Module => {
+			let index = state.meilisearch.index("modules");
+
+			let filter = (start..(start + length))
+				.map(|id| format!("module_id={id}"))
+				.intersperse(String::from(" OR "))
+				.collect::<String>();
+
+			let search = meilisearch_sdk::search::SearchQuery::new(&index)
+				.with_limit(10000)
+				.with_sort(&["module_id:asc"])
+				.with_filter(&filter)
+				.execute::<MeilisearchModule>()
+				.await;
+
+			search.map_or(Vec::new(), |search| {
+				search
+					.hits
+					.into_iter()
+					.map(|module| (module.result.module_id, module.result.post_id))
+					.collect::<Vec<_>>()
+			})
+		}
+		ReservationType::CstmItem => {
+			let index = state.meilisearch.index("cstm_items");
+
+			let filter = (start..(start + length))
+				.map(|id| format!("customize_item_id={id}"))
+				.intersperse(String::from(" OR "))
+				.collect::<String>();
+
+			let search = meilisearch_sdk::search::SearchQuery::new(&index)
+				.with_limit(10000)
+				.with_sort(&["customize_item_id:asc"])
+				.with_filter(&filter)
+				.execute::<MeilisearchCstmItem>()
+				.await;
+
+			search.map_or(Vec::new(), |search| {
+				search
+					.hits
+					.into_iter()
+					.map(|cstm_item| (cstm_item.result.customize_item_id, cstm_item.result.post_id))
+					.collect::<Vec<_>>()
+			})
+		}
+	};
+
+	let mut partial_range = Vec::new();
+	for (id, post) in conflicts {
+		let Some(post) = Post::get_short(post, &state.db).await else {
+			continue;
+		};
+		if post.authors.contains(&user) {
+			partial_range.push(id);
+		} else {
+			return ReserveRangeResult::InvalidRange;
+		}
+	}
+
+	let conflicts = sqlx::query!(
+		"SELECT u.id, r.range_start, r.length FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE (r.range_start >= $1 OR r.range_start + r.length > $1) AND r.range_start < $2",
+		start as i32,
+		(start + length) as i32
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default();
+
+	for conflict in conflicts {
+		if conflict.id == user.id {
+			for conflict in conflict.range_start..(conflict.range_start + conflict.length) {
+				if conflict >= start as i32 && conflict < (start + length) as i32 {
+					partial_range.push(conflict);
+				}
+			}
+		} else {
+			return ReserveRangeResult::InvalidRange;
+		}
+	}
+
+	if partial_range == ((start as i32)..(start as i32 + length as i32)).collect::<Vec<_>>() {
+		return ReserveRangeResult::InvalidRange;
+	}
+
+	if partial_range.len() > 0 {
+		return ReserveRangeResult::PartialValidRange(partial_range);
+	}
+
+	ReserveRangeResult::ValidRange
+}
+
+pub async fn get_user_max_reservations(
+	reservation_type: ReservationType,
+	user: &User,
+	state: &AppState,
+) -> i32 {
+	let existing_reservations = sqlx::query!(
+		"SELECT range_start, length FROM reservations WHERE reservation_type = $1 AND user_id = $2",
+		reservation_type as i32,
+		user.id
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default();
+
+	let user_posts = sqlx::query!(
+		"SELECT post_id FROM post_authors WHERE user_id = $1",
+		user.id
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default();
+
+	let ids = if user_posts.len() > 0 {
+		match reservation_type {
+			ReservationType::Song => {
+				let index = state.meilisearch.index("pvs");
+
+				let filter = user_posts
+					.iter()
+					.map(|post| format!("post={}", post.post_id))
+					.intersperse(String::from(" OR "))
+					.collect::<String>();
+
+				let search = meilisearch_sdk::search::SearchQuery::new(&index)
+					.with_limit(10000)
+					.with_sort(&["pv_id:asc"])
+					.with_filter(&filter)
+					.execute::<MeilisearchPv>()
+					.await;
+
+				search.map_or(BTreeSet::new(), |search| {
+					search
+						.hits
+						.into_iter()
+						.map(|pv| pv.result.pv_id)
+						.collect::<BTreeSet<_>>()
+				})
+			}
+			ReservationType::Module => {
+				let index = state.meilisearch.index("modules");
+
+				let filter = user_posts
+					.iter()
+					.map(|post| format!("post_id={}", post.post_id))
+					.intersperse(String::from(" OR "))
+					.collect::<String>();
+
+				let search = meilisearch_sdk::search::SearchQuery::new(&index)
+					.with_limit(10000)
+					.with_sort(&["module_id:asc"])
+					.with_filter(&filter)
+					.execute::<MeilisearchModule>()
+					.await;
+
+				search.map_or(BTreeSet::new(), |search| {
+					search
+						.hits
+						.into_iter()
+						.map(|module| module.result.module_id)
+						.collect::<BTreeSet<_>>()
+				})
+			}
+			ReservationType::CstmItem => {
+				let index = state.meilisearch.index("cstm_items");
+
+				let filter = user_posts
+					.iter()
+					.map(|post| format!("post_id={}", post.post_id))
+					.intersperse(String::from(" OR "))
+					.collect::<String>();
+
+				let search = meilisearch_sdk::search::SearchQuery::new(&index)
+					.with_limit(10000)
+					.with_sort(&["customize_item_id:asc"])
+					.with_filter(&filter)
+					.execute::<MeilisearchCstmItem>()
+					.await;
+
+				search.map_or(BTreeSet::new(), |search| {
+					search
+						.hits
+						.into_iter()
+						.map(|cstm_item| cstm_item.result.customize_item_id)
+						.collect::<BTreeSet<_>>()
+				})
+			}
+		}
+	} else {
+		BTreeSet::new()
+	};
+
+	let existing_reservations = existing_reservations
+		.iter()
+		.flat_map(|reservation| {
+			(reservation.range_start)..(reservation.range_start + reservation.length)
+		})
+		.filter(|reservation| !ids.contains(reservation))
+		.count();
+
+	30 + ids.len().next_multiple_of(10) as i32 - existing_reservations as i32
+}
+
+pub async fn web_find_reserve_range(
+	axum_extra::extract::Query(query): axum_extra::extract::Query<ReserveRangeArgs>,
+	user: User,
+	State(state): State<AppState>,
+) -> Json<i32> {
+	if query.start != 0 || query.length == 0 {
+		return Json(0);
+	}
+
+	Json(find_reservable_range(query.reservation_type, query.length, &user, &state).await)
+}
+
+pub async fn find_reservable_range(
+	reservation_type: ReservationType,
+	length: u32,
+	user: &User,
+	state: &AppState,
+) -> i32 {
+	let max = get_user_max_reservations(reservation_type, &user, &state).await;
+	if max < length as i32 {
+		return -1;
+	}
+
+	let mut reservations = sqlx::query!(
+		"SELECT range_start, length FROM reservations WHERE reservation_type = $1",
+		reservation_type as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.flat_map(|reservation| {
+		(reservation.range_start as u32)
+			..(reservation.range_start as u32 + reservation.length as u32)
+	})
+	.collect::<BTreeSet<_>>();
+
+	let mut ids = match reservation_type {
+		ReservationType::Song => {
+			let index = state.meilisearch.index("pvs");
+
+			let search = meilisearch_sdk::search::SearchQuery::new(&index)
+				.with_limit(100000)
+				.with_sort(&["pv_id:asc"])
+				.execute::<MeilisearchPv>()
+				.await;
+
+			search.map_or(BTreeSet::new(), |search| {
+				search
+					.hits
+					.into_iter()
+					.map(|pv| pv.result.pv_id as u32)
+					.collect::<BTreeSet<_>>()
+			})
+		}
+		ReservationType::Module => {
+			let index = state.meilisearch.index("modules");
+
+			let search = meilisearch_sdk::search::SearchQuery::new(&index)
+				.with_limit(100000)
+				.with_sort(&["module_id:asc"])
+				.execute::<MeilisearchModule>()
+				.await;
+
+			search.map_or(BTreeSet::new(), |search| {
+				search
+					.hits
+					.into_iter()
+					.map(|module| module.result.module_id as u32)
+					.collect::<BTreeSet<_>>()
+			})
+		}
+		ReservationType::CstmItem => {
+			let index = state.meilisearch.index("cstm_items");
+
+			let search = meilisearch_sdk::search::SearchQuery::new(&index)
+				.with_limit(100000)
+				.with_sort(&["customize_item_id:asc"])
+				.execute::<MeilisearchCstmItem>()
+				.await;
+
+			search.map_or(BTreeSet::new(), |search| {
+				search
+					.hits
+					.into_iter()
+					.map(|cstm_item| cstm_item.result.customize_item_id as u32)
+					.collect::<BTreeSet<_>>()
+			})
+		}
+	};
+
+	ids.append(&mut reservations);
+
+	let alignment = 10_u32
+		.checked_pow(length.checked_ilog10().unwrap_or(0))
+		.unwrap_or(1);
+
+	for (id, next) in ids.iter().tuple_windows() {
+		let res = (id + 1).next_multiple_of(alignment);
+		if res + length <= *next {
+			return res as i32;
+		}
+	}
+
+	ids.last()
+		.map_or(0, |id| id + 1)
+		.next_multiple_of(alignment) as i32
+}
+
+pub async fn optimise_reservations(reservation_type: ReservationType, state: &AppState) {
+	let users = sqlx::query_as!(
+		User,
+		r#"
+		SELECT DISTINCT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+		FROM reservations r
+		LEFT JOIN users u ON r.user_id = u.id
+		WHERE r.reservation_type = $1
+		"#,
+		reservation_type as i32
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default();
+
+	for user in users {
+		let reservered_ids = sqlx::query!(
+			r#"
+			SELECT * FROM reservations r
+			LEFT JOIN users u ON r.user_id = u.id
+			WHERE r.reservation_type = $1
+			AND r.user_id = $2
+			"#,
+			reservation_type as i32,
+			user.id,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default()
+		.iter()
+		.flat_map(|reservation| {
+			(reservation.range_start..(reservation.range_start + reservation.length))
+				.map(|id| (id, reservation.time.assume_offset(time::UtcOffset::UTC)))
+		})
+		.collect::<BTreeMap<_, _>>();
+
+		let user_posts = sqlx::query!(
+			r#"
+			SELECT post_id
+			FROM post_authors
+			WHERE user_id = $1
+			"#,
+			user.id,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default();
+
+		let ids = if user_posts.len() > 0 {
+			match reservation_type {
+				ReservationType::Song => {
+					let index = state.meilisearch.index("pvs");
+
+					let filter = user_posts
+						.iter()
+						.map(|post| format!("post={}", post.post_id))
+						.intersperse(String::from(" OR "))
+						.collect::<String>();
+
+					let search = meilisearch_sdk::search::SearchQuery::new(&index)
+						.with_limit(10000)
+						.with_sort(&["pv_id:asc"])
+						.with_filter(&filter)
+						.execute::<MeilisearchPv>()
+						.await;
+
+					search.map_or(BTreeSet::new(), |search| {
+						search
+							.hits
+							.into_iter()
+							.map(|pv| pv.result.pv_id)
+							.collect::<BTreeSet<_>>()
+					})
+				}
+				ReservationType::Module => {
+					let index = state.meilisearch.index("modules");
+
+					let filter = user_posts
+						.iter()
+						.map(|post| format!("post_id={}", post.post_id))
+						.intersperse(String::from(" OR "))
+						.collect::<String>();
+
+					let search = meilisearch_sdk::search::SearchQuery::new(&index)
+						.with_limit(10000)
+						.with_sort(&["module_id:asc"])
+						.with_filter(&filter)
+						.execute::<MeilisearchModule>()
+						.await;
+
+					search.map_or(BTreeSet::new(), |search| {
+						search
+							.hits
+							.into_iter()
+							.map(|module| module.result.module_id)
+							.collect::<BTreeSet<_>>()
+					})
+				}
+				ReservationType::CstmItem => {
+					let index = state.meilisearch.index("cstm_items");
+
+					let filter = user_posts
+						.iter()
+						.map(|post| format!("post_id={}", post.post_id))
+						.intersperse(String::from(" OR "))
+						.collect::<String>();
+
+					let search = meilisearch_sdk::search::SearchQuery::new(&index)
+						.with_limit(10000)
+						.with_sort(&["customize_item_id:asc"])
+						.with_filter(&filter)
+						.execute::<MeilisearchCstmItem>()
+						.await;
+
+					search.map_or(BTreeSet::new(), |search| {
+						search
+							.hits
+							.into_iter()
+							.map(|cstm_item| cstm_item.result.customize_item_id)
+							.collect::<BTreeSet<_>>()
+					})
+				}
+			}
+		} else {
+			BTreeSet::new()
+		};
+
+		let mut ranges: Vec<Reservation> = Vec::new();
+		for id in reservered_ids
+			.keys()
+			.cloned()
+			.collect::<BTreeSet<_>>()
+			.difference(&ids)
+		{
+			if let Some(last) = ranges.last_mut() {
+				if last.range_start + last.length == *id {
+					last.length += 1;
+					if reservered_ids[id] > last.time {
+						last.time = reservered_ids[id];
+					}
+				} else {
+					ranges.push(Reservation {
+						user: user.clone(),
+						reservation_type,
+						range_start: *id,
+						length: 1,
+						time: reservered_ids[id],
+					});
+				}
+			} else {
+				ranges.push(Reservation {
+					user: user.clone(),
+					reservation_type,
+					range_start: *id,
+					length: 1,
+					time: reservered_ids[id],
+				});
+			}
+		}
+
+		_ = sqlx::query!(
+			r#"
+			UPDATE reservations r
+			SET time = '2000-01-01'
+			WHERE r.reservation_type = $1
+			AND r.user_id = $2
+			"#,
+			reservation_type as i32,
+			user.id,
+		)
+		.execute(&state.db)
+		.await;
+
+		for reservation in ranges {
+			_ = sqlx::query!(
+				"INSERT INTO reservations VALUES($1, $2, $3, $4, $5)",
+				reservation.user.id,
+				reservation.reservation_type as i32,
+				reservation.range_start,
+				reservation.length,
+				time::PrimitiveDateTime::new(reservation.time.date(), reservation.time.time()),
+			)
+			.execute(&state.db)
+			.await;
+		}
+
+		_ = sqlx::query!(
+			r#"
+			DELETE FROM reservations r
+			WHERE time = '2000-01-01'
+			AND r.reservation_type = $1
+			AND r.user_id = $2
+			"#,
+			reservation_type as i32,
+			user.id,
+		)
+		.execute(&state.db)
+		.await;
+	}
 }

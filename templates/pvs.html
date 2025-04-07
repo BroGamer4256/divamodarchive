@@ -240,6 +240,11 @@
 <div class="row col-6 offset-3">
 	<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 </div>
+<div class="row m-2">
+	<div class="col-6 offset-3">
+		<a class="btn btn-primary" style="width: 100%" href="/pv_spreadsheet">View All</a>
+	</div>
+</div>
 <br>
 {% call pv_helpers::draw_pv_list(pvs, true) %}
 <br>

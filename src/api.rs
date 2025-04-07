@@ -1,14 +1,10 @@
 use crate::AppState;
-use axum::{extract::*, routing::*, Router};
+use axum::{routing::*, Router};
 use ids::*;
 use posts::*;
 
 pub mod ids;
 pub mod posts;
-
-async fn extract_post(Path(id): Path<i32>, State(state): State<AppState>) {
-	ids::extract_post_data(id, state).await;
-}
 
 pub fn route(state: AppState) -> Router {
 	Router::new()
@@ -33,7 +29,12 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/ids/pvs", get(search_pvs))
 		.route("/api/v1/ids/modules", get(search_modules))
 		.route("/api/v1/ids/cstm_items", get(search_cstm_items))
-		.route("/api/v1/ids/extract/:id", get(extract_post))
+		.route("/api/v1/reserve/check", get(web_check_reserve_range))
+		.route("/api/v1/reserve/find", get(web_find_reserve_range))
+		.route(
+			"/api/v1/reserve",
+			post(create_reservation).delete(delete_reservation),
+		)
 		.layer(tower_http::cors::CorsLayer::permissive())
 		.with_state(state)
 }

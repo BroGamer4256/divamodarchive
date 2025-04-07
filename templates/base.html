@@ -205,18 +205,16 @@
 								<a class="dropdown-item" href="/cstm_items">Customize Items</a>
 							</div>
 						</li>
-						<!--
 						<li class="nav-item dropdown">
 							<a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Modding</a>
 							<div class="dropdown-menu">
-								<a class="dropdown-item" href="/guides">Guides</a>
-								<a class="dropdown-item" href="/tools">Tools</a>
+								<!-- <a class="dropdown-item" href="/guides">Guides</a> -->
+								<!-- <a class="dropdown-item" href="/tools">Tools</a> -->
 								<a class="dropdown-item" href="/pv_spreadsheet">PV IDs</a>
-								<a class="dropdown-item" href="/module_spreadsheet">Module IDs</a>
-								<a class="dropdown-item" href="/cstm_item_spreadsheet">Customize Item IDs</a>
+								<!-- <a class="dropdown-item" href="/module_spreadsheet">Module IDs</a> -->
+								<!-- <a class="dropdown-item" href="/cstm_item_spreadsheet">Customize Item IDs</a> -->
 							</div>
 						</li>
-						-->
 						<li class="nav-item">
 							<a class="nav-link" href="/about">About</a>
 						</li>
@@ -230,6 +228,7 @@
 						<div class="dropdown-menu">
 							<a class="dropdown-item" href="/user/{{ user.id }}">Profile</a>
 							<a class="dropdown-item" href="/liked/{{ user.id }}">Liked Mods</a>
+							<a class="dropdown-item" href="/reservations/{{ user.id }}">Reserved IDs</a>
 							<a class="dropdown-item" href="/settings">Settings</a>
 							{% if user.is_admin(base.config) %}
 							<a class="dropdown-item" href="/admin">Admin{% if let Some(report_count) = base.report_count %} - {{ report_count }}{% endif %}</a>

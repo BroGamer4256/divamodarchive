@@ -89,7 +89,7 @@
 			},
 		}
 
-		var image_upload_url = await fetch('https://divamodarchive.com/api/v1/posts/upload_image', options)
+		var image_upload_url = await fetch('/api/v1/posts/upload_image', options)
 			.then(response => response.text())
 			.catch(error => crash_and_burn(error, "Failed to upload image"));
 		if (image_upload_url == null) {
@@ -128,7 +128,7 @@
 					'Authorization': 'Bearer {{ jwt }}'
 				}
 			}
-			var extra_image_upload_url = await fetch('https://divamodarchive.com/api/v1/posts/upload_image', options)
+			var extra_image_upload_url = await fetch('/api/v1/posts/upload_image', options)
 				.then(response => response.text())
 				.catch(error => crash_and_burn(error, "Failed to upload image"));
 			if (extra_image_upload_url == null) {

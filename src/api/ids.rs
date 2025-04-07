@@ -1279,6 +1279,9 @@ pub async fn check_reserve_range(
 
 	let mut partial_range = Vec::new();
 	for (id, post) in conflicts {
+		if post == -1 {
+			return ReserveRangeResult::InvalidRange;
+		}
 		let Some(post) = Post::get_short(post, &state.db).await else {
 			continue;
 		};
@@ -1327,7 +1330,7 @@ pub async fn get_user_max_reservations(
 	state: &AppState,
 ) -> i32 {
 	let existing_reservations = sqlx::query!(
-		"SELECT range_start, length FROM reservations WHERE reservation_type = $1 AND user_id = $2",
+		"SELECT range_start, length FROM reservations WHERE reservation_type = $1 AND user_id = $2 AND time != '1970-01-01'",
 		reservation_type as i32,
 		user.id
 	)
@@ -1430,7 +1433,7 @@ pub async fn get_user_max_reservations(
 		.filter(|reservation| !ids.contains(reservation))
 		.count();
 
-	30 + ids.len().next_multiple_of(10) as i32 - existing_reservations as i32
+	30 + (ids.len() / 2).next_multiple_of(10) as i32 - existing_reservations as i32
 }
 
 pub async fn web_find_reserve_range(

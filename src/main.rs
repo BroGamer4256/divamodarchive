@@ -211,10 +211,6 @@ async fn main() {
 	axum::serve(listener, router).await.unwrap();
 }
 
-pub async fn fallback() -> &'static str {
-	"TEST!"
-}
-
 pub async fn robots() -> &'static str {
 	"User-agent: *\nDisallow: /api/\nSitemap: https://divamodarchive.com/sitemap.xml"
 }

@@ -224,10 +224,12 @@
 		loadMore();
 	}
 </script>
-<div class="row col-6 offset-3">
-	<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
+<div class="fixed-top container floating-search">
+	<div class="row col-6 offset-3" style="padding-top: 0.66rem">
+		<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
+	</div>
 </div>
-<br>
+<br><br>
 {% call module_helpers::draw_module_list(modules, true) %}
 <br>
 <button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if modules.modules.len() < 20 %}hidden{% endif %}>Load more</button>

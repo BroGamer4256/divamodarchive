@@ -237,9 +237,12 @@
 		loadMore();
 	}
 </script>
-<div class="row col-6 offset-3">
-	<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
+<div class="fixed-top container floating-search">
+	<div class="row col-6 offset-3" style="padding-top: 0.66rem">
+		<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
+	</div>
 </div>
+<br><br>
 <div class="row m-2">
 	<div class="col-6 offset-3">
 		<a class="btn btn-primary" style="width: 100%" href="/pv_spreadsheet">View All</a>

@@ -28,34 +28,36 @@
 		}
 	}
 </script>
-<div class="row-md col-md-6 offset-md-3">
-	<div class="row gx-3 gy-1">
-		<div class="col col-6">
-			<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query"
-				id="searchQuery" autocomplete="off">
-		</div>
-		<div class="col col-3">
-			<select onchange="newLoad()" name="sort" id="searchSort" class="form-select">
-				<option value="time:desc">Newest</option>
-				<option value="time:asc">Oldest</option>
-				<option value="download_count:desc">Downloads</option>
-				<option value="like_count:desc">Likes</option>
-			</select>
-		</div>
-		<div class="col col-3">
-			<select onchange="newLoad()" name="filter" id="searchFilter" class="form-select">
-				<option value="">Any</option>
-				<option value="post_type=Song">Song</option>
-				<option value="post_type=Cover">Cover</option>
-				<option value="post_type=Module">Module</option>
-				<option value="post_type=UI">UI</option>
-				<option value="post_type=Plugin">Plugin</option>
-				<option value="post_type=Other">Other</option>
-			</select>
+<div class="fixed-top container floating-search">
+	<div class="row-md col-md-6 offset-md-3" style="padding-top: 0.66rem">
+		<div class="row gx-3 gy-1">
+			<div class="col col-6">
+				<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query"
+					id="searchQuery" autocomplete="off">
+			</div>
+			<div class="col col-3">
+				<select onchange="newLoad()" name="sort" id="searchSort" class="form-select">
+					<option value="time:desc">Newest</option>
+					<option value="time:asc">Oldest</option>
+					<option value="download_count:desc">Downloads</option>
+					<option value="like_count:desc">Likes</option>
+				</select>
+			</div>
+			<div class="col col-3">
+				<select onchange="newLoad()" name="filter" id="searchFilter" class="form-select">
+					<option value="">Any</option>
+					<option value="post_type=Song">Song</option>
+					<option value="post_type=Cover">Cover</option>
+					<option value="post_type=Module">Module</option>
+					<option value="post_type=UI">UI</option>
+					<option value="post_type=Plugin">Plugin</option>
+					<option value="post_type=Other">Other</option>
+				</select>
+			</div>
 		</div>
 	</div>
 </div>
-<br>
+<br><br>
 {% call post_helpers::draw_post_list(posts) %}
 <br>
 <button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if posts.len() != 20 %}hidden{% endif %}>Load more</button>

@@ -485,11 +485,19 @@ where
 		parts: &mut axum::http::request::Parts,
 		state: &S,
 	) -> Result<Self, Self::Rejection> {
-		Ok(Self {
-			base: crate::web::BaseTemplate::from_request_parts(parts, state)
-				.await
-				.unwrap(),
-		})
+		let auth = parts.headers.remove(AUTHORIZATION);
+		let cookie = parts.headers.remove(COOKIE);
+		let base = crate::web::BaseTemplate::from_request_parts(parts, state)
+			.await
+			.unwrap();
+		if let Some(cookie) = cookie {
+			parts.headers.insert(COOKIE, cookie);
+		}
+		if let Some(auth) = auth {
+			parts.headers.insert(AUTHORIZATION, auth);
+		}
+
+		Ok(Self { base })
 	}
 }
 
@@ -601,10 +609,7 @@ pub async fn login(
 		.parse()
 		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 	let avatar = if let Some(avatar) = response.avatar {
-		format!(
-			"https://cdn.discordapp.com/avatars/{}/{}.png",
-			id, avatar
-		)
+		format!("https://cdn.discordapp.com/avatars/{}/{}.png", id, avatar)
 	} else {
 		let discriminator: i32 = response.discriminator.parse().unwrap_or_default();
 		format!(

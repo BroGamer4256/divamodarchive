@@ -171,13 +171,19 @@ async fn liked(
 	Path(id): Path<i64>,
 	base: BaseTemplate,
 	State(state): State<AppState>,
-) -> Result<LikedTemplate, Result<UnauthorizedTemplate, StatusCode>> {
+) -> Result<LikedTemplate, ErrorTemplate> {
 	let Some(owner) = User::get(id, &state.db).await else {
-		return Err(Err(StatusCode::BAD_REQUEST));
+		return Err(ErrorTemplate {
+			base,
+			status: StatusCode::BAD_REQUEST,
+		});
 	};
 
 	if !owner.public_likes && !base.user.as_ref().map_or(false, |user| user.id == owner.id) {
-		return Err(Ok(UnauthorizedTemplate { base }));
+		return Err(ErrorTemplate {
+			base,
+			status: StatusCode::UNAUTHORIZED,
+		});
 	}
 
 	let liked_posts = sqlx::query!(
@@ -192,7 +198,10 @@ async fn liked(
 	)
 	.fetch_all(&state.db)
 	.await
-	.map_err(|_| Err(StatusCode::INTERNAL_SERVER_ERROR))?;
+	.map_err(|_| ErrorTemplate {
+		base: base.clone(),
+		status: StatusCode::INTERNAL_SERVER_ERROR,
+	})?;
 
 	let mut posts = Vec::new();
 	for post in liked_posts {
@@ -219,9 +228,12 @@ async fn user(
 	Path(id): Path<i64>,
 	base: BaseTemplate,
 	State(state): State<AppState>,
-) -> Result<UserTemplate, StatusCode> {
+) -> Result<UserTemplate, ErrorTemplate> {
 	let Some(owner) = User::get(id, &state.db).await else {
-		return Err(StatusCode::BAD_REQUEST);
+		return Err(ErrorTemplate {
+			base,
+			status: StatusCode::BAD_REQUEST,
+		});
 	};
 
 	let user_posts = sqlx::query!(
@@ -236,7 +248,10 @@ async fn user(
 	)
 	.fetch_all(&state.db)
 	.await
-	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+	.map_err(|_| ErrorTemplate {
+		base: base.clone(),
+		status: StatusCode::BAD_REQUEST,
+	})?;
 
 	let mut posts = Vec::new();
 	for post in user_posts {
@@ -279,9 +294,12 @@ async fn user_reservations(
 	Path(id): Path<i64>,
 	base: BaseTemplate,
 	State(state): State<AppState>,
-) -> Result<UserReservationsTemplate, StatusCode> {
+) -> Result<UserReservationsTemplate, ErrorTemplate> {
 	let Some(owner) = User::get(id, &state.db).await else {
-		return Err(StatusCode::BAD_REQUEST);
+		return Err(ErrorTemplate {
+			base,
+			status: StatusCode::BAD_REQUEST,
+		});
 	};
 
 	let song_reservations = sqlx::query!(
@@ -394,9 +412,12 @@ async fn upload(
 	update_id: Option<Path<i32>>,
 	user: User,
 	State(state): State<AppState>,
-) -> Result<UploadTemplate, StatusCode> {
+) -> Result<UploadTemplate, ErrorTemplate> {
 	let Some(jwt) = base.jwt.clone() else {
-		return Err(StatusCode::UNAUTHORIZED);
+		return Err(ErrorTemplate {
+			base,
+			status: StatusCode::UNAUTHORIZED,
+		});
 	};
 
 	let post = if let Some(Path(id)) = update_id {
@@ -404,10 +425,16 @@ async fn upload(
 			if post.authors.contains(&user) {
 				Some(post)
 			} else {
-				return Err(StatusCode::UNAUTHORIZED);
+				return Err(ErrorTemplate {
+					base,
+					status: StatusCode::UNAUTHORIZED,
+				});
 			}
 		} else {
-			return Err(StatusCode::UNAUTHORIZED);
+			return Err(ErrorTemplate {
+				base,
+				status: StatusCode::UNAUTHORIZED,
+			});
 		}
 	} else {
 		None
@@ -456,9 +483,12 @@ async fn post_detail(
 	user: Option<User>,
 	State(state): State<AppState>,
 	base: BaseTemplate,
-) -> Result<PostTemplate, Result<UnauthorizedTemplate, StatusCode>> {
+) -> Result<PostTemplate, ErrorTemplate> {
 	let Some(post) = Post::get_full(id, &state.db).await else {
-		return Err(Err(StatusCode::NOT_FOUND));
+		return Err(ErrorTemplate {
+			base,
+			status: StatusCode::NOT_FOUND,
+		});
 	};
 
 	let has_liked = if let Some(user) = &user {
@@ -470,7 +500,10 @@ async fn post_detail(
 		.fetch_one(&state.db)
 		.await
 		else {
-			return Err(Err(StatusCode::INTERNAL_SERVER_ERROR));
+			return Err(ErrorTemplate {
+				base,
+				status: StatusCode::INTERNAL_SERVER_ERROR,
+			});
 		};
 
 		has_liked.count.unwrap_or(0) > 0
@@ -762,7 +795,7 @@ struct SearchTemplate {
 async fn search(
 	base: BaseTemplate,
 	State(state): State<AppState>,
-) -> Result<SearchTemplate, StatusCode> {
+) -> Result<SearchTemplate, ErrorTemplate> {
 	let latest_posts = sqlx::query!(
 		r#"
 		SELECT id
@@ -773,7 +806,10 @@ async fn search(
 	)
 	.fetch_all(&state.db)
 	.await
-	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+	.map_err(|_| ErrorTemplate {
+		base: base.clone(),
+		status: StatusCode::INTERNAL_SERVER_ERROR,
+	})?;
 
 	let mut posts = Vec::new();
 	for post in latest_posts {
@@ -808,9 +844,12 @@ async fn report(
 	base: BaseTemplate,
 	_: User,
 	State(state): State<AppState>,
-) -> Result<ReportTemplate, StatusCode> {
+) -> Result<ReportTemplate, ErrorTemplate> {
 	let Some(post) = Post::get_short(id, &state.db).await else {
-		return Err(StatusCode::NOT_FOUND);
+		return Err(ErrorTemplate {
+			base,
+			status: StatusCode::NOT_FOUND,
+		});
 	};
 
 	Ok(ReportTemplate { base, post })
@@ -823,7 +862,7 @@ struct PvsTemplate {
 	pvs: PvSearch,
 }
 
-async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTemplate, StatusCode> {
+async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> PvsTemplate {
 	let Json(pvs) = crate::api::ids::search_pvs(
 		axum_extra::extract::Query(SearchParams {
 			query: None,
@@ -836,7 +875,7 @@ async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> Result<PvsTem
 	.await
 	.unwrap_or_default();
 
-	return Ok(PvsTemplate { base, pvs });
+	return PvsTemplate { base, pvs };
 }
 
 #[derive(Template)]
@@ -846,10 +885,7 @@ struct ModulesTemplate {
 	modules: ModuleSearch,
 }
 
-async fn modules(
-	base: BaseTemplate,
-	State(state): State<AppState>,
-) -> Result<ModulesTemplate, StatusCode> {
+async fn modules(base: BaseTemplate, State(state): State<AppState>) -> ModulesTemplate {
 	let Json(modules) = crate::api::ids::search_modules(
 		axum_extra::extract::Query(SearchParams {
 			query: None,
@@ -862,7 +898,7 @@ async fn modules(
 	.await
 	.unwrap_or_default();
 
-	return Ok(ModulesTemplate { base, modules });
+	return ModulesTemplate { base, modules };
 }
 
 #[derive(Template)]
@@ -872,10 +908,7 @@ struct CstmItemsTemplate {
 	cstm_items: CstmItemSearch,
 }
 
-async fn cstm_items(
-	base: BaseTemplate,
-	State(state): State<AppState>,
-) -> Result<CstmItemsTemplate, StatusCode> {
+async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmItemsTemplate {
 	let Json(cstm_items) = crate::api::ids::search_cstm_items(
 		axum_extra::extract::Query(SearchParams {
 			query: None,
@@ -888,7 +921,7 @@ async fn cstm_items(
 	.await
 	.unwrap_or_default();
 
-	return Ok(CstmItemsTemplate { base, cstm_items });
+	return CstmItemsTemplate { base, cstm_items };
 }
 
 // This code fucking sucks
@@ -975,21 +1008,17 @@ struct ReserveTemplate {
 	remaining_cstm_item_reservations: i32,
 }
 
-async fn reserve(
-	base: BaseTemplate,
-	user: User,
-	State(state): State<AppState>,
-) -> Result<ReserveTemplate, StatusCode> {
+async fn reserve(base: BaseTemplate, user: User, State(state): State<AppState>) -> ReserveTemplate {
 	let remaining_song_reservations =
 		get_user_max_reservations(ReservationType::Song, &user, &state).await;
 	let remaining_module_reservations =
 		get_user_max_reservations(ReservationType::Module, &user, &state).await;
 	let remaining_cstm_item_reservations =
 		get_user_max_reservations(ReservationType::CstmItem, &user, &state).await;
-	Ok(ReserveTemplate {
+	ReserveTemplate {
 		base,
 		remaining_song_reservations,
 		remaining_module_reservations,
 		remaining_cstm_item_reservations,
-	})
+	}
 }

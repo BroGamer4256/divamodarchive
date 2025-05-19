@@ -194,6 +194,7 @@ async fn main() {
 		.route("/dma_black.png", get(dma_black))
 		.route("/sitemap.xml", get(sitemap::sitemap))
 		.route("/login", get(login))
+		.fallback(not_found)
 		.layer(axum::extract::DefaultBodyLimit::disable())
 		.layer(
 			tower_http::compression::CompressionLayer::new()
@@ -225,4 +226,11 @@ pub async fn dma_black() -> (HeaderMap, &'static [u8]) {
 	let mut headers = HeaderMap::new();
 	headers.insert("content-type", "image/png".parse().unwrap());
 	(headers, include_bytes!("../static/DMA_BLACK.png"))
+}
+
+pub async fn not_found(base: web::BaseTemplate) -> ErrorTemplate {
+	ErrorTemplate {
+		base,
+		status: reqwest::StatusCode::NOT_FOUND,
+	}
 }

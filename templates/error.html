@@ -2,17 +2,13 @@
 {% import "base.html" as base %}
 
 {% block head %}
-{% call base::draw_embed("Unauthorized", "", "") %}
+{% call base::draw_embed("", "", "") %}
 {% endblock head %}
 
 {% block content %}
 <div class="card card-body">
 	<div class="text-center">
-		<h3 class="text">Unauthorized</h3>
-		<p class="text">
-			You do not have access to this page.<br>
-			You must login to access this content.
-		</p>
+		<h3 class="text mb-0">{{ status.as_str() }} {{ status.canonical_reason().unwrap_or_default() }}</h3>
 	</div>
 </div>
 {% endblock content %}

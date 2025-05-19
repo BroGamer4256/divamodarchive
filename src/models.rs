@@ -468,23 +468,21 @@ impl User {
 }
 
 #[derive(askama::Template)]
-#[template(path = "unauthorized.html")]
-pub struct UnauthorizedTemplate {
+#[template(path = "error.html")]
+pub struct ErrorTemplate {
 	pub base: crate::web::BaseTemplate,
+	pub status: StatusCode,
 }
 
 #[axum::async_trait]
-impl<S> FromRequestParts<S> for UnauthorizedTemplate
+impl<S> FromRequestParts<S> for User
 where
 	S: Send + Sync,
 	AppState: FromRef<S>,
 {
-	type Rejection = std::convert::Infallible;
+	type Rejection = ErrorTemplate;
 
-	async fn from_request_parts(
-		parts: &mut axum::http::request::Parts,
-		state: &S,
-	) -> Result<Self, Self::Rejection> {
+	async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
 		let auth = parts.headers.remove(AUTHORIZATION);
 		let cookie = parts.headers.remove(COOKIE);
 		let base = crate::web::BaseTemplate::from_request_parts(parts, state)
@@ -497,33 +495,22 @@ where
 			parts.headers.insert(AUTHORIZATION, auth);
 		}
 
-		Ok(Self { base })
-	}
-}
-
-#[axum::async_trait]
-impl<S> FromRequestParts<S> for User
-where
-	S: Send + Sync,
-	AppState: FromRef<S>,
-{
-	type Rejection = UnauthorizedTemplate;
-
-	async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
 		let cookies = parts.extract::<CookieJar>().await.unwrap();
 		let cookie = cookies.get(&AUTHORIZATION.to_string());
 		let token = match cookie {
 			Some(cookie) => String::from(cookie.value()),
 			None => {
 				let Some(auth) = parts.headers.get(AUTHORIZATION) else {
-					return Err(UnauthorizedTemplate::from_request_parts(parts, state)
-						.await
-						.unwrap());
+					return Err(ErrorTemplate {
+						base,
+						status: StatusCode::UNAUTHORIZED,
+					});
 				};
 				let Ok(auth) = auth.to_str() else {
-					return Err(UnauthorizedTemplate::from_request_parts(parts, state)
-						.await
-						.unwrap());
+					return Err(ErrorTemplate {
+						base,
+						status: StatusCode::UNAUTHORIZED,
+					});
 				};
 				auth.replace("Bearer ", "")
 			}
@@ -531,9 +518,10 @@ where
 		let app_state: AppState = AppState::from_ref(state);
 
 		let Ok(user) = Self::parse(&token, &app_state).await else {
-			return Err(UnauthorizedTemplate::from_request_parts(parts, state)
-				.await
-				.unwrap());
+			return Err(ErrorTemplate {
+				base,
+				status: StatusCode::UNAUTHORIZED,
+			});
 		};
 
 		Ok(user)

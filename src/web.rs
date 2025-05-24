@@ -790,12 +790,32 @@ async fn post_detail(
 struct SearchTemplate {
 	base: BaseTemplate,
 	posts: Vec<Post>,
+	query: Option<crate::api::posts::SearchParams>,
 }
 
 async fn search(
+	axum_extra::extract::Query(query): axum_extra::extract::Query<crate::api::posts::SearchParams>,
 	base: BaseTemplate,
 	State(state): State<AppState>,
 ) -> Result<SearchTemplate, ErrorTemplate> {
+	if query.query.is_some() || query.sort.is_some() || query.filter.is_some() {
+		let Json(posts) = crate::api::posts::search_posts(
+			axum_extra::extract::Query(query.clone()),
+			State(state.clone()),
+		)
+		.await
+		.map_err(|(status, _)| ErrorTemplate {
+			base: base.clone(),
+			status,
+		})?;
+
+		return Ok(SearchTemplate {
+			base,
+			posts,
+			query: Some(query),
+		});
+	}
+
 	let latest_posts = sqlx::query!(
 		r#"
 		SELECT id
@@ -818,7 +838,11 @@ async fn search(
 		}
 	}
 
-	Ok(SearchTemplate { base, posts })
+	Ok(SearchTemplate {
+		base,
+		posts,
+		query: None,
+	})
 }
 
 #[derive(Template)]

@@ -76,17 +76,13 @@
 
 		async function search(query, sort, filter, offset) {
 			var params = new URLSearchParams();
-			if (query != null) params.append("query", query);
-			if (sort != null) params.append("sort", sort);
-			if (filter != null) params.append("filter", filter);
-			if (offset != null) params.append("offset", offset);
+			if (query != null && query != "") params.append("query", query);
+			if (sort != null && sort != "" && sort != "time:desc") params.append("sort", sort);
+			if (filter != null && filter != "" && filter != "null") params.append("filter", filter);
+			if (offset != null && offset != 0) params.append("offset", offset);
 			params.append("limit", "20");
 
-			var options = {
-				method: 'GET',
-			}
-
-			return await fetch("/api/v1/posts?" + params.toString(), options).then(res => res.json());
+			return await fetch("/api/v1/posts?" + params.toString(), {method: 'GET'}).then(res => res.json());
 		}
 
 		function logout() {
@@ -228,7 +224,7 @@
 					</ul>
 					{% if let Some(user) = base.user %}
 					<div class="nav-item" style="padding: 0.5rem">
-						<a class="nav-link" href="/upload">Upload Mod</a>
+						<a class="nav-link" href="/upload">Upload</a>
 					</div>
 					<div class="nav-item dropdown" style="padding: 0.5rem">
 						<a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">{{ user.display_name }}</a>

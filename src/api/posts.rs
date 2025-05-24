@@ -470,7 +470,7 @@ pub async fn get_multiple_posts(
 	search_posts(axum_extra::extract::Query(params), State(state)).await
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SearchParams {
 	pub query: Option<String>,
 	pub sort: Option<Vec<String>>,

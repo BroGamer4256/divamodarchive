@@ -9,16 +9,28 @@
 {% block content %}
 <script>
 	async function newLoad() {
-		document.getElementById("posts").innerHTML = "";
-		loadMore();
-	}
+		loadMore(true);
 
-	async function loadMore() {
-		document.getElementById("loadMore").hidden = true;
+		var url = new URL(window.location.origin);
 
+		var query = document.getElementById("searchQuery").value;
+		var sort = document.getElementById("searchSort").value;
 		var filter = document.getElementById("searchFilter").value;
 
-		var posts = await search(document.getElementById("searchQuery").value, document.getElementById("searchSort").value, filter, document.getElementById("posts").children.length);
+		if (query != null && query != "") url.searchParams.append("query", query);
+		if (sort != null && sort != "" && sort != "time:desc") url.searchParams.append("sort", sort);
+		if (filter != null && filter != "" && filter != "null") url.searchParams.append("filter", filter);
+
+		window.history.pushState({query: query, sort: sort, filter: filter}, "", url);
+	}
+
+	async function loadMore(clear) {
+		document.getElementById("loadMore").hidden = true;
+
+		var posts = await search(document.getElementById("searchQuery").value, document.getElementById("searchSort").value, document.getElementById("searchFilter").value, clear ? 0 : document.getElementById("posts").children.length);
+		if (clear) {
+			document.getElementById("posts").innerHTML = "";
+		}
 		for (var post of posts) {
 			document.getElementById("posts").append(getPostHtml(post));
 		}
@@ -27,16 +39,30 @@
 			document.getElementById("loadMore").hidden = false;
 		}
 	}
+
+	window.addEventListener("popstate", (event) => {
+		if (event.state != null) {
+			document.getElementById("searchQuery").value = event.state.query;
+			document.getElementById("searchSort").value = event.state.sort;
+			document.getElementById("searchFilter").value = event.state.filter;
+		} else {
+			document.getElementById("searchQuery").value = null;
+			document.getElementById("searchSort").value = "";
+			document.getElementById("searchFilter").value = "null";
+		}
+
+		loadMore(true);
+	});
 </script>
 <div class="fixed-top container floating-search">
 	<div class="row-md col-md-6 offset-md-3" style="padding-top: 0.66rem">
 		<div class="row gx-3 gy-1">
 			<div class="col col-6">
-				<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query"
-					id="searchQuery" autocomplete="off">
+				<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 			</div>
 			<div class="col col-3">
 				<select onchange="newLoad()" name="sort" id="searchSort" class="form-select">
+					<option value="" selected disabled hidden>Sort</option>
 					<option value="time:desc">Newest</option>
 					<option value="time:asc">Oldest</option>
 					<option value="download_count:desc">Downloads</option>
@@ -44,7 +70,8 @@
 				</select>
 			</div>
 			<div class="col col-3">
-				<select onchange="newLoad()" name="filter" id="searchFilter" class="form-select">
+				<select onchange="newLoad()" name="filter" id="searchFilter" class="form-select" value="post_type=Cover">
+					<option value="null" selected disabled hidden>Filter</option>
 					<option value="">Any</option>
 					<option value="post_type=Song">Song</option>
 					<option value="post_type=Cover">Cover</option>
@@ -57,8 +84,33 @@
 		</div>
 	</div>
 </div>
+<script>
+	// No this shouldn't be done client-side, but the other option is a *fucking* mess
+	// To select an option by default the value needs to be on that option rather than the select
+	{% if let Some(query) = query %}
+		var query = "";
+		var sort = "";
+		var filter = "null";
+
+		{% if let Some(query) = query.query %}
+			query = "{{ query }}";
+			document.getElementById("searchQuery").value = query;
+		{% endif %}
+		{% if let Some(sort) = query.sort %}
+			{% if let Some(sort) = sort.first() %}
+				sort = "{{ sort }}";
+				document.getElementById("searchSort").value = sort;
+			{% endif %}
+		{% endif %}
+		{% if let Some(filter) = query.filter %}
+			filter = "{{ filter }}";
+			document.getElementById("searchFilter").value = filter;
+		{% endif %}
+		window.history.pushState({query: query, sort: sort, filter: filter}, "");
+	{% endif %}
+</script>
 <br><br>
 {% call post_helpers::draw_post_list(posts) %}
 <br>
-<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if posts.len() != 20 %}hidden{% endif %}>Load more</button>
+<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if posts.len() != 20 %}hidden{% endif %}>Load more</button>
 {% endblock content %}

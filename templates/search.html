@@ -84,31 +84,31 @@
 		</div>
 	</div>
 </div>
+{% if let Some(query) = query %}
 <script>
 	// No this shouldn't be done client-side, but the other option is a *fucking* mess
 	// To select an option by default the value needs to be on that option rather than the select
-	{% if let Some(query) = query %}
-		var query = "";
-		var sort = "";
-		var filter = "null";
+	var query = "";
+	var sort = "";
+	var filter = "null";
 
-		{% if let Some(query) = query.query %}
-			query = "{{ query }}";
-			document.getElementById("searchQuery").value = query;
-		{% endif %}
-		{% if let Some(sort) = query.sort %}
-			{% if let Some(sort) = sort.first() %}
-				sort = "{{ sort }}";
-				document.getElementById("searchSort").value = sort;
-			{% endif %}
-		{% endif %}
-		{% if let Some(filter) = query.filter %}
-			filter = "{{ filter }}";
-			document.getElementById("searchFilter").value = filter;
-		{% endif %}
-		window.history.pushState({query: query, sort: sort, filter: filter}, "");
+	{% if let Some(query) = query.query %}
+		query = "{{ query }}";
+		document.getElementById("searchQuery").value = query;
 	{% endif %}
+	{% if let Some(sort) = query.sort %}
+		{% if let Some(sort) = sort.first() %}
+			sort = "{{ sort }}";
+			document.getElementById("searchSort").value = sort;
+		{% endif %}
+	{% endif %}
+	{% if let Some(filter) = query.filter %}
+		filter = "{{ filter }}";
+		document.getElementById("searchFilter").value = filter;
+	{% endif %}
+	window.history.pushState({query: query, sort: sort, filter: filter}, "");
 </script>
+{% endif %}
 <br><br>
 {% call post_helpers::draw_post_list(posts) %}
 <br>

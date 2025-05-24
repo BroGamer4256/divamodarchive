@@ -473,7 +473,7 @@ pub async fn get_multiple_posts(
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SearchParams {
 	pub query: Option<String>,
-	pub sort: Option<Vec<String>>,
+	pub sort: Option<String>,
 	pub filter: Option<String>,
 	pub limit: Option<usize>,
 	pub offset: Option<usize>,
@@ -503,9 +503,9 @@ pub async fn search_posts(
 
 	let mut sort = vec![];
 	if let Some(qsort) = &query.sort {
-		for qsort in qsort {
-			sort.push(qsort.as_str());
-		}
+		sort.push(qsort.as_str());
+	} else {
+		sort.push("time:desc");
 	}
 	search.sort = Some(&sort);
 
@@ -567,9 +567,9 @@ pub async fn count_posts(
 
 	let mut sort = vec![];
 	if let Some(qsort) = &query.sort {
-		for qsort in qsort {
-			sort.push(qsort.as_str());
-		}
+		sort.push(qsort.as_str());
+	} else {
+		sort.push("time:desc");
 	}
 	search.sort = Some(&sort);
 

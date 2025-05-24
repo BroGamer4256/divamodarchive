@@ -205,10 +205,14 @@
 		return await fetch("/api/v1/ids/modules?" + params.toString(), options).then(res => res.json());
 	}
 
-	async function loadMore() {
+	async function loadMore(clear) {
 		document.getElementById("loadMore").hidden = true;
 
 		var modules = await search(document.getElementById("searchQuery").value, document.getElementById("modules").children.length);
+		if (clear) {
+			document.getElementById("modules").innerHTML = "";
+			document.getElementById("offcanvasList").innerHTML = "";
+		}
 		for (var module of modules.modules) {
 			getModuleHtml(module, modules.posts);
 		}
@@ -217,20 +221,14 @@
 			document.getElementById("loadMore").hidden = false;
 		}
 	}
-
-	async function newLoad() {
-		document.getElementById("modules").innerHTML = "";
-		document.getElementById("offcanvasList").innerHTML = "";
-		loadMore();
-	}
 </script>
 <div class="fixed-top container floating-search">
 	<div class="row col-6 offset-3" style="padding-top: 0.66rem">
-		<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
+		<input onchange="loadMore(true)" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 	</div>
 </div>
 <br><br>
 {% call module_helpers::draw_module_list(modules, true) %}
 <br>
-<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if modules.modules.len() < 20 %}hidden{% endif %}>Load more</button>
+<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if modules.modules.len() < 20 %}hidden{% endif %}>Load more</button>
 {% endblock content %}

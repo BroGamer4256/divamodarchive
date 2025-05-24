@@ -218,10 +218,14 @@
 		return await fetch("/api/v1/ids/pvs?" + params.toString(), options).then(res => res.json());
 	}
 
-	async function loadMore() {
+	async function loadMore(clear) {
 		document.getElementById("loadMore").hidden = true;
 
 		var pvs = await search(document.getElementById("searchQuery").value, document.getElementById("pvs").children.length);
+		if (clear) {
+			document.getElementById("pvs").innerHTML = "";
+			document.getElementById("offcanvasList").innerHTML = "";
+		}
 		for (var pv of pvs.pvs) {
 			getPvHtml(pv, pvs.posts);
 		}
@@ -230,16 +234,10 @@
 			document.getElementById("loadMore").hidden = false;
 		}
 	}
-
-	async function newLoad() {
-		document.getElementById("pvs").innerHTML = "";
-		document.getElementById("offcanvasList").innerHTML = "";
-		loadMore();
-	}
 </script>
 <div class="fixed-top container floating-search">
 	<div class="row col-6 offset-3" style="padding-top: 0.66rem">
-		<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
+		<input onchange="loadMore(true)" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 	</div>
 </div>
 <br><br>
@@ -251,5 +249,5 @@
 <br>
 {% call pv_helpers::draw_pv_list(pvs, true) %}
 <br>
-<button class="btn btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if pvs.pvs.len() < 20 %}hidden{% endif %}>Load more</button>
+<button class="btn btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if pvs.pvs.len() < 20 %}hidden{% endif %}>Load more</button>
 {% endblock content %}

@@ -189,10 +189,14 @@
 		return await fetch("/api/v1/ids/cstm_items?" + params.toString(), options).then(req => req.json());
 	}
 
-	async function loadMore() {
+	async function loadMore(clear) {
 		document.getElementById("loadMore").hidden = true;
 
 		var cstm_items = await search(document.getElementById("searchQuery").value, document.getElementById("cstm_items").children.length);
+		if (clear) {
+			document.getElementById("cstm_items").innerHTML = "";
+			document.getElementById("offcanvasList").innerHTML = "";
+		}
 		for (var cstm_item of cstm_items.cstm_items) {
 			getCstmItemHtml(cstm_item, cstm_items.posts, cstm_items.bound_modules);
 		}
@@ -201,21 +205,14 @@
 			document.getElementById("loadMore").hidden = false;
 		}
 	}
-
-	async function newLoad() {
-		document.getElementById("cstm_items").innerHTML = "";
-		document.getElementById("offcanvasList").innerHTML = "";
-		loadMore();
-	}
 </script>
 <div class="fixed-top container floating-search">
 	<div class="row col-6 offset-3" style="padding-top: 0.66rem">
-		<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
+		<input onchange="loadMore(true)" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 	</div>
 </div>
 <br><br>
 {% call cstm_item_helpers::draw_cstm_items_list(cstm_items, true) %}
 <br>
-<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore()" {% if
-	cstm_items.cstm_items.len() < 20 %}hidden{% endif %}>Load more</button>
+<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if cstm_items.cstm_items.len() < 20 %}hidden{% endif %}>Load more</button>
 {% endblock content %}
